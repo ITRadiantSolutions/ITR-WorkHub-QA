@@ -1,0 +1,36 @@
+{
+  "name": "ITR WorkHub",
+  "short_name": "ITR WorkHub",
+  "description": "Complete PMS for project tracking, sprints, tasks and teams",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#3B82F6",
+  "lang": "en",
+ "icons": [
+  {
+    "src": "/pwa-192x192.png",
+    "sizes": "192x192",
+    "type": "image/png"
+  },
+  {
+    "src": "/pwa-512x512.png",
+    "sizes": "512x512",
+    "type": "image/png"
+  },
+  {
+    "src": "/maskable-512.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "maskable"
+  }
+],
+  "badge": {
+    "color": "#dc2626",
+    "textColor": "#0000",
+    "size": "220px"
+  }
+}
+

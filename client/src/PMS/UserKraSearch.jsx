@@ -1,0 +1,1683 @@
+import React, {
+    useState, useEffect, useMemo, useRef, useCallback, memo,
+} from "react";
+import { useNavigate } from "react-router-dom";
+import getAuthAxios from "../utils/authAxios";
+import { useAuth } from "../context/AuthContext";
+import Swal from "sweetalert2";
+
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// ── Constants (outside component to avoid re-creation) ────────────────────────
+const EMPTY_GOAL = {
+    title: "", successMeasure: "", checkpointDate: "",
+    progressStatus: "not_started", notes: "",
+};
+const EMPTY_PIP_FORM = {
+    id: "", employee_id: "", status: "active", outcome: "pending",
+    startDate: "", targetEndDate: "", reason: "", reviewNotes: "",
+    goals: [{ ...EMPTY_GOAL }],
+};
+const PIP_STATUS_OPTIONS = [
+    { value: "active", label: "Active" },
+    { value: "completed", label: "Completed" },
+    { value: "extended", label: "Extended" },
+    { value: "cancelled", label: "Cancelled" },
+];
+const PIP_OUTCOME_OPTIONS = [
+    { value: "pending", label: "Pending" },
+    { value: "improved", label: "Improved" },
+    { value: "extended", label: "Extended" },
+    { value: "exited", label: "Exited" },
+    { value: "cancelled", label: "Cancelled" },
+];
+const PIP_GOAL_STATUS_OPTIONS = [
+    { value: "not_started", label: "Yet To Start" },
+    { value: "on_track", label: "In Progress" },
+    { value: "met", label: "Completed" },
+];
+
+// ── PMS Role management (HR only) ──────────────────────────────────────────────
+const PMS_ROLE_META = {
+    hr: { label: "HR", icon: "🛡️", classes: "bg-purple-100 text-purple-700 border-purple-200" },
+    manager: { label: "Manager", icon: "⭐", classes: "bg-teal-100 text-teal-700 border-teal-200" },
+    employee: { label: "Employee", icon: "👤", classes: "bg-slate-100 text-slate-600 border-slate-200" },
+};
+const PMS_ROLE_OPTIONS = [
+    { value: "employee", label: "Employee" },
+    { value: "manager", label: "Manager" },
+    { value: "hr", label: "HR" },
+];
+
+// ── Pure helpers ──────────────────────────────────────────────────────────────
+const getProofDocuments = (goal) => {
+    if (goal?.proofDocuments?.length) return goal.proofDocuments;
+    if (goal?.proofDocument) return [goal.proofDocument];
+    return [];
+};
+const fetchProofUrl = async (path) => {
+    if (!path) return null;
+    try {
+        const api = await getAuthAxios();
+        const res = await api.get("/pips/proof-url", { params: { blob_name: path } });
+        return res.data?.url || null;
+    } catch (err) {
+        console.error("Failed to get proof URL", err);
+        return null;
+    }
+};
+
+const proofFileName = (path) =>
+  path ? path.split("/").pop().replace(/^\d+\.\d+_/, "") : null;
+
+const formatDateTime = (timestamp) => {
+    if (!timestamp) return { date: "-", time: "-" };
+    const d = new Date(
+        typeof timestamp === "string" && !timestamp.endsWith("Z")
+            ? `${timestamp}Z`
+            : timestamp
+    );
+    return {
+        date: d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+        time: d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+    };
+};
+
+const getKraType = (kra) =>
+    kra.type === "organizational" || kra.isOrganizational || kra.category === "organizational"
+        ? "organizational"
+        : "job-specific";
+
+const getWeightStatus = (weight) => {
+    if (weight >= 75) return { label: "Excellent", color: "bg-emerald-300" };
+    if (weight >= 50) return { label: "Good", color: "bg-blue-300" };
+    if (weight >= 25) return { label: "Average", color: "bg-amber-300" };
+    return { label: "Low", color: "bg-red-300" };
+};
+
+const getPipSummary = (pip) => {
+    if (!pip) return { label: "PIP", tone: "bg-white text-slate-600 border-2 border-slate-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 shadow-sm", dot: "bg-slate-400" };
+    if (pip.status === "active") return { label: "Active PIP", tone: "bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-md", dot: "bg-amber-200" };
+    if (pip.status === "completed") return { label: "Completed", tone: "bg-white text-emerald-600 border-2 border-emerald-400 hover:bg-emerald-50 shadow-sm", dot: "bg-emerald-500" };
+    if (pip.status === "extended") return { label: "Extended", tone: "bg-white text-blue-600 border-2 border-blue-400 hover:bg-blue-50 shadow-sm", dot: "bg-blue-500" };
+    if (pip.status === "cancelled") return { label: "Cancelled", tone: "bg-white text-slate-500 border-2 border-slate-300 hover:bg-slate-50 shadow-sm", dot: "bg-slate-400" };
+    return { label: pip.status, tone: "bg-white text-slate-500 border-2 border-slate-300 shadow-sm", dot: "bg-slate-400" };
+};
+
+const initials = (name = "") =>
+    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
+const buildDownloadCSV = (filteredUsers, formatDateTimeFn) => () => {
+    if (!filteredUsers.length) return;
+    const rows = [["User Name", "PMS Role", "KRA Assigned", "Assigned By", "Assigned Date", "Assigned Time", "Reports To"]];
+    filteredUsers.forEach((u) => {
+        const { date, time } = formatDateTimeFn(u.assignedAt);
+        rows.push([
+            u.name,
+            (PMS_ROLE_META[u.pms_role] || PMS_ROLE_META.employee).label,
+            u.hasKra ? "Yes" : "No",
+            u.assignedBy || "-",
+            date,
+            time,
+            u.managerName || "-",
+        ]);
+    });
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "user-kra-assignments.csv"; a.click();
+    URL.revokeObjectURL(url);
+};
+
+// ── Shared spinner ─────────────────────────────────────────────────────────────
+const Spinner = ({ size = "w-8 h-8", color = "border-indigo-200 border-t-indigo-600" }) => (
+    <div className={`${size} border-4 ${color} rounded-full animate-spin`} />
+);
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+const Toast = memo(({ toast, onClose }) => {
+    if (!toast) return null;
+    const isSuccess = toast.type === "success";
+    return (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl text-white text-sm font-medium ${isSuccess ? "bg-emerald-500" : "bg-red-500"}`}>
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isSuccess ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
+            </svg>
+            <span>{toast.message}</span>
+            <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    );
+});
+
+// ── PIP Goal Card ─────────────────────────────────────────────────────────────
+const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoals, onUpdate, onRemove, onViewProof }) => {
+    const proofDocs = getProofDocuments(savedGoal);
+    const totalAttachments = proofDocs.length;
+
+    return (
+        <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-slate-700">Goal {index + 1}</p>
+                    {totalAttachments > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                            📎 {totalAttachments} {totalAttachments === 1 ? "attachment" : "attachments"}
+                        </span>
+                    )}
+                </div>
+                {totalGoals > 1 && (
+                    <button type="button" onClick={() => onRemove(index)} className="text-xs text-red-500 hover:text-red-700 font-medium">
+                        Remove
+                    </button>
+                )}
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2">
+                    <label className="text-xs text-slate-500 font-medium block mb-1">
+                        Goal Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={goal.title}
+                        onChange={(e) => onUpdate(index, "title", e.target.value)}
+                        placeholder="Describe the improvement goal…"
+                        className={`w-full border px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 ${!goal.title?.trim() ? "border-red-300 bg-red-50 focus:ring-red-400" : "border-slate-200"}`}
+                    />
+                    {!goal.title?.trim() && <p className="text-xs text-red-500 mt-1">Goal title is required.</p>}
+                </div>
+                <div>
+                    <label className="text-xs text-slate-500 font-medium block mb-1">Success Measure</label>
+                    <input type="text" value={goal.successMeasure}
+                        onChange={(e) => onUpdate(index, "successMeasure", e.target.value)}
+                        placeholder="How will success be measured?"
+                        className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                </div>
+                <div>
+                    <label className="text-xs text-slate-500 font-medium block mb-1">Checkpoint Date</label>
+                    <input type="date" value={goal.checkpointDate}
+                        onChange={(e) => onUpdate(index, "checkpointDate", e.target.value)}
+                        className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                </div>
+                <div>
+                    <label className="text-xs text-slate-500 font-medium block mb-1">Progress Status</label>
+                    <select value={goal.progressStatus} onChange={(e) => onUpdate(index, "progressStatus", e.target.value)}
+                        className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        {PIP_GOAL_STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                </div>
+                <div className="md:col-span-2">
+                    <label className="text-xs text-slate-500 font-medium block mb-1">Manager Notes</label>
+                    <textarea value={goal.notes} rows={2} onChange={(e) => onUpdate(index, "notes", e.target.value)}
+                        placeholder="Any notes or context…"
+                        className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                </div>
+            </div>
+            {/* Employee Submission panel */}
+            <div className="px-4 pb-4">
+                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Employee Submission</span>
+                        {employeeUpdatedAt && (
+                            <span className="text-xs text-slate-400">
+                                Last updated: {new Date(employeeUpdatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">Employee Status:</span>
+                        {savedGoal?.progressStatus ? (
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${savedGoal.progressStatus === "met" ? "bg-emerald-100 text-emerald-700" : savedGoal.progressStatus === "on_track" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${savedGoal.progressStatus === "met" ? "bg-emerald-500" : savedGoal.progressStatus === "on_track" ? "bg-blue-500" : "bg-slate-400"}`} />
+                                {PIP_GOAL_STATUS_OPTIONS.find((o) => o.value === savedGoal.progressStatus)?.label || savedGoal.progressStatus}
+                            </span>
+                        ) : (
+                            <span className="text-xs text-slate-400 italic">Not submitted yet</span>
+                        )}
+                    </div>
+                    {totalAttachments > 0 ? (
+                        <div className="space-y-1.5">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                {totalAttachments} {totalAttachments === 1 ? "Attachment" : "Attachments"}
+                            </p>
+                            {proofDocs.map((path, fileIdx) => (
+                                <div key={fileIdx} className="flex items-center gap-3 p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold text-indigo-700 truncate">{proofFileName(path) || `Attachment ${fileIdx + 1}`}</p>
+                                        <p className="text-xs text-slate-400">Employee uploaded proof</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            const url = await fetchProofUrl(path);
+                                            if (url) window.open(url, "_blank", "noopener,noreferrer");
+                                        }}
+                                        className="shrink-0 px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition">
+                                        View
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-slate-400 italic">No proof uploaded yet</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+});
+
+// ── Library KRA Card ──────────────────────────────────────────────────────────
+const LibraryKraCard = memo(({ kra, alreadyAdded, onAdd }) => (
+    <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-200 hover:border-indigo-300 hover:shadow-sm transition">
+        <div className="flex-1 pr-3">
+            <p className="text-sm font-semibold text-slate-800">{kra.name}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{kra.kpis?.length || 0} KPIs</p>
+        </div>
+        <button onClick={() => onAdd(kra)} disabled={alreadyAdded}
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition ${alreadyAdded ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}`}>
+            {alreadyAdded ? "✓ Added" : "+ Add"}
+        </button>
+    </div>
+));
+
+// ── Role Badge / Dropdown ──────────────────────────────────────────────────────
+const RoleCell = memo(({ userId, userName, role, isArchived, isSaving, onChangeRole }) => {
+    const meta = PMS_ROLE_META[role] || PMS_ROLE_META.employee;
+
+    if (isArchived) {
+        return (
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${meta.classes}`}>
+                <span>{meta.icon}</span>{meta.label}
+            </span>
+        );
+    }
+
+    return (
+        <div className="relative inline-block">
+            <select
+                value={role}
+                disabled={isSaving}
+                onChange={(e) => onChangeRole(userId, userName, e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                title="Change PMS role"
+                className={`appearance-none pl-6 pr-6 py-1 rounded-full border text-xs font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50 disabled:cursor-wait transition ${meta.classes}`}
+            >
+                {PMS_ROLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+            </select>
+            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs">
+                {isSaving ? "⏳" : meta.icon}
+            </span>
+            <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-current opacity-60"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+    );
+});
+
+// ── User Table Row ─────────────────────────────────────────────────────────────
+const UserRow = memo(({
+    userData, isChecked, filterStatus, pms_role,
+    canEditKra, canManageReporting, canManageRoles, canManagePip,
+    pipSummary, savingRoleId, onView, onEdit, onReporting, onArchive, onPip, onToggleSelect, onChangeRole,
+}) => {
+    const { date, time } = formatDateTime(userData.assignedAt);
+    const isArchived = userData.isArchived === true;
+
+    return (
+        <tr className={`flex w-full items-center transition-colors ${isArchived ? "bg-slate-50 opacity-70 hover:opacity-90" : isChecked ? "bg-indigo-50" : "hover:bg-slate-50"}`}>
+            {filterStatus !== "archived" && pms_role === "hr" && (
+                <td className="px-4 py-4 w-[48px] flex items-center justify-center">
+                    <input type="checkbox" checked={isChecked} onChange={() => onToggleSelect(userData.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
+                </td>
+            )}
+            <td className={`px-6 py-4 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
+                <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-indigo-500 to-purple-500"}`}>
+                        {initials(userData.name)}
+                    </div>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <span className={`font-medium block truncate ${isArchived ? "text-slate-400 line-through" : "text-slate-800"}`}>{userData.name}</span>
+                            {isArchived && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-xs font-medium shrink-0">Archived</span>}
+                        </div>
+                        {!isArchived && userData.assignedBy && (
+                            <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                <span className="text-slate-500 font-medium truncate">{userData.assignedBy}</span>
+                            </span>
+                        )}
+                        {!isArchived && userData.assignedAt && (
+                            <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <span>{date}, {time}</span>
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </td>
+            <td className="px-6 py-4 text-center w-[13%]">
+                {isArchived ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-600 text-sm font-medium">
+                        <span className="w-2 h-2 rounded-full bg-orange-400" />Archived
+                    </span>
+                ) : userData.hasKra ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />Yes
+                    </span>
+                ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-sm font-medium">
+                        <span className="w-2 h-2 rounded-full bg-slate-400" />No
+                    </span>
+                )}
+            </td>
+            {canManageReporting && (
+                <td className="px-4 py-4 text-center w-[13%]">
+                    {userData.managerName ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-medium border border-teal-200 max-w-full truncate">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+                            <span className="truncate">{userData.managerName}</span>
+                        </span>
+                    ) : (
+                        <span className="text-xs text-slate-400 italic">Unassigned</span>
+                    )}
+                </td>
+            )}
+            {canManageRoles && (
+                <td className="px-4 py-4 text-center w-[12%]">
+                    <RoleCell
+                        userId={userData.id}
+                        userName={userData.name}
+                        role={userData.pms_role}
+                        isArchived={isArchived}
+                        isSaving={savingRoleId === userData.id}
+                        onChangeRole={onChangeRole}
+                    />
+                </td>
+            )}
+            <td className="px-6 py-4 flex-1">
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {isArchived ? (
+                        <button onClick={() => onArchive(userData.id, userData.name, true)}
+                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition active:scale-95">
+                            Restore
+                        </button>
+                    ) : (
+                        <>
+                            <button onClick={() => onView(userData)} title="View KRA Details"
+                                className="w-9 h-9 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            </button>
+                            {canEditKra && userData.hasKra && (
+                                <button onClick={() => onEdit(userData)} title="Edit KRA Assignment"
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-100 transition">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                            )}
+                            {canManageReporting && (
+                                <button onClick={() => onReporting(userData)} title="Manage Reporting Line"
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-teal-50 text-teal-600 hover:bg-teal-100 transition">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                </button>
+                            )}
+                            {pms_role === "hr" && (
+                                <button onClick={() => onArchive(userData.id, userData.name, false)} title="Archive User"
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-orange-50 text-orange-500 hover:bg-orange-100 hover:text-orange-700 transition">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M10 12v4m4-4v4" /></svg>
+                                </button>
+                            )}
+                            {canManagePip ? (
+                                <button onClick={() => onPip(userData)}
+                                    title={pipSummary.label === "PIP" ? "Start PIP" : "Manage PIP"}
+                                    className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap active:scale-95 ${pipSummary.tone}`}>
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${pipSummary.dot}`} />
+                                    {pipSummary.label}
+                                </button>
+                            ) : (
+                                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold shrink-0 whitespace-nowrap ${pipSummary.tone}`}>
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${pipSummary.dot}`} />
+                                    {pipSummary.label}
+                                </span>
+                            )}
+                        </>
+                    )}
+                </div>
+            </td>
+        </tr>
+    );
+});
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+export default function UserKraSearch() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    // NOTE: users have TWO separate role fields — `role` (TimeFlow) and
+    // `pms_role` (this PMS app). This page's permissions must be gated on
+    // `pms_role`, since the two can differ per user (e.g. TimeFlow role
+    // "manager" but pms_role "hr"). `user` comes from useAuth() (/api/auth/me),
+    // which carries both fields — so we read pms_role directly instead of
+    // going through getUserRole(), which only ever reads `role`.
+    const pms_role = (user?.roles?.pms || "employee").toLowerCase();
+    const managerName = user?.name || user?.username || user?.full_name ||
+        (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || "");
+
+    // ── Core state ────────────────────────────────────────────────────────────
+    const [allUsers, setAllUsers] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [sortType, setSortType] = useState("name");
+    const [filterStatus, setFilterStatus] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [archivedUsers, setArchivedUsers] = useState([]);
+    const [archivedLoading, setArchivedLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [myReportIds, setMyReportIds] = useState(null);
+    const [userPips, setUserPips] = useState({});
+
+    // ── Role management state ────────────────────────────────────────────────
+    const [savingRoleId, setSavingRoleId] = useState(null);
+
+    // ── KRA modal state ───────────────────────────────────────────────────────
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [userKraDetails, setUserKraDetails] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [pendingEdit, setPendingEdit] = useState(false);
+    const [editableKras, setEditableKras] = useState([]);
+    const [savingEdit, setSavingEdit] = useState(false);
+    const [libraryKras, setLibraryKras] = useState([]);
+    const [showLibraryPanel, setShowLibraryPanel] = useState(false);
+    const [libraryLoading, setLibraryLoading] = useState(false);
+    const [jobSearch, setJobSearch] = useState("");
+    const [orgSearch, setOrgSearch] = useState("");
+
+    // ── PIP modal state ───────────────────────────────────────────────────────
+    const [pipModalOpen, setPipModalOpen] = useState(false);
+    const [pipUser, setPipUser] = useState(null);
+    const [pipForm, setPipForm] = useState(EMPTY_PIP_FORM);
+    const [savingPip, setSavingPip] = useState(false);
+    const pipSubmitting = useRef(false);
+    const pipOriginalForm = useRef(null);
+
+    // ── Reporting modal state ─────────────────────────────────────────────────
+    const [reportingModalOpen, setReportingModalOpen] = useState(false);
+    const [reportingUser, setReportingUser] = useState(null);
+    const [managers, setManagers] = useState([]);
+    const [managersLoading, setManagersLoading] = useState(false);
+    const [selectedManagerId, setSelectedManagerId] = useState("");
+    const [savingManager, setSavingManager] = useState(false);
+
+    // ── Bulk state ────────────────────────────────────────────────────────────
+    const [bulkSelected, setBulkSelected] = useState(new Set());
+    const [bulkModalOpen, setBulkModalOpen] = useState(false);
+    const [bulkManagerId, setBulkManagerId] = useState("");
+    const [savingBulk, setSavingBulk] = useState(false);
+
+    // ── Derived flags ─────────────────────────────────────────────────────────
+    const canManagePip = pms_role === "hr" || pms_role === "manager" || pms_role === "admin";
+    const canEditKra = pms_role === "hr" || pms_role === "manager";
+    const canManageReporting = pms_role === "hr";
+    const canManageRoles = pms_role === "hr";
+    const isPipDirty = pipOriginalForm.current !== JSON.stringify(pipForm);
+    const tableLoading = filterStatus === "archived" ? archivedLoading : loading;
+
+    // ── Toast helper ──────────────────────────────────────────────────────────
+    const showToast = useCallback((message, type = "success") => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    }, []);
+
+    // ── API helpers ───────────────────────────────────────────────────────────
+    const fetchAllUsers = useCallback(async () => {
+        setLoading(true);
+        try {
+            const api = await getAuthAxios();
+            const res = await api.get("/kpi-template/search-user?name=&sort=recent&assignedBy=");
+            const formatted = (res.data || []).map((u) => {
+                let latest = null, assignedBy = null;
+                (u.kras || []).forEach((k) => {
+                    if (!latest || new Date(k.assignedAt) > new Date(latest)) {
+                        latest = k.assignedAt; assignedBy = k.assignedBy;
+                    }
+                });
+                return {
+                    id: u.id, name: u.name, email: u.email,
+                    // ✅ backend now returns u.role = pms_role (see routes fix); normalize + default
+                    pms_role: (u.role || "employee").toLowerCase(),
+                    hasKra: u.hasKRA, kraCount: u.kras?.length || 0,
+                    assignedBy, assignedAt: latest, isArchived: false,
+                    managerId: u.manager_id || null, managerName: u.manager_name || null,
+                };
+            });
+            setAllUsers(formatted);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const fetchArchivedUsers = useCallback(async () => {
+        setArchivedLoading(true);
+        try {
+            const api = await getAuthAxios();
+            const res = await api.get("/kpi-template/search-user?name=&sort=name&archived=true");
+            setArchivedUsers((res.data || []).map((u) => ({
+                id: u.id, name: u.name, email: u.email,
+                pms_role: (u.role || "employee").toLowerCase(),
+                hasKra: u.hasKRA, kraCount: u.kras?.length || 0,
+                assignedBy: null, assignedAt: null, isArchived: true,
+                managerId: u.manager_id || null, managerName: u.manager_name || null,
+            })));
+        } catch (error) {
+            console.error("Error fetching archived users:", error);
+        } finally {
+            setArchivedLoading(false);
+        }
+    }, []);
+
+    const fetchAllPips = useCallback(async () => {
+        try {
+            const api = await getAuthAxios();
+            const pips = (await api.get("/pips")).data || [];
+            const pipMap = {};
+            pips.forEach((pip) => {
+                const uid = pip.employee_id;
+                if (!pipMap[uid] || pip.status === "active") pipMap[uid] = pip;
+            });
+            setUserPips(pipMap);
+        } catch (error) {
+            console.error("Error fetching PIPs:", error);
+        }
+    }, []);
+
+    const fetchUserDetails = useCallback(async (userName) => {
+        setDetailsLoading(true);
+        try {
+            const api = await getAuthAxios();
+            const res = await api.get(`/kpi-template/search-user?name=${encodeURIComponent(userName)}&sort=recent&assignedBy=`);
+            setUserKraDetails(res.data[0] || null);
+        } catch (error) {
+            console.error("Error fetching user details:", error);
+        } finally {
+            setDetailsLoading(false);
+        }
+    }, []);
+
+    const fetchManagers = useCallback(async () => {
+        try {
+            const api = await getAuthAxios();
+            const res = await api.get("/managers/");
+            setManagers(res.data || []);
+        } catch (err) {
+            console.error("Failed to load managers", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchAllUsers();
+        fetchAllPips();
+        if (pms_role === "manager") {
+            getAuthAxios()
+                .then((api) => api.get("/users/my-reports"))
+                .then((res) => setMyReportIds(res.data?.report_ids || []))
+                .catch(() => setMyReportIds([]));
+        }
+    }, [fetchAllUsers, fetchAllPips, pms_role]);
+
+    useEffect(() => {
+        if (filterStatus === "archived") fetchArchivedUsers();
+    }, [filterStatus, fetchArchivedUsers]);
+
+    useEffect(() => {
+        if (!detailsLoading && pendingEdit && userKraDetails) {
+            setPendingEdit(false);
+            enterEditMode(userKraDetails);
+        }
+    }, [detailsLoading, pendingEdit, userKraDetails]);
+
+    // ── Archive ───────────────────────────────────────────────────────────────
+    const handleArchive = useCallback(async (userId, userName, restore = false) => {
+        const result = await Swal.fire({
+            title: restore ? "Restore User?" : "Archive User?",
+            html: restore
+                ? `<b>${userName}</b> will regain full access to the PMS.`
+                : `<b>${userName}</b> will lose access to the entire PMS.<br/>They won't appear anywhere and cannot log in.`,
+            icon: restore ? "question" : "warning",
+            showCancelButton: true,
+            confirmButtonColor: restore ? "#16a34a" : "#ea580c",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: restore ? "Yes, Restore" : "Yes, Archive",
+        });
+        if (!result.isConfirmed) return;
+        try {
+            const api = await getAuthAxios();
+            await api.patch(`/pms/users/${userId}/archive`, { is_archived: !restore });
+            if (restore) {
+                setArchivedUsers((prev) => prev.filter((u) => u.id !== userId));
+                Swal.fire("Restored!", `${userName} has been restored.`, "success");
+            } else {
+                setAllUsers((prev) => prev.filter((u) => u.id !== userId));
+                Swal.fire("Archived!", `${userName} has been archived.`, "success");
+            }
+        } catch {
+            Swal.fire("Error", `Failed to ${restore ? "restore" : "archive"} user.`, "error");
+        }
+    }, []);
+
+    // ── Role management ──────────────────────────────────────────────────────
+    const handleChangeRole = useCallback(async (userId, userName, newRole) => {
+        const target = allUsers.find((u) => u.id === userId);
+        if (!target || target.pms_role === newRole) return;
+
+        const meta = PMS_ROLE_META[newRole] || PMS_ROLE_META.employee;
+        const result = await Swal.fire({
+            title: "Change PMS Role?",
+            html: `Set <b>${userName}</b>'s role to <b>${meta.label}</b>?`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#4f46e5",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "Yes, Change",
+        });
+        if (!result.isConfirmed) return;
+
+        const prevRole = target.pms_role;
+        setSavingRoleId(userId);
+        // optimistic update
+        setAllUsers((prev) => prev.map((u) => u.id === userId ? { ...u, pms_role: newRole } : u));
+
+        try {
+            const api = await getAuthAxios();
+            await api.post("/assign-pms-role/", { user: userId, role: newRole });
+            showToast(`${userName}'s role updated to ${meta.label}`);
+        } catch (err) {
+            console.error("Role change failed", err);
+            // rollback on failure
+            setAllUsers((prev) => prev.map((u) => u.id === userId ? { ...u, pms_role: prevRole } : u));
+            showToast("Failed to update role. Please try again.", "error");
+        } finally {
+            setSavingRoleId(null);
+        }
+    }, [allUsers, showToast]);
+
+    // ── Reporting ─────────────────────────────────────────────────────────────
+    const openReportingModal = useCallback(async (userData) => {
+        setReportingUser(userData);
+        setSelectedManagerId(userData.managerId || "");
+        setReportingModalOpen(true);
+        setManagersLoading(true);
+        await fetchManagers();
+        setManagersLoading(false);
+    }, [fetchManagers]);
+
+    const closeReportingModal = useCallback(() => {
+        if (savingManager) return;
+        setReportingModalOpen(false); setReportingUser(null);
+        setManagers([]); setSelectedManagerId("");
+    }, [savingManager]);
+
+    const handleAssignManager = useCallback(async () => {
+        if (savingManager) return;
+        setSavingManager(true);
+        try {
+            const api = await getAuthAxios();
+            const chosen = managers.find((m) => String(m.id) === String(selectedManagerId));
+            const mgrName = chosen?.username || chosen?.name || chosen?.email?.split("@")[0] || "";
+            await api.patch(`/users/${reportingUser.id}/manager`, { manager_id: selectedManagerId || null, manager_name: mgrName });
+            setAllUsers((prev) => prev.map((u) => u.id === reportingUser.id ? { ...u, managerId: selectedManagerId || null, managerName: mgrName || null } : u));
+            showToast(selectedManagerId ? `${reportingUser.name} now reports to ${mgrName}` : `Reporting line cleared for ${reportingUser.name}`);
+            closeReportingModal();
+        } catch (err) {
+            console.error("Failed to assign manager", err);
+            showToast("Failed to save. Please try again.", "error");
+        } finally {
+            setSavingManager(false);
+        }
+    }, [savingManager, managers, selectedManagerId, reportingUser, showToast, closeReportingModal]);
+
+    // ── Bulk ──────────────────────────────────────────────────────────────────
+    const filteredUsers = useMemo(() => {
+        if (filterStatus === "archived") {
+            const q = searchQuery.trim().toLowerCase();
+            return q ? archivedUsers.filter((u) => u.name.toLowerCase().includes(q)) : archivedUsers;
+        }
+        let users = pms_role === "manager" && myReportIds !== null
+            ? allUsers.filter((u) => myReportIds.includes(u.id))
+            : [...allUsers];
+        const q = searchQuery.trim().toLowerCase();
+        if (q) users = users.filter((u) => u.name.toLowerCase().includes(q));
+        if (filterStatus === "assigned") users = users.filter((u) => u.hasKra);
+        else if (filterStatus === "unassigned") users = users.filter((u) => !u.hasKra);
+        else if (filterStatus === "pip") users = users.filter((u) => userPips[u.id]?.status === "active");
+        if (sortType === "name") users.sort((a, b) => a.name.localeCompare(b.name));
+        else if (sortType === "recent") users.sort((a, b) => new Date(b.assignedAt || 0) - new Date(a.assignedAt || 0));
+        return users;
+    }, [allUsers, archivedUsers, searchQuery, filterStatus, sortType, myReportIds, pms_role, userPips]);
+
+    const allFilteredSelected = filteredUsers.length > 0 && bulkSelected.size === filteredUsers.length;
+
+    const toggleBulkSelect = useCallback((userId) => {
+        setBulkSelected((prev) => { const next = new Set(prev); next.has(userId) ? next.delete(userId) : next.add(userId); return next; });
+    }, []);
+
+    const toggleSelectAll = useCallback(() => {
+        setBulkSelected(allFilteredSelected ? new Set() : new Set(filteredUsers.map((u) => u.id)));
+    }, [allFilteredSelected, filteredUsers]);
+
+    const openBulkModal = useCallback(async () => {
+        setBulkManagerId(""); setBulkModalOpen(true); await fetchManagers();
+    }, [fetchManagers]);
+
+    const closeBulkModal = useCallback(() => {
+        if (savingBulk) return; setBulkModalOpen(false); setBulkManagerId("");
+    }, [savingBulk]);
+
+    const handleBulkManagerAssign = useCallback(async () => {
+        if (savingBulk) return;
+        setSavingBulk(true);
+        try {
+            const api = await getAuthAxios();
+            const chosen = managers.find((m) => String(m.id) === String(bulkManagerId));
+            const mgrName = chosen?.username || chosen?.name || chosen?.email?.split("@")[0] || "";
+            const res = await api.post("/users/bulk-assign-manager", {
+                user_ids: Array.from(bulkSelected), manager_id: bulkManagerId || null, manager_name: mgrName,
+            });
+            showToast(`Manager updated for ${res.data.updated} user(s)`);
+            closeBulkModal(); setBulkSelected(new Set()); await fetchAllUsers();
+        } catch (err) {
+            console.error("Bulk manager assign failed", err);
+            showToast("Bulk manager assign failed. Please try again.", "error");
+        } finally {
+            setSavingBulk(false);
+        }
+    }, [savingBulk, managers, bulkManagerId, bulkSelected, showToast, closeBulkModal, fetchAllUsers]);
+
+    // ── KRA modal ─────────────────────────────────────────────────────────────
+    const openViewModal = useCallback((userData) => {
+        setSelectedUser(userData); setIsEditing(false); setPendingEdit(false);
+        setModalOpen(true); fetchUserDetails(userData.name);
+    }, [fetchUserDetails]);
+
+    const openEditModal = useCallback((userData) => {
+        setSelectedUser(userData); setIsEditing(false); setPendingEdit(true);
+        setModalOpen(true); fetchUserDetails(userData.name);
+    }, [fetchUserDetails]);
+
+    const closeModal = useCallback(() => {
+        setModalOpen(false); setSelectedUser(null); setUserKraDetails(null);
+        setIsEditing(false); setPendingEdit(false); setEditableKras([]);
+        setShowLibraryPanel(false); setJobSearch(""); setOrgSearch("");
+    }, []);
+
+    const enterEditMode = useCallback((details) => {
+        const kras = (details || userKraDetails)?.kras || [];
+        const seen = new Map();
+        kras.forEach((kra) => {
+            const ex = seen.get(kra.name);
+            if (!ex || new Date(kra.assignedAt || 0) > new Date(ex.assignedAt || 0)) seen.set(kra.name, kra);
+        });
+        setEditableKras(Array.from(seen.values()).map((kra) => ({
+            ...kra, instanceId: crypto.randomUUID(),
+            kpis: (kra.kpis || []).map((kpi) => ({ ...kpi, target: kpi.target || "", actual: kpi.actual || "" })),
+        })));
+        setIsEditing(true);
+    }, [userKraDetails]);
+
+    const updateEditKraWeight = useCallback((instanceId, value) => {
+        const num = parseFloat(value) || 0;
+        setEditableKras((prev) => {
+            const othersTotal = prev.reduce((sum, k) => k.instanceId !== instanceId ? sum + Number(k.weight || 0) : sum, 0);
+            if (othersTotal + num > 100) return prev;
+            return prev.map((k) => k.instanceId === instanceId ? { ...k, weight: num } : k);
+        });
+    }, []);
+
+    const updateEditKpiWeight = useCallback((instanceId, kpiIndex, value) => {
+        const num = parseFloat(value) || 0;
+        setEditableKras((prev) => prev.map((k) => {
+            if (k.instanceId !== instanceId) return k;
+            const otherTotal = k.kpis.reduce((sum, p, i) => i !== kpiIndex ? sum + Number(p.weight || 0) : sum, 0);
+            if (otherTotal + num > 100) return k;
+            return { ...k, kpis: k.kpis.map((p, i) => i === kpiIndex ? { ...p, weight: num } : p) };
+        }));
+    }, []);
+
+    const updateEditKpiTarget = useCallback((instanceId, kpiIndex, val) => {
+        setEditableKras((prev) => prev.map((k) =>
+            k.instanceId === instanceId
+                ? { ...k, kpis: k.kpis.map((p, i) => i === kpiIndex ? { ...p, target: val } : p) }
+                : k
+        ));
+    }, []);
+
+    const removeEditKra = useCallback((instanceId) => {
+        setEditableKras((prev) => prev.filter((k) => k.instanceId !== instanceId));
+    }, []);
+
+    const fetchLibrary = useCallback(async () => {
+        setLibraryLoading(true);
+        try {
+            const api = await getAuthAxios();
+            const res = await api.get("/kra-library");
+            setLibraryKras(res.data || []);
+            setShowLibraryPanel(true);
+        } catch (err) {
+            console.error("Failed to load KRA library", err);
+        } finally {
+            setLibraryLoading(false);
+        }
+    }, []);
+
+    const addKraFromLibrary = useCallback((kra) => {
+        setEditableKras((prev) => {
+            if (prev.some((k) => k.originalId === kra.id || k.name === kra.name)) return prev;
+            return [...prev, {
+                originalId: kra.id, name: kra.name, type: kra.type, weight: 0,
+                instanceId: crypto.randomUUID(),
+                kpis: (kra.kpis || []).map((kpi) => ({ name: kpi.name || kpi.title || "", weight: 0, target: "", actual: "" })),
+            }];
+        });
+    }, []);
+
+    const handleSaveEdit = useCallback(async () => {
+        const totalWeight = editableKras.reduce((sum, k) => sum + Number(k.weight || 0), 0);
+        if (totalWeight !== 100) { showToast(`Total KRA weight must be exactly 100%. Currently: ${totalWeight}%`, "error"); return; }
+        for (const kra of editableKras) {
+            if (!kra.weight || Number(kra.weight) <= 0) { showToast(`KRA "${kra.name}" must have a weight > 0`, "error"); return; }
+            if (kra.kpis?.length > 0) {
+                const kpiTotal = kra.kpis.reduce((sum, k) => sum + Number(k.weight || 0), 0);
+                if (kpiTotal !== 100) { showToast(`KPI weights for "${kra.name}" must total 100%. Currently: ${kpiTotal}%`, "error"); return; }
+                if (kra.kpis.some((k) => Number(k.weight || 0) <= 0)) { showToast(`All KPIs in "${kra.name}" must have weight > 0`, "error"); return; }
+            }
+        }
+        setSavingEdit(true);
+        try {
+            const api = await getAuthAxios();
+            await api.put(`/kpi-template/update-by-user/${selectedUser.id}`, { kras: editableKras, updatedBy: managerName });
+            await fetchUserDetails(selectedUser.name);
+            await fetchAllUsers();
+            setIsEditing(false); setShowLibraryPanel(false);
+            showToast("KRA assignment updated successfully!");
+        } catch (err) {
+            console.error("Save failed", err);
+            showToast("Failed to save changes. Please try again.", "error");
+        } finally {
+            setSavingEdit(false);
+        }
+    }, [editableKras, selectedUser, managerName, showToast, fetchUserDetails, fetchAllUsers]);
+
+    // ── PIP ───────────────────────────────────────────────────────────────────
+    const openPipModal = useCallback(async (userData) => {
+        setPipUser(userData); setPipModalOpen(true);
+        try {
+            const api = await getAuthAxios();
+            const pips = (await api.get("/pips")).data || [];
+            const pipMap = {};
+            pips.forEach((pip) => { const uid = pip.employee_id; if (!pipMap[uid] || pip.status === "active") pipMap[uid] = pip; });
+            setUserPips(pipMap);
+            const existing = pipMap[userData.id] || null;
+            const formData = existing ? {
+                id: existing.id || existing._id || "",
+                employee_id: userData.id,
+                status: existing.status || "active",
+                outcome: existing.outcome || "pending",
+                startDate: existing.startDate ? new Date(existing.startDate).toISOString().slice(0, 10) : "",
+                targetEndDate: existing.targetEndDate ? new Date(existing.targetEndDate).toISOString().slice(0, 10) : "",
+                reason: existing.reason || "",
+                reviewNotes: existing.reviewNotes || "",
+                goals: existing.goals?.length
+                    ? existing.goals.map((g) => ({
+                        title: g.title || "", successMeasure: g.successMeasure || "",
+                        checkpointDate: g.checkpointDate ? new Date(g.checkpointDate).toISOString().slice(0, 10) : "",
+                        progressStatus: g.progressStatus || "not_started", notes: g.notes || "",
+                        proofDocuments: g.proofDocuments || (g.proofDocument ? [g.proofDocument] : []),
+                    }))
+                    : [{ ...EMPTY_GOAL }],
+            } : { ...EMPTY_PIP_FORM, employee_id: userData.id };
+            pipOriginalForm.current = JSON.stringify(formData);
+            setPipForm(formData);
+        } catch (err) {
+            console.error("Failed to refresh PIP data", err);
+        }
+    }, []);
+
+    const closePipModal = useCallback(() => {
+        if (pipSubmitting.current) return;
+        pipOriginalForm.current = null;
+        setPipModalOpen(false); setPipUser(null); setPipForm(EMPTY_PIP_FORM);
+    }, []);
+
+    const updatePipGoalField = useCallback((index, field, value) => {
+        setPipForm((prev) => ({
+            ...prev,
+            goals: prev.goals.map((g, i) => i === index ? { ...g, [field]: value } : g),
+        }));
+    }, []);
+
+    const addPipGoal = useCallback(() => {
+        const emptyIdx = pipForm.goals.findIndex((g) => !g.title?.trim());
+        if (emptyIdx !== -1) { showToast(`Please fill Goal ${emptyIdx + 1} title before adding a new goal.`, "error"); return; }
+        setPipForm((prev) => ({ ...prev, goals: [...prev.goals, { ...EMPTY_GOAL }] }));
+    }, [pipForm.goals, showToast]);
+
+    const removePipGoal = useCallback((index) => {
+        setPipForm((prev) => ({ ...prev, goals: prev.goals.filter((_, i) => i !== index) }));
+    }, []);
+
+    const handlePipSubmit = useCallback(async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (pipSubmitting.current || savingPip) return;
+        if (!pipForm.goals.length) { showToast("At least one goal is required.", "error"); return; }
+        const emptyIdx = pipForm.goals.findIndex((g) => !g.title?.trim());
+        if (emptyIdx !== -1) { showToast(`Goal ${emptyIdx + 1} title is required.`, "error"); return; }
+        pipSubmitting.current = true; setSavingPip(true);
+        try {
+            const api = await getAuthAxios();
+            const payload = {
+                employee_id: pipForm.employee_id, status: pipForm.status,
+                outcome: pipForm.outcome, startDate: pipForm.startDate,
+                targetEndDate: pipForm.targetEndDate, reason: pipForm.reason,
+                reviewNotes: pipForm.reviewNotes,
+                goals: pipForm.goals.filter((g) => g.title.trim()).map((g) => ({
+                    ...g, proofDocuments: g.proofDocuments || [], proofDocument: g.proofDocuments?.[0] || null,
+                })),
+            };
+            pipForm.id ? await api.put(`/pips/${pipForm.id}`, payload) : await api.post("/pips", payload);
+            await fetchAllPips();
+            closePipModal();
+            showToast(pipForm.id ? "PIP updated successfully!" : "PIP created successfully!");
+        } catch (err) {
+            console.error("PIP save failed", err);
+            showToast("Failed to save PIP. Please try again.", "error");
+        } finally {
+            setSavingPip(false); pipSubmitting.current = false;
+        }
+    }, [pipForm, savingPip, showToast, fetchAllPips, closePipModal]);
+
+    const downloadCSV = useMemo(() => buildDownloadCSV(filteredUsers, formatDateTime), [filteredUsers]);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RENDER
+    // ─────────────────────────────────────────────────────────────────────────
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-8">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* ── Header ── */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 px-5 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <h1 className="text-lg font-bold text-slate-800 shrink-0">User KRA Assignments</h1>
+                            {filterStatus !== "archived" && (
+                                <div className={`hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs flex-wrap ${pms_role === "manager" ? "bg-blue-50 border border-blue-200 text-blue-700" : "bg-slate-50 border border-slate-200 text-slate-500"}`}>
+                                    <span>Total: <span className="font-bold text-slate-700">{pms_role === "manager" && myReportIds !== null ? myReportIds.length : filteredUsers.length}</span></span>
+                                    <span className="text-slate-300">·</span>
+                                    <span className="text-emerald-600">KRA: <span className="font-bold">{filteredUsers.filter((u) => u.hasKra).length}</span></span>
+                                    <span className="text-slate-300">·</span>
+                                    <span className="text-amber-500">No KRA: <span className="font-bold">{filteredUsers.filter((u) => !u.hasKra).length}</span></span>
+                                    <span className="text-slate-300">·</span>
+                                    <span className="text-red-500">PIP: <span className="font-bold">{filteredUsers.filter((u) => userPips[u.id]?.status === "active").length}</span></span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                            <button onClick={filterStatus === "archived" ? fetchArchivedUsers : fetchAllUsers}
+                                className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium hover:bg-slate-200 transition flex items-center gap-1.5">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                Refresh
+                            </button>
+                            <button onClick={downloadCSV} disabled={!filteredUsers.length}
+                                className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-1.5">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                        <div className="relative flex-1 min-w-[160px]">
+                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search users..."
+                                className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            {[
+                                { value: "all", label: "All" },
+                                { value: "assigned", label: "KRA ✓" },
+                                { value: "unassigned", label: "No KRA" },
+                                { value: "pip", label: "PIP" },
+                                ...(pms_role === "hr" ? [{ value: "archived", label: "Archived" }] : []),
+                            ].map((opt) => (
+                                <button key={opt.value} onClick={() => setFilterStatus(opt.value)}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition border ${filterStatus === opt.value ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"}`}>
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Archived banner */}
+                {filterStatus === "archived" && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-3 flex items-center gap-3">
+                        <svg className="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M10 12v4m4-4v4" /></svg>
+                        <p className="text-sm text-orange-700 font-medium">
+                            Archived users have no access to the PMS. Use <span className="font-semibold">Restore</span> to reinstate.
+                        </p>
+                    </div>
+                )}
+
+                {/* Bulk action bar */}
+                {bulkSelected.size > 0 && filterStatus !== "archived" && pms_role === "hr" && (
+                    <div className="flex items-center gap-3 px-5 py-3 bg-indigo-50 border border-indigo-200 rounded-xl flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            </div>
+                            <span className="text-sm font-semibold text-indigo-700">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</span>
+                        </div>
+                        <button onClick={openBulkModal} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition flex items-center gap-2">Bulk Action</button>
+                        <button onClick={() => setBulkSelected(new Set())} className="text-sm text-indigo-500 hover:text-indigo-700 underline">Clear selection</button>
+                    </div>
+                )}
+
+                {/* ── Users Table ── */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    {tableLoading ? (
+                        <div className="p-12 text-center flex flex-col items-center gap-4">
+                            <Spinner />
+                            <p className="text-slate-500">Loading users…</p>
+                        </div>
+                    ) : filteredUsers.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <svg className="w-16 h-16 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                            <p className="text-slate-500 mt-4">
+                                {pms_role === "manager" && myReportIds?.length === 0
+                                    ? "No direct reports assigned to you yet. Contact HR to set up reporting relationships."
+                                    : filterStatus === "archived" ? "No archived users found" : "No users found"}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full table-fixed">
+                                <thead className="bg-slate-50 border-b border-slate-200">
+                                    <tr className="flex w-full">
+                                        {filterStatus !== "archived" && pms_role === "hr" && (
+                                            <th className="px-4 py-3 w-[48px] flex items-center justify-center">
+                                                <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll}
+                                                    className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                                                    title={allFilteredSelected ? "Deselect all" : "Select all"} />
+                                            </th>
+                                        )}
+                                        <th className={`px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
+                                            <button onClick={() => setSortType((s) => s === "name" ? "recent" : "name")}
+                                                className="flex items-center gap-1 hover:text-indigo-600 transition group">
+                                                User Name
+                                                <span className="flex flex-col gap-0.5 ml-0.5">
+                                                    <svg className={`w-2.5 h-2.5 ${sortType === "name" ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 4l8 8H4z" /></svg>
+                                                    <svg className={`w-2.5 h-2.5 ${sortType === "recent" ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 20l-8-8h16z" /></svg>
+                                                </span>
+                                            </button>
+                                        </th>
+                                        <th className="px-6 py-3 text-center w-[13%] text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                            {filterStatus === "archived" ? "Status" : "KRA"}
+                                        </th>
+                                        {canManageReporting && (
+                                            <th className="px-4 py-3 text-center w-[13%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Reports To</th>
+                                        )}
+                                        {canManageRoles && (
+                                            <th className="px-4 py-3 text-center w-[12%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Role</th>
+                                        )}
+                                        <th className="px-6 py-3 flex-1 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 block max-h-[460px] overflow-y-auto">
+                                    {filteredUsers.map((userData) => (
+                                        <UserRow
+                                            key={userData.id}
+                                            userData={userData}
+                                            isChecked={bulkSelected.has(userData.id)}
+                                            filterStatus={filterStatus}
+                                            pms_role={pms_role}
+                                            canEditKra={canEditKra}
+                                            canManageReporting={canManageReporting}
+                                            canManageRoles={canManageRoles}
+                                            canManagePip={canManagePip}
+                                            pipSummary={getPipSummary(userPips[userData.id])}
+                                            savingRoleId={savingRoleId}
+                                            onView={openViewModal}
+                                            onEdit={openEditModal}
+                                            onReporting={openReportingModal}
+                                            onArchive={handleArchive}
+                                            onPip={openPipModal}
+                                            onToggleSelect={toggleBulkSelect}
+                                            onChangeRole={handleChangeRole}
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ════ Bulk Action Modal ════ */}
+            {bulkModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeBulkModal} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-teal-600 to-cyan-600">
+                            <div>
+                                <h2 className="text-lg font-bold text-white">Assign Manager</h2>
+                                <p className="text-teal-100 text-sm mt-0.5">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</p>
+                            </div>
+                            <button onClick={closeBulkModal} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-3 max-h-[420px] overflow-y-auto">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Select manager</p>
+                            <div className="space-y-2">
+                                {[{ id: "", name: "No manager", sub: "Clear reporting line for selected users" }, ...managers].map((m) => (
+                                    <label key={m.id ?? "none"}
+                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition ${bulkManagerId === (m.id ?? "") ? "border-teal-400 bg-teal-50" : "border-slate-200 hover:border-teal-200 hover:bg-slate-50"}`}>
+                                        <input type="radio" name="bulkManager" value={m.id ?? ""}
+                                            checked={bulkManagerId === (m.id ?? "")}
+                                            onChange={() => setBulkManagerId(m.id ?? "")}
+                                            className="accent-teal-600" />
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!m.id ? "bg-slate-200" : "bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-bold text-sm"}`}>
+                                            {!m.id ? <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                : initials(m.username || m.name || "")}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-slate-700 truncate">{m.name || m.full_name || m.username || "No manager"}</p>
+                                            {m.sub && <p className="text-xs text-slate-400">{m.sub}</p>}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <button onClick={closeBulkModal} disabled={savingBulk} className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-300 transition disabled:opacity-50">Cancel</button>
+                            <button onClick={handleBulkManagerAssign} disabled={savingBulk}
+                                className="px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 transition flex items-center gap-2">
+                                {savingBulk ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : <>Assign Manager to {bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""}</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ════ Reporting Modal ════ */}
+            {reportingModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeReportingModal} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-teal-600 to-cyan-600">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg">
+                                    {initials(reportingUser?.name)}
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-white">Manage Reporting Line</h2>
+                                    <p className="text-teal-100 text-sm">{reportingUser?.name}</p>
+                                </div>
+                            </div>
+                            <button onClick={closeReportingModal} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Current Reporting Line</p>
+                                {reportingUser?.managerName ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white font-semibold text-xs">
+                                            {initials(reportingUser.managerName)}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-700">{reportingUser.managerName}</p>
+                                            <p className="text-xs text-slate-400">Current manager</p>
+                                        </div>
+                                    </div>
+                                ) : <p className="text-sm text-slate-400 italic">No manager assigned</p>}
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Assign Manager</label>
+                                {managersLoading ? (
+                                    <div className="flex items-center gap-3 py-3"><Spinner size="w-5 h-5" color="border-teal-400 border-t-transparent" /><span className="text-sm text-slate-400">Loading managers…</span></div>
+                                ) : managers.length === 0 ? (
+                                    <p className="text-sm text-slate-400 italic">No managers found in the system.</p>
+                                ) : (
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                        {[{ id: "", name: "No manager", sub: "Clear reporting line" }, ...managers.filter((m) => m.id !== reportingUser?.id)].map((m) => (
+                                            <label key={m.id ?? "none"}
+                                                className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition ${selectedManagerId === (m.id ?? "") ? "border-teal-400 bg-teal-50" : "border-slate-200 hover:border-teal-200 hover:bg-slate-50"}`}>
+                                                <input type="radio" name="manager" value={m.id ?? ""}
+                                                    checked={selectedManagerId === (m.id ?? "")}
+                                                    onChange={() => setSelectedManagerId(m.id ?? "")}
+                                                    className="accent-teal-600" />
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!m.id ? "bg-slate-200" : "bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-bold text-sm"}`}>
+                                                    {!m.id ? <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                        : initials(m.username || m.name || "")}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-medium text-slate-700 truncate">{m.name || m.full_name || m.username || "No manager"}</p>
+                                                    {m.sub && <p className="text-xs text-slate-400">{m.sub}</p>}
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <button onClick={handleAssignManager} disabled={savingManager}
+                                className="px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition flex items-center gap-2">
+                                {savingManager ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : "Save Reporting Line"}
+                            </button>
+                            <button onClick={closeReportingModal} className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ════ KRA Modal ════ */}
+            {modalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className={`flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r ${isEditing ? "from-blue-500 to-indigo-600" : "from-indigo-600 to-purple-600"}`}>
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xl">
+                                    {initials(selectedUser?.name)}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">{selectedUser?.name}</h2>
+                                    <p className={`text-sm ${isEditing ? "text-blue-100" : "text-indigo-200"}`}>
+                                        {isEditing ? "Edit KRA Assignment" : "KRA & KPI Details (View Only)"}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={closeModal} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {(detailsLoading || pendingEdit) ? (
+                                <div className="flex flex-col items-center justify-center py-16 gap-4">
+                                    <Spinner />
+                                    <p className="text-slate-400 text-sm">{pendingEdit ? "Preparing edit mode…" : "Loading details…"}</p>
+                                </div>
+                            ) : isEditing ? (
+                                <div className="space-y-6">
+                                    {(() => {
+                                        const total = editableKras.reduce((s, k) => s + Number(k.weight || 0), 0);
+                                        const over = total > 100;
+                                        return (
+                                            <div className={`p-4 rounded-xl border flex items-center justify-between ${over ? "bg-red-50 border-red-200" : total === 100 ? "bg-emerald-50 border-emerald-200" : "bg-indigo-50 border-indigo-200"}`}>
+                                                <span className="text-sm font-semibold text-slate-600">Total KRA Weight</span>
+                                                <span className={`text-xl font-bold ${over ? "text-red-600" : total === 100 ? "text-emerald-600" : "text-indigo-600"}`}>{total}% / 100%</span>
+                                            </div>
+                                        );
+                                    })()}
+                                    {editableKras.map((kra) => {
+                                        const kpiTotal = (kra.kpis || []).reduce((s, k) => s + Number(k.weight || 0), 0);
+                                        const isOrg = kra.type === "organizational";
+                                        return (
+                                            <div key={kra.instanceId} className={`rounded-xl border-2 overflow-hidden ${isOrg ? "border-purple-200" : "border-emerald-200"}`}>
+                                                <div className={`p-4 flex items-center justify-between gap-4 ${isOrg ? "bg-purple-100" : "bg-emerald-100"}`}>
+                                                    <div>
+                                                        <p className="font-semibold text-slate-800">{kra.name}</p>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isOrg ? "bg-purple-200 text-purple-700" : "bg-emerald-200 text-emerald-700"}`}>
+                                                                {isOrg ? "Organizational" : "Job Specific"}
+                                                            </span>
+                                                            {kra.assignedBy && <span className="text-xs text-slate-500">{kra.assignedBy}</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-1 bg-white rounded-lg border border-slate-200 px-3 py-1.5 shadow-sm">
+                                                            <input type="number" min={0} max={100} value={kra.weight}
+                                                                onWheel={(e) => e.target.blur()}
+                                                                onKeyDown={(e) => ["ArrowUp", "ArrowDown"].includes(e.key) && e.preventDefault()}
+                                                                onChange={(e) => updateEditKraWeight(kra.instanceId, e.target.value)}
+                                                                className="w-14 text-center font-bold text-indigo-700 bg-transparent focus:outline-none text-sm" />
+                                                            <span className="text-slate-400 text-sm font-bold">%</span>
+                                                        </div>
+                                                        <button onClick={() => removeEditKra(kra.instanceId)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {kra.kpis?.length > 0 && (
+                                                    <div className="p-4">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <p className="text-sm font-semibold text-slate-600">KPI Distribution</p>
+                                                            <span className={`text-xs font-bold ${kpiTotal === 100 ? "text-emerald-600" : "text-red-500"}`}>{kpiTotal}% / 100%</span>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {kra.kpis.map((kpi, kpiIndex) => (
+                                                                <div key={kpiIndex} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                                                    <div className="flex justify-between items-center mb-2">
+                                                                        <span className="text-sm font-medium text-slate-700">{kpi.name}</span>
+                                                                        <div className="flex items-center gap-1 bg-white rounded-lg border px-2 py-1">
+                                                                            <input type="number" value={kpi.weight}
+                                                                                onChange={(e) => updateEditKpiWeight(kra.instanceId, kpiIndex, e.target.value)}
+                                                                                className="w-12 text-center text-sm font-bold text-indigo-700 bg-transparent outline-none" />
+                                                                            <span className="text-xs text-slate-400">%</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-3 mt-3 w-full">
+                                                                        <div className="flex flex-col gap-1 flex-1">
+                                                                            <label className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide">Target</label>
+                                                                            <input type="text" placeholder="Enter target" value={kpi.target || ""} disabled={!canEditKra}
+                                                                                onChange={(e) => updateEditKpiTarget(kra.instanceId, kpiIndex, e.target.value)}
+                                                                                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${!canEditKra ? "bg-gray-100 text-gray-400 cursor-not-allowed border-slate-200" : "bg-white border-blue-200 text-blue-700"}`} />
+                                                                        </div>
+                                                                        <div className="flex flex-col gap-1 flex-1">
+                                                                            <label className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Actual</label>
+                                                                            <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 min-h-[38px] flex items-center">
+                                                                                {kpi.actual || <span className="text-slate-300">—</span>}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    <div>
+                                        <button onClick={fetchLibrary} disabled={libraryLoading}
+                                            className="w-full py-3 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-semibold text-sm hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center justify-center gap-2">
+                                            {libraryLoading ? <Spinner size="w-4 h-4" color="border-indigo-400 border-t-transparent" /> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
+                                            Add KRA from Library
+                                        </button>
+                                        {showLibraryPanel && (() => {
+                                            const panels = [
+                                                { type: "functional", label: "Job Specified KRAs", color: "emerald", kras: libraryKras.filter((k) => k.type === "functional" && k.name.toLowerCase().includes(jobSearch.toLowerCase())), search: jobSearch, setSearch: setJobSearch, placeholder: "Search job specified…" },
+                                                { type: "organizational", label: "Organizational KRAs", color: "purple", kras: libraryKras.filter((k) => k.type === "organizational" && k.name.toLowerCase().includes(orgSearch.toLowerCase())), search: orgSearch, setSearch: setOrgSearch, placeholder: "Search organizational…" },
+                                            ];
+                                            return (
+                                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {panels.map(({ type, label, color, kras: list, search, setSearch, placeholder }) => (
+                                                        <div key={type} className={`bg-${color}-50 border-2 border-${color}-200 rounded-2xl overflow-hidden flex flex-col`}>
+                                                            <div className={`bg-${color}-100 px-4 py-3 flex items-center gap-2 border-b border-${color}-200`}>
+                                                                <span className={`w-2.5 h-2.5 rounded-full bg-${color}-500`} />
+                                                                <h4 className={`text-sm font-bold text-${color}-800 uppercase tracking-wide`}>{label}</h4>
+                                                                <span className={`ml-auto text-xs font-bold bg-${color}-200 text-${color}-700 px-2 py-0.5 rounded-full`}>
+                                                                    {libraryKras.filter((k) => k.type === type).length}
+                                                                </span>
+                                                            </div>
+                                                            <div className="px-3 pt-3">
+                                                                <div className="relative">
+                                                                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                                    <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={placeholder}
+                                                                        className={`w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-${color}-200 bg-white focus:outline-none focus:ring-2 focus:ring-${color}-400`} />
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-3 space-y-2 max-h-64 overflow-y-auto flex-1">
+                                                                {list.length === 0
+                                                                    ? <p className="text-center text-xs text-slate-400 py-6 italic">{search ? "No results found" : `No ${label.toLowerCase()} in library`}</p>
+                                                                    : list.map((kra) => (
+                                                                        <LibraryKraCard key={kra.id} kra={kra}
+                                                                            alreadyAdded={editableKras.some((k) => k.originalId === kra.id || k.name === kra.name)}
+                                                                            onAdd={addKraFromLibrary} />
+                                                                    ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            ) : userKraDetails?.kras?.length > 0 ? (
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {[
+                                            { label: "Total KRAs", value: userKraDetails.kras.length, bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700" },
+                                            { label: "Job Specific", value: userKraDetails.kras.filter((k) => getKraType(k) === "job-specific").length, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+                                            { label: "Org", value: userKraDetails.kras.filter((k) => getKraType(k) === "organizational").length, bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+                                            { label: "Total KPIs", value: userKraDetails.kras.reduce((acc, k) => acc + (k.kpis?.length || 0), 0), bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
+                                        ].map(({ label, value, bg, border, text }) => (
+                                            <div key={label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bg} border ${border}`}>
+                                                <span className={`text-sm font-bold ${text}`}>{value}</span>
+                                                <span className="text-xs text-slate-500">{label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="space-y-4">
+                                        {userKraDetails.kras.map((kra, index) => {
+                                            const kraType = getKraType(kra);
+                                            const weightStatus = getWeightStatus(kra.weight || 0);
+                                            const isOrg = kraType === "organizational";
+                                            const { date, time } = kra.assignedAt ? formatDateTime(kra.assignedAt) : { date: "N/A", time: "" };
+                                            return (
+                                                <div key={index} className={`rounded-xl border-2 overflow-hidden ${isOrg ? "border-purple-200 bg-purple-50/30" : "border-emerald-200 bg-emerald-50/30"}`}>
+                                                    <div className={`p-4 ${isOrg ? "bg-purple-100" : "bg-emerald-100"}`}>
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <h3 className="font-semibold text-slate-800">{kra.name}</h3>
+                                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOrg ? "bg-purple-200 text-purple-700" : "bg-emerald-200 text-emerald-700"}`}>
+                                                                        {isOrg ? "Organizational" : "Job Specific"}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-sm text-slate-500 mt-1">
+                                                                    Assigned by <span className="font-medium text-slate-700">{kra.assignedBy || "N/A"}</span> on {date}{time ? `, ${time}` : ""}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-700 text-sm font-semibold ${weightStatus.color}`}>{kra.weight || 0}%</div>
+                                                                <p className="text-xs text-slate-500 mt-1">KRA Weight</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-3">
+                                                            <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden">
+                                                                <div className={`h-full rounded-full transition-all ${weightStatus.color} opacity-70`} style={{ width: `${Math.min(100, kra.weight || 0)}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-4">
+                                                        <p className="text-sm font-semibold text-slate-600 mb-3">Key Performance Indicators ({kra.kpis?.length || 0})</p>
+                                                        {kra.kpis?.length > 0 ? (
+                                                            <div className="grid gap-2">
+                                                                {kra.kpis.map((kpi, kpiIndex) => {
+                                                                    const kpiStatus = getWeightStatus(kpi.weight || 0);
+                                                                    return (
+                                                                        <div key={kpiIndex} className="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200">
+                                                                            <div className="flex-1">
+                                                                                <p className="font-medium text-slate-700 text-sm">{kpi.name}</p>
+                                                                                <div className="mt-2 h-1 bg-slate-200/60 rounded-full overflow-hidden">
+                                                                                    <div className={`h-full rounded-full ${kpiStatus.color} opacity-70`} style={{ width: `${Math.min(100, kpi.weight || 0)}%` }} />
+                                                                                </div>
+                                                                                <div className="flex items-center gap-1.5 mt-1.5">
+                                                                                    <span className="text-[9px] text-slate-400">Target</span>
+                                                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">{kpi.target ?? "—"}</span>
+                                                                                    <span className="text-[9px] text-slate-400 ml-1">Actual</span>
+                                                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">{kpi.actual ?? "—"}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="ml-4 text-right">
+                                                                                <span className={`inline-block px-2 py-1 rounded-md text-white text-xs font-semibold ${kpiStatus.color}`}>{kpi.weight || 0}%</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : <p className="text-sm text-slate-400 italic">No KPIs assigned to this KRA</p>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <svg className="w-16 h-16 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    <p className="text-slate-500 mt-4">No KRA assigned to this user</p>
+                                    <button onClick={() => { closeModal(); navigate("/employeetemplate"); }}
+                                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                        Add KRA
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <div>
+                                {isEditing ? (
+                                    <div className="flex gap-2">
+                                        <button onClick={handleSaveEdit} disabled={savingEdit}
+                                            className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition flex items-center gap-2">
+                                            {savingEdit ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : "Save Changes"}
+                                        </button>
+                                        <button onClick={() => { setIsEditing(false); setShowLibraryPanel(false); }}
+                                            className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-300 transition">Cancel</button>
+                                    </div>
+                                ) : (
+                                    !detailsLoading && userKraDetails?.kras?.length > 0 && canEditKra && (
+                                        <button onClick={() => enterEditMode()}
+                                            className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-2">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                            Edit KRA
+                                        </button>
+                                    )
+                                )}
+                            </div>
+                            <button onClick={closeModal} className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ════ PIP Modal ════ */}
+            {pipModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closePipModal} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg">
+                                    {initials(pipUser?.name)}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">{pipForm.id ? "Manage PIP" : "Start PIP"} — {pipUser?.name}</h2>
+                                    <p className="text-blue-100 text-sm">Performance Improvement Plan</p>
+                                </div>
+                            </div>
+                            <button onClick={closePipModal} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <form id="pip-form" onSubmit={handlePipSubmit} className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Status</label>
+                                        <select value={pipForm.status} onChange={(e) => setPipForm((p) => ({ ...p, status: e.target.value }))}
+                                            className="w-full border border-slate-200 px-4 py-2.5 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                            {PIP_STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Outcome</label>
+                                        <select value={pipForm.outcome} onChange={(e) => setPipForm((p) => ({ ...p, outcome: e.target.value }))}
+                                            className="w-full border border-slate-200 px-4 py-2.5 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                            {PIP_OUTCOME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div />
+                                    <div>
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Start Date</label>
+                                        <input type="date" value={pipForm.startDate} required
+                                            onChange={(e) => setPipForm((p) => ({ ...p, startDate: e.target.value }))}
+                                            className="w-full border border-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Target End Date</label>
+                                        <input type="date" value={pipForm.targetEndDate} required min={pipForm.startDate || undefined}
+                                            onChange={(e) => { if (pipForm.startDate && e.target.value <= pipForm.startDate) return; setPipForm((p) => ({ ...p, targetEndDate: e.target.value })); }}
+                                            className="w-full border border-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">PIP Outcome</label>
+                                    <textarea value={pipForm.reason} required rows={3}
+                                        onChange={(e) => setPipForm((p) => ({ ...p, reason: e.target.value }))}
+                                        placeholder="Describe the outcome of this PIP…"
+                                        className="w-full border border-slate-200 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-700">Improvement Goals</p>
+                                            <p className="text-xs text-slate-400 mt-0.5">Add one card per measurable commitment.</p>
+                                        </div>
+                                        <button type="button" onClick={addPipGoal}
+                                            className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-xs font-semibold hover:bg-amber-200 transition flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            Add Goal
+                                        </button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {pipForm.goals.map((goal, index) => (
+                                            <PipGoalCard
+                                                key={index}
+                                                goal={goal}
+                                                index={index}
+                                                savedGoal={userPips[pipUser?.id]?.goals?.[index] || {}}
+                                                employeeUpdatedAt={userPips[pipUser?.id]?.updatedAt}
+                                                totalGoals={pipForm.goals.length}
+                                                onUpdate={updatePipGoalField}
+                                                onRemove={removePipGoal}
+                                                onViewProof={fetchProofUrl} 
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Review Notes</label>
+                                    <textarea value={pipForm.reviewNotes} rows={3}
+                                        onChange={(e) => setPipForm((p) => ({ ...p, reviewNotes: e.target.value }))}
+                                        placeholder="Overall review notes or observations…"
+                                        className="w-full border border-slate-200 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                                </div>
+                            </form>
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <button form="pip-form" type="submit"
+                                disabled={savingPip || pipSubmitting.current || !isPipDirty}
+                                title={!isPipDirty ? "No changes to save" : ""}
+                                className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 ${(!isPipDirty || savingPip || pipSubmitting.current) ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
+                                {savingPip ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : (pipForm.id ? "Update PIP" : "Create PIP")}
+                            </button>
+                            <button onClick={closePipModal} className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <Toast toast={toast} onClose={() => setToast(null)} />
+        </div>
+    );
+}

@@ -1,0 +1,16 @@
+{
+  "name": "itr-one-migrations",
+  "version": "1.0.0",
+  "description": "One-off data migration scripts: old TimeFlow/Flow_Tracker databases -> unified itr_one database",
+  "type": "module",
+  "scripts": {
+    "migrate:users-projects": "node scripts/migrateUsersAndProjects.js",
+    "migrate:users-projects:commit": "node scripts/migrateUsersAndProjects.js --commit",
+    "migrate:all": "node scripts/migrateAll.js",
+    "migrate:all:commit": "node scripts/migrateAll.js --commit"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.1",
+    "mongodb": "^6.10.0"
+  }
+}

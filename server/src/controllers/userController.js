@@ -1,0 +1,197 @@
+import User from "../models/User.js";
+import { notifyUsers } from "../utils/notify.js";
+import { getIO } from "../realtime/socket.js";
+import { toPublicUser } from "../utils/publicUser.js";
+
+const MODULE_ROLE_ENUM = {
+  timesheet: ["employee", "manager", "hr"],
+  pms: ["employee", "manager", "hr"],
+  tracker: ["ADMIN", "PM", "DEVELOPER", "QA", "BUSINESS_USER"],
+};
+
+// "HR-only" in the old Flow_Tracker system: our unified model splits HR into
+// per-module roles rather than one tracker role, so treat tracker ADMIN or
+// either module's "hr" role as equivalent admin/HR authority.
+const isAdminOrHr = (user) =>
+  user.roles.tracker === "ADMIN" || user.roles.timesheet === "hr" || user.roles.pms === "hr";
+
+// List all users — used for assignee/team dropdowns across the tracker UI,
+// not scoped to a manager's direct reports (see getMyReports for that).
+export const listUsers = async (req, res) => {
+  const canViewAll = isAdminOrHr(req.user) || ["PM", "DEVELOPER", "QA"].includes(req.user.roles.tracker);
+  if (!canViewAll) return res.status(403).json({ message: "Insufficient permissions to view users" });
+
+  res.json(await User.find({}).select("-password"));
+};
+
+export const getMe = async (req, res) => {
+  res.json({ user: toPublicUser(req.user) });
+};
+
+export const createUser = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
+  const { name, email, password, role } = req.body;
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: "name, email and password are required" });
+  }
+
+  const user = await User.create({
+    name,
+    email: email.toLowerCase(),
+    password,
+    roles: { timesheet: "employee", pms: "employee", tracker: role || "BUSINESS_USER" },
+    approvalStatus: "Approved",
+    approvedBy: req.user._id,
+    approvedAt: new Date(),
+  });
+
+  const userData = user.toObject();
+  delete userData.password;
+  res.status(201).json(userData);
+};
+
+// Generic admin/HR update of name/email/tracker-role/password, with edit tracking.
+export const updateUserGeneric = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
+  const { name, email, role, password } = req.body;
+
+  if (role && !MODULE_ROLE_ENUM.tracker.includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+
+  const user = await User.findById(req.params.id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const previousRole = user.roles.tracker;
+  const hasChanges = (name && name !== user.name) || (email && email !== user.email) || (role && role !== previousRole);
+  if (hasChanges) {
+    user.isEdited = true;
+    user.editedBy = req.user._id;
+    user.editedAt = new Date();
+  }
+
+  if (name) user.name = name;
+  if (email) user.email = email.toLowerCase();
+  if (role) user.roles.tracker = role;
+  if (password) user.password = password;
+  await user.save();
+
+  if (role && role !== previousRole) {
+    await notifyUsers([user._id], {
+      title: "Your role has been updated",
+      message: `Hello ${user.name}, your role was changed from ${previousRole} to ${role} by the admin.`,
+      type: "userRoleChanged",
+      activityType: "update",
+      performedBy: req.user._id,
+      metadata: { previousRole, newRole: role },
+    });
+    getIO()?.to(`user_${user._id}`).emit("user:role-changed", { userId: user._id.toString(), previousRole, newRole: role });
+  }
+
+  const userData = user.toObject();
+  delete userData.password;
+  res.json({ message: "User updated successfully", user: userData });
+};
+
+export const deleteUser = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
+  const user = await User.findByIdAndDelete(req.params.id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json({ message: "User deleted" });
+};
+
+export const getMyReports = async (req, res) => {
+  const users = await User.find({ managerId: req.user._id }).select("-password");
+  // `report_ids` alongside the full list — ITR_TimeFlow_Production's PMS
+  // UserKraSearch.jsx only reads that field from this same endpoint path.
+  res.json({ data: users, report_ids: users.map((u) => u._id.toString()) });
+};
+
+export const listManagers = async (req, res) => {
+  const module = req.query.module === "pms" ? "pms" : "timesheet";
+  const users = await User.find({ [`roles.${module}`]: "manager" }).select("name email");
+  res.json(users);
+};
+
+export const assignRole = async (req, res) => {
+  const { module, role } = req.body;
+  if (!MODULE_ROLE_ENUM[module]?.includes(role)) {
+    return res.status(400).json({ message: `Invalid role '${role}' for module '${module}'` });
+  }
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: { [`roles.${module}`]: role } },
+    { new: true },
+  ).select("-password");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
+
+export const setArchived = async (req, res) => {
+  const { module, archived } = req.body; // module: "timesheet" | "pms" | "account"
+  if (!["timesheet", "pms", "account"].includes(module)) {
+    return res.status(400).json({ message: "Invalid module" });
+  }
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: { [`archived.${module}`]: Boolean(archived) } },
+    { new: true },
+  ).select("-password");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
+
+export const setManager = async (req, res) => {
+  // Accept both our own { managerId } and the PMS UserKraSearch.jsx { manager_id } shape.
+  const managerId = req.body.managerId ?? req.body.manager_id;
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: { managerId: managerId || null } },
+    { new: true },
+  ).select("-password");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
+
+export const bulkAssignManager = async (req, res) => {
+  const userIds = req.body.userIds ?? req.body.user_ids;
+  const managerId = req.body.managerId ?? req.body.manager_id;
+  if (!Array.isArray(userIds) || !userIds.length) {
+    return res.status(400).json({ message: "userIds must be a non-empty array" });
+  }
+  await User.updateMany({ _id: { $in: userIds } }, { $set: { managerId: managerId || null } });
+  res.json({ updated: userIds.length });
+};
+
+// Legacy PMS compat: POST /assign-pms-role/ { user, role }
+export const assignPmsRoleLegacy = async (req, res) => {
+  const { user: userId, role } = req.body;
+  if (!MODULE_ROLE_ENUM.pms.includes(role)) {
+    return res.status(400).json({ message: `Invalid PMS role '${role}'` });
+  }
+  const user = await User.findByIdAndUpdate(userId, { $set: { "roles.pms": role } }, { new: true }).select(
+    "-password",
+  );
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
+
+// Legacy PMS compat: PATCH /pms/users/:id/archive { is_archived }
+export const archivePmsUserLegacy = async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: { "archived.pms": Boolean(req.body.is_archived) } },
+    { new: true },
+  ).select("-password");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
+
+export const setShift = async (req, res) => {
+  const { shift } = req.body;
+  const user = await User.findByIdAndUpdate(req.params.id, { $set: { shift } }, { new: true }).select(
+    "-password",
+  );
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
