@@ -114,6 +114,7 @@ export const listManagers = async (req, res) => {
 };
 
 export const assignRole = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   const { module, role } = req.body;
   if (!MODULE_ROLE_ENUM[module]?.includes(role)) {
     return res.status(400).json({ message: `Invalid role '${role}' for module '${module}'` });
@@ -128,6 +129,7 @@ export const assignRole = async (req, res) => {
 };
 
 export const setArchived = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   const { module, archived } = req.body; // module: "timesheet" | "pms" | "account"
   if (!["timesheet", "pms", "account"].includes(module)) {
     return res.status(400).json({ message: "Invalid module" });
@@ -142,6 +144,7 @@ export const setArchived = async (req, res) => {
 };
 
 export const setManager = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   // Accept both our own { managerId } and the PMS UserKraSearch.jsx { manager_id } shape.
   const managerId = req.body.managerId ?? req.body.manager_id;
   const user = await User.findByIdAndUpdate(
@@ -154,6 +157,7 @@ export const setManager = async (req, res) => {
 };
 
 export const bulkAssignManager = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   const userIds = req.body.userIds ?? req.body.user_ids;
   const managerId = req.body.managerId ?? req.body.manager_id;
   if (!Array.isArray(userIds) || !userIds.length) {
@@ -165,6 +169,7 @@ export const bulkAssignManager = async (req, res) => {
 
 // Legacy PMS compat: POST /assign-pms-role/ { user, role }
 export const assignPmsRoleLegacy = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   const { user: userId, role } = req.body;
   if (!MODULE_ROLE_ENUM.pms.includes(role)) {
     return res.status(400).json({ message: `Invalid PMS role '${role}'` });
@@ -178,6 +183,7 @@ export const assignPmsRoleLegacy = async (req, res) => {
 
 // Legacy PMS compat: PATCH /pms/users/:id/archive { is_archived }
 export const archivePmsUserLegacy = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { $set: { "archived.pms": Boolean(req.body.is_archived) } },
@@ -188,6 +194,7 @@ export const archivePmsUserLegacy = async (req, res) => {
 };
 
 export const setShift = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   const { shift } = req.body;
   const user = await User.findByIdAndUpdate(req.params.id, { $set: { shift } }, { new: true }).select(
     "-password",
