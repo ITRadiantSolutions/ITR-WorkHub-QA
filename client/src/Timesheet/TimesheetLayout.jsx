@@ -8,6 +8,7 @@ const TABS = [
   { to: "/timesheet/dashboard", label: "Dashboard", icon: "Dashboard" },
   { to: "/timesheet/new", label: "Timesheet", icon: "Calendar" },
   { to: "/timesheet/history", label: "History", icon: "Clock" },
+  { to: "/timesheet/review", label: "Review", icon: "Team", managerOrHr: true },
   { to: "/timesheet/guide", label: "Guide", icon: "Book" },
 ];
 
@@ -33,7 +34,7 @@ export default function TimesheetLayout() {
         </button>
 
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {TABS.map((t) => {
+          {TABS.filter((t) => !t.managerOrHr || ["manager", "hr"].includes(user?.roles?.timesheet)).map((t) => {
             const Icon = Icons[t.icon];
             const active =
               location.pathname === t.to ||

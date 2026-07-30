@@ -7,6 +7,9 @@ import {
   getAllUsersSummary,
   getProjectSummary,
   downloadProjectReport,
+  getTimesheetStatus,
+  getNsaReport,
+  exportNsaReport,
 } from "../controllers/hrReportController.js";
 
 const router = Router();
@@ -18,5 +21,8 @@ router.get("/user-report/:userId", getUserReport);
 router.get("/all-users-summary", getAllUsersSummary);
 router.get("/project-summary", getProjectSummary);
 router.get("/project-report/download", downloadProjectReport);
+router.get("/timesheet-status", getTimesheetStatus);
+router.get("/nsa-report", getNsaReport);
+router.get("/nsa-report/export", exportNsaReport);
 
 export default router;

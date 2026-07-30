@@ -4,6 +4,7 @@ import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Icons from "../components/Icons";
+import { TimesheetStatusSection, NsaReportSection } from "./HrDashboardSections";
 
 const RANGE_OPTIONS = [
   { value: "this_week", label: "This Week" },
@@ -223,6 +224,7 @@ export default function Dashboard() {
     [timesheets]
   );
 
+  const isHr = user?.roles?.timesheet === "hr";
   const firstName = user?.name?.split(" ")[0] || "there";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -349,78 +351,85 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Icons.Clock />
-                </div>
-                <h3 className="font-bold text-slate-900">Recent Activity</h3>
-              </div>
-              {recentActivity.length ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {recentActivity.map((ts) => (
-                    <RecentActivityItem key={ts._id} ts={ts} />
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-indigo-50/40 rounded-xl p-6 text-center">
-                  <div className="w-12 h-12 rounded-xl bg-white text-indigo-300 flex items-center justify-center mx-auto mb-2 shadow-sm">
-                    <Icons.Reports />
-                  </div>
-                  <p className="font-bold text-slate-700">No recent activity</p>
-                  <p className="text-sm text-slate-400 mt-1">Your timesheet activities will appear here.</p>
-                </div>
-              )}
+          {isHr ? (
+            <div className="space-y-4">
+              <TimesheetStatusSection />
+              <NsaReportSection />
             </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Icons.Clock />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Recent Activity</h3>
+                </div>
+                {recentActivity.length ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {recentActivity.map((ts) => (
+                      <RecentActivityItem key={ts._id} ts={ts} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-indigo-50/40 rounded-xl p-6 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-white text-indigo-300 flex items-center justify-center mx-auto mb-2 shadow-sm">
+                      <Icons.Reports />
+                    </div>
+                    <p className="font-bold text-slate-700">No recent activity</p>
+                    <p className="text-sm text-slate-400 mt-1">Your timesheet activities will appear here.</p>
+                  </div>
+                )}
+              </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Icons.Zap />
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Icons.Zap />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Quick Actions</h3>
                 </div>
-                <h3 className="font-bold text-slate-900">Quick Actions</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  onClick={() => navigate("/timesheet/new")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Icons.Plus />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800">New Timesheet</p>
-                    <p className="text-xs text-slate-400">Log your hours</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => navigate("/timesheet/new")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                    <Icons.Calendar />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800">View Timesheet</p>
-                    <p className="text-xs text-slate-400">Manage entries</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => navigate("/timesheet/history")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left sm:col-span-2"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Icons.Reports />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800">View History</p>
-                    <p className="text-xs text-slate-400">Past records</p>
-                  </div>
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => navigate("/timesheet/new")}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                      <Icons.Plus />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800">New Timesheet</p>
+                      <p className="text-xs text-slate-400">Log your hours</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => navigate("/timesheet/new")}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                      <Icons.Calendar />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800">View Timesheet</p>
+                      <p className="text-xs text-slate-400">Manage entries</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => navigate("/timesheet/history")}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left sm:col-span-2"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Icons.Reports />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800">View History</p>
+                      <p className="text-xs text-slate-400">Past records</p>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </main>

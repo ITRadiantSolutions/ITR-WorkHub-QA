@@ -1,5 +1,26 @@
 import Timesheet from "../models/Timesheet.js";
 import User from "../models/User.js";
+import { sendMail } from "../utils/graphMailer.js";
+
+const fmtDate = (date) => date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+const ACTION_LABEL = { rejected: "rejected", needs_edit: "sent back for edits" };
+
+const escapeHtml = (str) =>
+  String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+const managerActionEmailBody = (employeeName, weekStart, weekEnd, actionLabel, comment) => `
+<html><body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:20px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-left:4px solid #dc2626;padding-left:16px;">
+<tr><td style="font-size:14px;color:#111827;">
+<p>Hi <strong>${escapeHtml(employeeName)}</strong>,</p>
+<p>Your timesheet for <strong>${fmtDate(weekStart)} to ${fmtDate(weekEnd)}</strong> has been <strong>${actionLabel}</strong> by your manager.</p>
+${comment ? `<p style="margin:10px 0;padding:10px;background:#f3f4f6;border-radius:6px;"><strong>Comment:</strong> ${escapeHtml(comment)}</p>` : ""}
+<p>Please review and resubmit as needed.</p>
+</td></tr></table>
+<p style="margin-top:16px;font-weight:600;color:#2563eb;">TimeFlow</p>
+</td></tr></table></body></html>`;
 
 const isManagerOrHr = (user) => ["manager", "hr"].includes(user.roles.timesheet);
 
@@ -104,7 +125,7 @@ export const managerAction = async (req, res) => {
   if (!nextStatus) return res.status(400).json({ message: "Invalid action" });
   if (!isManagerOrHr(req.user)) return res.status(403).json({ message: "Forbidden" });
 
-  const timesheet = await Timesheet.findById(req.params.id);
+  const timesheet = await Timesheet.findById(req.params.id).populate("userId", "name email");
   if (!timesheet) return res.status(404).json({ message: "Timesheet not found" });
   if (timesheet.status !== "submitted") {
     return res.status(409).json({ message: `Cannot act on a timesheet with status '${timesheet.status}'` });
@@ -113,7 +134,23 @@ export const managerAction = async (req, res) => {
   timesheet.status = nextStatus;
   timesheet.managerActionBy = req.user._id;
   timesheet.managerActionAt = new Date();
+  timesheet.managerComment = req.body.comment || "";
   await timesheet.save();
+
+  const actionLabel = ACTION_LABEL[nextStatus];
+  if (actionLabel && timesheet.userId?.email) {
+    try {
+      await sendMail(
+        timesheet.userId.email,
+        `Your timesheet was ${actionLabel}`,
+        managerActionEmailBody(timesheet.userId.name, timesheet.weekStart, timesheet.weekEnd, actionLabel, timesheet.managerComment),
+      );
+    } catch (err) {
+      // Don't fail the approval action just because the notification email couldn't be sent.
+      console.error("managerAction: failed to send notification email", err.message);
+    }
+  }
+
   res.json(timesheet);
 };
 

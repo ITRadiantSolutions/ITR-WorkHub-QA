@@ -32,6 +32,7 @@ const timesheetSchema = new mongoose.Schema(
     submittedAt: { type: Date, default: null },
     managerActionBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     managerActionAt: { type: Date, default: null },
+    managerComment: { type: String, trim: true, default: "" },
   },
   { timestamps: true },
 );

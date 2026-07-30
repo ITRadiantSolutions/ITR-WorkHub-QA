@@ -22,6 +22,7 @@ import TimesheetLayout from "./Timesheet/TimesheetLayout";
 import TimesheetDashboard from "./Timesheet/Dashboard";
 import TimesheetEntry from "./Timesheet/TimesheetEntry";
 import TimesheetHistory from "./Timesheet/History";
+import TimesheetReview from "./Timesheet/Review";
 import TimesheetGuide from "./Timesheet/Guide";
 import PmsHome from "./pages/PmsHome";
 import PmsCycles from "./PMS/cycles/Cycle";
@@ -245,6 +246,7 @@ function App() {
               <Route path="new" element={<TimesheetEntry />} />
               <Route path="new/:id" element={<TimesheetEntry />} />
               <Route path="history" element={<TimesheetHistory />} />
+              <Route path="review" element={<TimesheetReview />} />
               <Route path="guide" element={<TimesheetGuide />} />
             </Route>
             <Route
