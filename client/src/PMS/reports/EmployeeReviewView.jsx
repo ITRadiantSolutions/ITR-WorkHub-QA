@@ -12,8 +12,8 @@ const STATUS_CONFIG = {
   manager_approved: { label: "Approved", className: "bg-green-100 text-green-700" },
   manager_rejected: { label: "Rejected", className: "bg-red-100 text-red-700" },
   pending_manager_approval: { label: "Pending Approval", className: "bg-yellow-100 text-yellow-700" },
-  final_manager_reviewed: { label: "Final Reviewed", className: "bg-blue-100 text-blue-700" },
-  final_employee_submitted: { label: "Employee Submitted", className: "bg-indigo-100 text-indigo-700" },
+  final_manager_reviewed: { label: "Final Reviewed", className: "bg-violet-100 text-violet-700" },
+  final_employee_submitted: { label: "Employee Submitted", className: "bg-purple-100 text-purple-700" },
   approved: { label: "Approved", className: "bg-green-100 text-green-700" },
   default: { label: "In Progress", className: "bg-gray-100 text-gray-600" },
 };
@@ -396,7 +396,7 @@ export default function EmployeeReviewView({
                 </div>
               )}
 
-            <div className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-700">
+            <div className="px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-xs text-violet-700">
               Completed Reviews: {completedManagerInputs}/{normalizedKras.length || 0}
             </div>
           </div>
@@ -411,7 +411,7 @@ export default function EmployeeReviewView({
           className="grid md:grid-cols-4 gap-4"
         >
           <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-blue-500" />
+            <Calendar className="w-5 h-5 text-violet-500" />
             <div>
               <p className="text-xs text-slate-500">Cycle</p>
               <p className="font-semibold text-slate-800">
@@ -421,10 +421,10 @@ export default function EmployeeReviewView({
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-            <Star className="w-5 h-5 text-indigo-500" />
+            <Star className="w-5 h-5 text-purple-500" />
             <div>
               <p className="text-xs text-slate-500">Your Rating</p>
-              <p className="font-semibold text-indigo-600">
+              <p className="font-semibold text-purple-600">
                 {report.selfAvg ? Number(report.selfAvg).toFixed(1) : 0}
               </p>
             </div>
@@ -496,7 +496,7 @@ export default function EmployeeReviewView({
                       Weightage: <b>{kra.weight}%</b>
                     </span>
 
-                    <span className="bg-indigo-100 text-indigo-600 text-xs px-2 py-1 rounded-full font-semibold">
+                    <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-full font-semibold">
                       KRA
                     </span>
                   </div>
@@ -505,7 +505,7 @@ export default function EmployeeReviewView({
 
                 {/* KPI LIST */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4">
-                  <p className="text-xs font-semibold text-indigo-600 mb-3 uppercase">
+                  <p className="text-xs font-semibold text-purple-600 mb-3 uppercase">
                     Key Performance Indicators
                   </p>
 
@@ -562,8 +562,8 @@ export default function EmployeeReviewView({
 
                   {/* EMPLOYEE */}
                   {isEmployeeSubmitted && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                      <p className="text-sm font-semibold text-blue-700 mb-2">
+                    <div className="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                      <p className="text-sm font-semibold text-violet-700 mb-2">
                         Your Response
                       </p>
 
@@ -672,7 +672,7 @@ export default function EmployeeReviewView({
 
               {/* HEADER */}
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-500" />
+                <Calendar className="w-5 h-5 text-purple-500" />
                 <p className="text-sm font-semibold text-slate-800">
                   Final Review Checklist
                 </p>
@@ -687,11 +687,11 @@ export default function EmployeeReviewView({
                     type="checkbox"
                     checked={oneOnOneChecked}
                     onChange={(e) => setOneOnOneChecked(e.target.checked)}
-                    className="w-4 h-4 accent-indigo-600"
+                    className="w-4 h-4 accent-purple-600"
                   />
 
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-indigo-500" />
+                    <User className="w-4 h-4 text-purple-500" />
                     <span className="text-sm font-medium text-slate-700">
                       1:1 Meeting Completed
                     </span>
@@ -720,7 +720,7 @@ export default function EmployeeReviewView({
                       max={new Date().toISOString().split("T")[0]}
                       className={`w-full rounded-xl border px-3 py-2 text-sm
     ${oneOnOneChecked
-                          ? "border-slate-300 focus:ring-2 focus:ring-indigo-500"
+                          ? "border-slate-300 focus:ring-2 focus:ring-purple-500"
                           : "border-slate-200 bg-slate-100 cursor-not-allowed"
                         }`}
                     />
@@ -741,7 +741,7 @@ export default function EmployeeReviewView({
                       placeholder="Summarize discussion, feedback, action items..."
                       className={`w-full rounded-xl border p-3 text-sm resize-none
         ${oneOnOneChecked
-                          ? "border-slate-300 focus:ring-2 focus:ring-indigo-500"
+                          ? "border-slate-300 focus:ring-2 focus:ring-purple-500"
                           : "border-slate-200 bg-slate-100 cursor-not-allowed"
                         }`}
                     />
@@ -801,7 +801,7 @@ export default function EmployeeReviewView({
                     whileHover={{ scale: canSubmitFinalReview ? 1.02 : 1 }}
                     className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold
         ${canSubmitFinalReview && !isSubmittingFinal
-                        ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
+                        ? "bg-gradient-to-r from-purple-600 to-violet-600 text-white"
                         : "bg-slate-200 text-slate-500 cursor-not-allowed"
                       }`}
                   >
@@ -818,11 +818,11 @@ export default function EmployeeReviewView({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-indigo-50 border border-indigo-200 rounded-xl p-5"
+            className="bg-purple-50 border border-purple-200 rounded-xl p-5"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-5 h-5 text-indigo-600" />
-              <h3 className="text-sm font-semibold text-indigo-700">
+              <Calendar className="w-5 h-5 text-purple-600" />
+              <h3 className="text-sm font-semibold text-purple-700">
                 1:1 Meeting Details
               </h3>
             </div>

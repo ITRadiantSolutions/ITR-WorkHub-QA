@@ -37,6 +37,7 @@ const fmtHHMMSS = (totalSeconds) => {
 const newRow = () => ({ projectId: "", task: "", hours: Array(7).fill(""), nsa: Array(7).fill(false), comment: "" });
 
 const MAX_HOURS_PER_DAY = 8;
+const MAX_HOURS_PER_WEEK = 40;
 // Only non-negative numbers with at most one decimal point — rejects "-",
 // letters, and anything else while the user is still typing.
 const isValidHourInput = (value) => value === "" || /^\d*\.?\d*$/.test(value);
@@ -47,6 +48,7 @@ export default function TimesheetEntry() {
 
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [projects, setProjects] = useState([]);
+  const [companyHolidays, setCompanyHolidays] = useState([]);
   const [managers, setManagers] = useState([]);
   const [managerId, setManagerId] = useState("");
   const [myTimesheets, setMyTimesheets] = useState([]);
@@ -55,14 +57,17 @@ export default function TimesheetEntry() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [timerProject, setTimerProject] = useState("");
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef(null);
+  const [managerTouched, setManagerTouched] = useState(false);
 
   const weekEnd = addDays(weekStart, 6);
   const today = new Date();
+  const atCurrentWeek = fmtISODate(weekStart) === fmtISODate(startOfWeek(today));
 
   useEffect(() => {
     API.get("/projects")
@@ -71,6 +76,9 @@ export default function TimesheetEntry() {
     API.get("/users/managers")
       .then((res) => setManagers(res.data || []))
       .catch(() => toast.error("Failed to load managers"));
+    API.get("/company-holidays")
+      .then((res) => setCompanyHolidays((res.data || []).map((h) => h.date)))
+      .catch(() => toast.error("Failed to load the company holiday calendar"));
   }, []);
 
   // Default to the employee's own manager, once we know who that is.
@@ -150,10 +158,39 @@ export default function TimesheetEntry() {
   // actually confirmed that week's status — never fall back to "editable" just
   // because the fetch hasn't resolved (or failed) yet.
   const editable = id
-    ? Boolean(current) && ["draft", "needs_edit"].includes(current.status)
-    : !current || ["draft", "needs_edit"].includes(current.status);
+    ? Boolean(current) && ["draft", "needs_edit", "rejected"].includes(current.status)
+    : !current || ["draft", "needs_edit", "rejected"].includes(current.status);
 
-  const updateRow = (i, patch) => setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  // Effective locked dates for a project = the company-wide calendar plus
+  // that project's own extra holidays, minus any dates the project has
+  // specifically opted out of (e.g. a US client working through an
+  // India-only public holiday).
+  const holidaysForProject = (projectId) => {
+    const project = projects.find((p) => p._id === projectId);
+    if (!project) return [];
+    const excluded = new Set(project.excludedHolidays || []);
+    return [...new Set([...companyHolidays, ...(project.holidays || [])])].filter((d) => !excluded.has(d));
+  };
+
+  // When a row's project changes, re-check which days are locked under the
+  // *new* project's holidays (weekend lock never changes) and clear any
+  // hours/NSA left over from the previous project — otherwise a value typed
+  // while on one project stays in state (just visually disabled) after
+  // switching to a project where that same day is now a holiday.
+  const updateRow = (i, patch) =>
+    setRows((prev) =>
+      prev.map((r, idx) => {
+        if (idx !== i) return r;
+        const next = { ...r, ...patch };
+        if (patch.projectId !== undefined) {
+          const holidays = holidaysForProject(patch.projectId);
+          const isLocked = (d) => d >= 5 || holidays.includes(fmtISODate(addDays(weekStart, d)));
+          next.hours = next.hours.map((h, d) => (isLocked(d) ? "" : h));
+          next.nsa = next.nsa.map((v, d) => (isLocked(d) ? false : v));
+        }
+        return next;
+      }),
+    );
   const updateHour = (i, dayIdx, value) => {
     if (!isValidHourInput(value)) return; // rejects negative numbers and non-numeric input
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, hours: r.hours.map((h, d) => (d === dayIdx ? value : h)) } : r)));
@@ -162,6 +199,10 @@ export default function TimesheetEntry() {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, nsa: r.nsa.map((n, d) => (d === dayIdx ? checked : n)) } : r)));
   const removeRow = (i) => setRows((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
   const addRow = () => setRows((prev) => [...prev, newRow()]);
+
+  // Weekends and holidays (company-wide or project-declared) are never editable, regardless of timesheet status.
+  const isWeekendDay = (d) => d >= 5;
+  const isHolidayDay = (row, d) => holidaysForProject(row.projectId).includes(fmtISODate(addDays(weekStart, d)));
 
   const rowTotal = (row) => row.hours.reduce((sum, h) => sum + (parseFloat(h) || 0), 0);
   const grandTotal = useMemo(() => rows.reduce((sum, r) => sum + rowTotal(r), 0), [rows]);
@@ -174,9 +215,16 @@ export default function TimesheetEntry() {
     .filter((d) => d.total > MAX_HOURS_PER_DAY);
 
   const totalError = rows.some((r) => r.projectId) && grandTotal === 0 ? "Please enter time in at least one cell before saving." : "";
-  const capError = overCapDays.length
-    ? `${overCapDays.map((d) => `${d.day} (${d.total.toFixed(1)}h)`).join(", ")} exceed${overCapDays.length === 1 ? "s" : ""} the ${MAX_HOURS_PER_DAY}-hour daily limit.`
-    : "";
+  const capMessages = [];
+  if (overCapDays.length) {
+    capMessages.push(
+      `${overCapDays.map((d) => `${d.day} (${d.total.toFixed(1)}h)`).join(", ")} exceed${overCapDays.length === 1 ? "s" : ""} the ${MAX_HOURS_PER_DAY}-hour daily limit.`,
+    );
+  }
+  if (grandTotal > MAX_HOURS_PER_WEEK) {
+    capMessages.push(`Weekly total (${grandTotal.toFixed(1)}h) exceeds the ${MAX_HOURS_PER_WEEK}-hour weekly limit.`);
+  }
+  const capError = capMessages.join(" ");
 
   const buildPayload = () => ({
     weekStart: fmtISODate(weekStart),
@@ -193,6 +241,7 @@ export default function TimesheetEntry() {
   });
 
   const handleSave = async () => {
+    setManagerTouched(true);
     if (!rows.some((r) => r.projectId)) {
       toast.error("Select a project on at least one row");
       return null;
@@ -220,15 +269,20 @@ export default function TimesheetEntry() {
   };
 
   const handleSubmit = async () => {
+    setManagerTouched(true);
     if (!managerId) return toast.error("Select a manager before submitting");
-    const saved = await handleSave();
-    if (!saved) return;
+    if (submitting) return; // guards the whole save+submit round trip, not just the save half
+    setSubmitting(true);
     try {
+      const saved = await handleSave();
+      if (!saved) return;
       const res = await API.post(`/timesheets/${saved._id}/submit`, { managerId });
       toast.success("Submitted for approval");
       setCurrent(res.data);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -281,62 +335,68 @@ export default function TimesheetEntry() {
             <button onClick={() => setWeekStart((w) => addDays(w, -7))} className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition">
               <Icons.Back />
             </button>
-            <span className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3.5 py-2 text-sm font-bold text-indigo-700">
-              <Icons.Calendar /> {fmtDDMMYYYY(weekStart)}
+            <span className="flex items-center gap-2 rounded-xl bg-teal-50 px-3.5 py-2 text-sm font-bold text-teal-700">
+              <Icons.Calendar /> {fmtDDMMYYYY(weekStart)} – {fmtDDMMYYYY(weekEnd)}
             </span>
-            <button onClick={() => setWeekStart((w) => addDays(w, 7))} className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition">
+            <button
+              onClick={() => setWeekStart((w) => addDays(w, 7))}
+              disabled={atCurrentWeek}
+              title={atCurrentWeek ? "Future weeks aren't available yet" : undefined}
+              className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+            >
               <Icons.Arrow />
             </button>
           </div>
         )}
 
-        <span className="text-sm font-semibold text-slate-400">
-          {fmtISODate(weekStart)} — {fmtISODate(weekEnd)}
-        </span>
-
         <div className="flex-1" />
 
         {editable && (
-          <>
-            <select
-              value={timerProject}
-              onChange={(e) => setTimerProject(e.target.value)}
-              disabled={timerRunning}
-              className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium bg-white disabled:opacity-60"
-            >
-              <option value="">Select Project</option>
-              {projects.map((p) => (
-                <option key={p._id} value={p._id}>{p.name}</option>
-              ))}
-            </select>
-            <button
-              onClick={toggleTimer}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-bold shadow-md transition ${
-                timerRunning ? "bg-red-600 hover:bg-red-700 shadow-red-100" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100"
-              }`}
-            >
-              {timerRunning ? <Icons.Pause /> : <Icons.Play />} {timerRunning ? fmtHHMMSS(timerSeconds) : "START"}
-            </button>
-            <button onClick={resetTimer} className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition" title="Reset timer">
-              <Icons.Refresh />
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving || Boolean(capError)}
-              title={capError || undefined}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold shadow-md shadow-indigo-100 transition disabled:opacity-60"
-            >
-              <Icons.Save /> {saving ? "Saving..." : "Save Timesheet"}
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={saving || Boolean(capError)}
-              title={capError || undefined}
-              className="px-4 py-2.5 rounded-xl border-2 border-indigo-600 text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition disabled:opacity-60"
-            >
-              Submit
-            </button>
-          </>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-1.5">
+              <select
+                value={timerProject}
+                onChange={(e) => setTimerProject(e.target.value)}
+                disabled={timerRunning}
+                className="h-9 rounded-xl border border-slate-200 px-3 text-sm font-medium bg-white disabled:opacity-60"
+              >
+                <option value="">Select Project</option>
+                {projects.map((p) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={toggleTimer}
+                className={`h-9 flex items-center gap-1.5 px-3.5 rounded-xl text-white text-sm font-bold transition ${
+                  timerRunning ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {timerRunning ? <Icons.Pause /> : <Icons.Play />} {timerRunning ? fmtHHMMSS(timerSeconds) : "Start"}
+              </button>
+              <button onClick={resetTimer} className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-slate-600 transition" title="Reset timer">
+                <Icons.Refresh />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSave}
+                disabled={saving || submitting || Boolean(capError)}
+                title={capError || undefined}
+                className="h-10 flex items-center gap-1.5 px-4 rounded-[14px] border border-slate-300 bg-white text-slate-700 text-sm font-bold hover:bg-slate-50 transition disabled:opacity-60"
+              >
+                <Icons.Save /> {saving ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={saving || submitting || Boolean(capError)}
+                title={capError || undefined}
+                className="h-10 flex items-center gap-1.5 px-5 rounded-[14px] bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold shadow-sm shadow-teal-100 transition disabled:opacity-60"
+              >
+                {submitting ? "Submitting..." : "Submit"}
+              </button>
+            </div>
+          </div>
         )}
         {!editable && current && (
           <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3.5 py-2 rounded-full">
@@ -345,24 +405,6 @@ export default function TimesheetEntry() {
         )}
       </div>
 
-      {editable && (
-        <div className="px-4 pb-4 pt-3 border-t border-slate-100 flex items-center gap-2.5 flex-wrap">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Manager</span>
-          <select
-            value={managerId}
-            onChange={(e) => setManagerId(e.target.value)}
-            className={`rounded-xl border px-3 py-2 text-sm font-medium bg-white ${
-              managerId ? "border-slate-200" : "border-red-300 ring-1 ring-red-100"
-            }`}
-          >
-            <option value="">Select a manager...</option>
-            {managers.map((m) => (
-              <option key={m._id} value={m._id}>{m.name}</option>
-            ))}
-          </select>
-          {!managerId && <span className="text-xs text-red-600 font-medium">Required before you can submit</span>}
-        </div>
-      )}
       </div>
 
       {loading ? (
@@ -387,7 +429,7 @@ export default function TimesheetEntry() {
                       <th
                         key={d}
                         className={`px-2 py-3.5 font-bold text-center min-w-[84px] ${
-                          overCap ? "text-red-600 bg-red-50" : isToday ? "text-indigo-600 bg-indigo-50/60" : isWeekend ? "text-slate-400 bg-slate-50/40" : "text-slate-600"
+                          overCap ? "text-red-600 bg-red-50" : isToday ? "text-teal-600 bg-teal-50/60" : isWeekend ? "text-slate-400 bg-slate-50/40" : "text-slate-600"
                         }`}
                       >
                         <span className="text-xs uppercase tracking-wide">{d}</span>
@@ -410,7 +452,7 @@ export default function TimesheetEntry() {
                         value={row.projectId}
                         onChange={(e) => updateRow(i, { projectId: e.target.value })}
                         disabled={!editable}
-                        className="w-full rounded-lg border border-slate-200 text-sm px-2.5 py-2 bg-white disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                        className="w-full rounded-lg border border-slate-200 text-sm px-2.5 py-2 bg-white disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
                       >
                         <option value="">Select Project</option>
                         {projects.map((p) => (
@@ -420,18 +462,21 @@ export default function TimesheetEntry() {
                     </td>
                     {DAY_LABELS.map((_, d) => {
                       const isToday = isSameDay(addDays(weekStart, d), today);
-                      const isWeekend = d >= 5;
+                      const isWeekend = isWeekendDay(d);
+                      const isHoliday = isHolidayDay(row, d);
+                      const locked = isWeekend || isHoliday;
                       const overCap = dayTotals[d] > MAX_HOURS_PER_DAY;
                       return (
-                        <td key={d} className={`px-2 py-3 text-center align-top ${overCap ? "bg-red-50/60" : isToday ? "bg-indigo-50/40" : isWeekend ? "bg-slate-50/30" : ""}`}>
+                        <td key={d} className={`px-2 py-3 text-center align-top ${overCap ? "bg-red-50/60" : isToday ? "bg-teal-50/40" : locked ? "bg-slate-50/30" : ""}`}>
                           <input
                             value={row.hours[d]}
                             onChange={(e) => updateHour(i, d, e.target.value)}
-                            disabled={!editable}
+                            disabled={!editable || locked}
                             min={0}
-                            placeholder="—"
+                            placeholder={isHoliday ? "Holiday" : "—"}
+                            title={isHoliday ? "Holiday — not editable" : isWeekend ? "Weekend — not editable" : undefined}
                             className={`w-16 text-center rounded-lg border px-1.5 py-1.5 text-sm font-medium tabular-nums disabled:bg-slate-50 disabled:text-slate-300 focus:outline-none focus:ring-2 ${
-                              overCap ? "border-red-300 focus:ring-red-500/30 focus:border-red-400" : "border-slate-200 focus:ring-indigo-500/30 focus:border-indigo-400"
+                              overCap ? "border-red-300 focus:ring-red-500/30 focus:border-red-400" : "border-slate-200 focus:ring-teal-500/30 focus:border-teal-400"
                             }`}
                           />
                           <label className="flex flex-col items-center gap-0.5 mt-1.5 cursor-pointer" title="Applicable for NSA">
@@ -439,11 +484,12 @@ export default function TimesheetEntry() {
                               type="checkbox"
                               checked={row.nsa[d]}
                               onChange={(e) => updateNsa(i, d, e.target.checked)}
-                              disabled={!editable}
-                              className="accent-indigo-600 w-3.5 h-3.5"
+                              disabled={!editable || locked}
+                              className="accent-teal-600 w-3.5 h-3.5"
                             />
                             <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">NSA</span>
                           </label>
+                          {isHoliday && <div className="text-[9px] text-amber-500 font-semibold mt-1">Holiday</div>}
                         </td>
                       );
                     })}
@@ -458,7 +504,7 @@ export default function TimesheetEntry() {
                         onChange={(e) => updateRow(i, { comment: e.target.value })}
                         disabled={!editable}
                         placeholder="Optional"
-                        className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-sm disabled:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                        className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-sm disabled:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
                       />
                     </td>
                     {editable && (
@@ -476,21 +522,41 @@ export default function TimesheetEntry() {
 
           {editable && (
             <div className="flex justify-center py-3.5 border-t border-slate-50 bg-slate-50/30">
-              <button onClick={addRow} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-500 text-xs font-semibold hover:border-indigo-400 hover:text-indigo-600 hover:bg-white transition">
+              <button onClick={addRow} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-500 text-xs font-semibold hover:border-teal-400 hover:text-teal-600 hover:bg-white transition">
                 <Icons.Plus /> Add row
               </button>
             </div>
           )}
 
-          <div className={`px-5 py-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 ${totalError || capError ? "bg-red-50/50" : "bg-emerald-50/30"}`}>
+          <div className={`px-5 py-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3 ${totalError || capError ? "bg-red-50/50" : "bg-emerald-50/30"}`}>
             <span className="font-bold text-slate-800">
-              Total Hours (Mon–Fri): <span className="tabular-nums text-indigo-700">{grandTotal.toFixed(1)}</span>
+              Total Hours (Mon–Fri): <span className="tabular-nums text-teal-700">{grandTotal.toFixed(1)}</span>
             </span>
-            {(totalError || capError) && (
-              <span className="flex items-center gap-1.5 text-sm text-red-600 font-medium">
-                <Icons.Alert /> {capError || totalError}
-              </span>
-            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              {editable && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Manager</span>
+                  <select
+                    value={managerId}
+                    onChange={(e) => setManagerId(e.target.value)}
+                    className={`rounded-xl border px-3 py-2 text-sm font-medium bg-white ${
+                      managerTouched && !managerId ? "border-red-300 ring-1 ring-red-100" : "border-slate-200"
+                    }`}
+                  >
+                    <option value="">Select a manager...</option>
+                    {managers.map((m) => (
+                      <option key={m._id} value={m._id}>{m.name}</option>
+                    ))}
+                  </select>
+                  {managerTouched && !managerId && <span className="text-xs text-red-600 font-medium">Required before you can submit</span>}
+                </div>
+              )}
+              {(totalError || capError) && (
+                <span className="flex items-center gap-1.5 text-sm text-red-600 font-medium">
+                  <Icons.Alert /> {capError || totalError}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}

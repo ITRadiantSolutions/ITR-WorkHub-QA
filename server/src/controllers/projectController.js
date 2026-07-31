@@ -3,6 +3,7 @@ import Task from "../models/Task.js";
 import Sprint from "../models/Sprint.js";
 import User from "../models/User.js";
 import { notifyUsers } from "../utils/notify.js";
+import { escapeRegex } from "../utils/taskFilters.js";
 import {
   isPMOrAdmin,
   canManageProject,
@@ -36,8 +37,7 @@ export const listProjects = async (req, res) => {
   if (status && status !== "ALL") filter.status = status;
   if (priority && priority !== "ALL") filter.priority = priority;
   if (q?.trim()) {
-    const regex = new RegExp(q.trim(), "i");
-    filter.name = regex;
+    filter.name = new RegExp(escapeRegex(q.trim()), "i");
   }
 
   const projects = await Project.find(filter)
@@ -98,8 +98,9 @@ export const updateProject = async (req, res) => {
 
   const project = await Project.findById(req.params.id);
   if (!project) return res.status(404).json({ message: "Project not found" });
-  if (!isPMOrAdmin(req.user) && !isHrOrManager(req.user)) return res.status(403).json({ message: "Access denied" });
-  if (!canManageProject(req.user, project)) {
+  // HR/timesheet-manager can manage any project (Workspace Management page);
+  // a plain PM is still limited to projects they lead/created/are on.
+  if (!isHrOrManager(req.user) && !(isPMOrAdmin(req.user) && canManageProject(req.user, project))) {
     return res.status(403).json({ message: "Not authorized to update this project" });
   }
 
@@ -236,6 +237,9 @@ export const addHoliday = async (req, res) => {
 
   const project = await Project.findById(req.params.id);
   if (!project) return res.status(404).json({ message: "Project not found" });
+  if (!isHrOrManager(req.user) && !(isPMOrAdmin(req.user) && canManageProject(req.user, project))) {
+    return res.status(403).json({ message: "Not authorized to manage holidays for this project" });
+  }
 
   if (!project.holidays.includes(date)) {
     project.holidays.push(date);
@@ -247,8 +251,42 @@ export const addHoliday = async (req, res) => {
 export const removeHoliday = async (req, res) => {
   const project = await Project.findById(req.params.id);
   if (!project) return res.status(404).json({ message: "Project not found" });
+  if (!isHrOrManager(req.user) && !(isPMOrAdmin(req.user) && canManageProject(req.user, project))) {
+    return res.status(403).json({ message: "Not authorized to manage holidays for this project" });
+  }
 
   project.holidays = project.holidays.filter((d) => d !== req.params.date);
+  await project.save();
+  res.json(project);
+};
+
+// Opts this project out of a company-wide holiday (e.g. a client who works
+// through an India public holiday) — the date stays locked everywhere else.
+export const addExcludedHoliday = async (req, res) => {
+  const { date } = req.body;
+  if (!date) return res.status(400).json({ message: "date is required" });
+
+  const project = await Project.findById(req.params.id);
+  if (!project) return res.status(404).json({ message: "Project not found" });
+  if (!isHrOrManager(req.user) && !(isPMOrAdmin(req.user) && canManageProject(req.user, project))) {
+    return res.status(403).json({ message: "Not authorized to manage holidays for this project" });
+  }
+
+  if (!project.excludedHolidays.includes(date)) {
+    project.excludedHolidays.push(date);
+    await project.save();
+  }
+  res.json(project);
+};
+
+export const removeExcludedHoliday = async (req, res) => {
+  const project = await Project.findById(req.params.id);
+  if (!project) return res.status(404).json({ message: "Project not found" });
+  if (!isHrOrManager(req.user) && !(isPMOrAdmin(req.user) && canManageProject(req.user, project))) {
+    return res.status(403).json({ message: "Not authorized to manage holidays for this project" });
+  }
+
+  project.excludedHolidays = project.excludedHolidays.filter((d) => d !== req.params.date);
   await project.save();
   res.json(project);
 };

@@ -560,13 +560,13 @@ export default function AssignIndividual() {
             {/* 🔙 BACK BUTTON */}
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 mb-2 md:mb-0"
+              className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-purple-600 mb-2 md:mb-0"
             >
               <ArrowLeft size={18} />
               Back
             </button>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent">
                 Employee KPIs Studio
               </h1>
               <p className="text-gray-500 mt-1 text-sm">
@@ -574,12 +574,12 @@ export default function AssignIndividual() {
                 precision.
               </p>
             </div>
-            <div className="flex items-center gap-3 bg-indigo-50 px-5 py-3 rounded-2xl border border-indigo-100">
-              <span className="text-sm font-semibold text-indigo-700">
+            <div className="flex items-center gap-3 bg-purple-50 px-5 py-3 rounded-2xl border border-purple-100">
+              <span className="text-sm font-semibold text-purple-700">
                 Remaining Weight
               </span>
               <span
-                className={`text-2xl font-bold ${remainingWeight === 0 ? "text-emerald-500" : remainingWeight < 0 ? "text-red-500" : "text-indigo-600"}`}
+                className={`text-2xl font-bold ${remainingWeight === 0 ? "text-emerald-500" : remainingWeight < 0 ? "text-red-500" : "text-purple-600"}`}
               >
                 {remainingWeight}%
               </span>
@@ -591,7 +591,7 @@ export default function AssignIndividual() {
             <div className="flex justify-between items-center w-full min-w-[500px] relative px-4">
               <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-gray-100 -translate-y-1/2" />
               <div
-                className="absolute top-1/2 left-10 right-[50%] h-0.5 bg-indigo-500 -translate-y-1/2 transition-all duration-500"
+                className="absolute top-1/2 left-10 right-[50%] h-0.5 bg-purple-500 -translate-y-1/2 transition-all duration-500"
                 style={{
                   right: step === 1 ? "100%" : step === 2 ? "50%" : "10%",
                 }}
@@ -612,12 +612,12 @@ export default function AssignIndividual() {
                   >
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm
-                      ${isActive ? "bg-indigo-600 text-white ring-4 ring-indigo-100 scale-110" : isPast ? "bg-emerald-500 text-white" : "bg-white text-gray-400 border-2 border-gray-200 group-hover:border-indigo-300"}`}
+                      ${isActive ? "bg-purple-600 text-white ring-4 ring-purple-100 scale-110" : isPast ? "bg-emerald-500 text-white" : "bg-white text-gray-400 border-2 border-gray-200 group-hover:border-purple-300"}`}
                     >
                       {isPast ? <CheckCircle2 size={20} /> : s.num}
                     </div>
                     <span
-                      className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? "text-indigo-700" : isPast ? "text-gray-800" : "text-gray-400"}`}
+                      className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? "text-purple-700" : isPast ? "text-gray-800" : "text-gray-400"}`}
                     >
                       {s.label}
                     </span>
@@ -643,7 +643,7 @@ export default function AssignIndividual() {
                       value={templateName}
                       onChange={(e) => setTemplateName(e.target.value)}
                       placeholder="e.g. Q3 Engineering Core"
-                      className="w-full px-5 py-4 text-sm font-medium text-gray-800 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      className="w-full px-5 py-4 text-sm font-medium text-gray-800 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     /> */}
                   </div>
 
@@ -661,7 +661,7 @@ export default function AssignIndividual() {
                           setKraType("functional");
                           setKraTypeError(false);
                         }}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === "functional" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === "functional" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                       >
                         Job Specified
                       </button>
@@ -670,7 +670,7 @@ export default function AssignIndividual() {
                           setKraType("organizational");
                           setKraTypeError(false);
                         }}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === "organizational" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === "organizational" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                       >
                         Organizational
                       </button>
@@ -694,7 +694,7 @@ export default function AssignIndividual() {
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="bg-indigo-50/50 rounded-3xl border border-indigo-100 p-6 mt-2 relative">
+                        <div className="bg-purple-50/50 rounded-3xl border border-purple-100 p-6 mt-2 relative">
                           <button
                             onClick={() => setShowLibraryDropdown(false)}
                             className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-white rounded-full transition-all"
@@ -702,7 +702,7 @@ export default function AssignIndividual() {
                             <X size={20} />
                           </button>
                           <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
                               <Building2 size={20} />
                             </div>
                             <h4 className="font-bold text-gray-800 capitalize text-lg">
@@ -722,7 +722,7 @@ export default function AssignIndividual() {
                                 ),
                               );
                             }}
-                            className="w-full px-5 py-3 mb-6 text-sm rounded-xl bg-white border border-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
+                            className="w-full px-5 py-3 mb-6 text-sm rounded-xl bg-white border border-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm"
                           />
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-2 pb-2">
@@ -738,7 +738,7 @@ export default function AssignIndividual() {
                                 return (
                                   <div
                                     key={kra.id}
-                                    className={`flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 ${alreadyAdded ? "bg-indigo-600 border-indigo-700 text-white shadow-md" : "bg-white border-gray-200 hover:border-indigo-300 hover:shadow-md"}`}
+                                    className={`flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 ${alreadyAdded ? "bg-purple-600 border-purple-700 text-white shadow-md" : "bg-white border-gray-200 hover:border-purple-300 hover:shadow-md"}`}
                                   >
                                     <div>
                                       <p
@@ -747,7 +747,7 @@ export default function AssignIndividual() {
                                         {kra.name}
                                       </p>
                                       <span
-                                        className={`text-xs inline-flex px-2 py-1 rounded-md font-medium ${alreadyAdded ? "bg-indigo-500 text-white" : "bg-gray-100 text-gray-600"}`}
+                                        className={`text-xs inline-flex px-2 py-1 rounded-md font-medium ${alreadyAdded ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"}`}
                                       >
                                         {kra.kpis?.length || 0} KPIs
                                       </span>
@@ -762,7 +762,7 @@ export default function AssignIndividual() {
                                           )
                                           : handleSelectKra(kra)
                                       }
-                                      className={`mt-4 py-2 w-full flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors ${alreadyAdded ? "bg-white/20 hover:bg-white/30 text-white" : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"}`}
+                                      className={`mt-4 py-2 w-full flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors ${alreadyAdded ? "bg-white/20 hover:bg-white/30 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}
                                     >
                                       {alreadyAdded ? (
                                         <>
@@ -789,7 +789,7 @@ export default function AssignIndividual() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 px-4 py-2 
-    bg-gradient-to-r from-blue-600 to-indigo-600 
+    bg-gradient-to-r from-violet-600 to-purple-600 
     text-white rounded-lg text-sm font-semibold 
     shadow hover:shadow-lg transition-all duration-300"
                   >
@@ -804,10 +804,10 @@ export default function AssignIndividual() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-indigo-500" />{" "}
+                            <span className="w-2 h-2 rounded-full bg-purple-500" />{" "}
                             Job Specified KRAs
                           </h4>
-                          <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
+                          <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
                             {functionalCount} Selected
                           </span>
                         </div>
@@ -816,7 +816,7 @@ export default function AssignIndividual() {
                           .map((kra) => (
                             <div
                               key={kra.instanceId}
-                              className="flex justify-between items-center bg-gray-50 border border-gray-200 p-3 rounded-xl hover:border-indigo-300 transition-colors"
+                              className="flex justify-between items-center bg-gray-50 border border-gray-200 p-3 rounded-xl hover:border-purple-300 transition-colors"
                             >
                               <span className="text-sm font-medium text-gray-700 truncate pr-4">
                                 {kra.name}
@@ -883,7 +883,7 @@ export default function AssignIndividual() {
             {step === 1 && (
               <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto py-8">
                 <div className="text-center mb-8">
-                  <div className="mx-auto w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+                  <div className="mx-auto w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4">
                     <Users size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800">
@@ -905,10 +905,10 @@ export default function AssignIndividual() {
                       setShowAssignDropdown(true);
                     }}
                     onFocus={() => setShowAssignDropdown(true)}
-                    className="w-full pl-12 pr-4 py-4 text-base rounded-2xl bg-white border-2 border-indigo-100 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all shadow-sm"
+                    className="w-full pl-12 pr-4 py-4 text-base rounded-2xl bg-white border-2 border-purple-100 focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-50 transition-all shadow-sm"
                   />
                   <Users
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400"
                     size={20}
                   />
 
@@ -932,7 +932,7 @@ export default function AssignIndividual() {
                             return (
                               <div
                                 key={item.id}
-                                className="flex items-center justify-between p-4 hover:bg-indigo-50 border-b border-gray-50 transition-colors"
+                                className="flex items-center justify-between p-4 hover:bg-purple-50 border-b border-gray-50 transition-colors"
                               >
                                 <div className="flex items-center gap-3">
                                   {/* ✅ Checkbox */}
@@ -955,7 +955,7 @@ export default function AssignIndividual() {
 
                                       setViewMode("create");
                                     }}
-                                    className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                                    className="w-4 h-4 accent-purple-600 cursor-pointer"
                                   />
 
                                   <UserCircle size={20} className="text-gray-400" />
@@ -967,7 +967,7 @@ export default function AssignIndividual() {
 
                                 <span
                                   className={`text-xs font-bold px-3 py-1 rounded-full ${item.type === "user"
-                                    ? "bg-blue-100 text-blue-700"
+                                    ? "bg-violet-100 text-violet-700"
                                     : "bg-emerald-100 text-emerald-700"
                                     }`}
                                 >
@@ -989,7 +989,7 @@ export default function AssignIndividual() {
                         key={assignee.id}
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 rounded-xl text-white shadow"
+                        className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-purple-600 px-4 py-2 rounded-xl text-white shadow"
                       >
                         <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center font-bold">
                           {assignee.name.charAt(0)}
@@ -1030,7 +1030,7 @@ export default function AssignIndividual() {
                   return (
                     <div
                       key={kra.instanceId}
-                      className={`rounded-2xl border bg-white overflow-hidden transition-all duration-300 shadow-sm ${kra.isSaved ? "border-emerald-200" : "border-gray-200 hover:border-indigo-300"}`}
+                      className={`rounded-2xl border bg-white overflow-hidden transition-all duration-300 shadow-sm ${kra.isSaved ? "border-emerald-200" : "border-gray-200 hover:border-purple-300"}`}
                     >
                       {/* Accordion Header row */}
                       <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
@@ -1062,7 +1062,7 @@ export default function AssignIndividual() {
                               max="100"
                               value={kra.weight}
                               placeholder="0"
-                              className="w-16 text-center font-bold text-indigo-700 bg-indigo-50 border border-gray-300 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                              className="w-16 text-center font-bold text-purple-700 bg-purple-50 border border-gray-300 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
                               onWheel={(e) => e.target.blur()}   // 🚫 disable mouse scroll
                               onKeyDown={(e) => {
                                 if (e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -1095,7 +1095,7 @@ export default function AssignIndividual() {
                           <div className="flex items-center gap-2">
                             <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                               <div
-                                className={`h-full transition-all duration-500 ${totalKpiWeight === 100 ? "bg-emerald-500" : totalKpiWeight > 100 ? "bg-red-500" : "bg-indigo-500"}`}
+                                className={`h-full transition-all duration-500 ${totalKpiWeight === 100 ? "bg-emerald-500" : totalKpiWeight > 100 ? "bg-red-500" : "bg-purple-500"}`}
                                 style={{
                                   width: `${Math.min(totalKpiWeight, 100)}%`,
                                 }}
@@ -1130,7 +1130,7 @@ export default function AssignIndividual() {
                                     max="100"
                                     value={kpi.weight}
                                     placeholder="0"
-                                    className="w-16 text-center font-bold text-indigo-700 bg-indigo-50 border border-gray-300 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-16 text-center font-bold text-purple-700 bg-purple-50 border border-gray-300 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
                                     onWheel={(e) => e.target.blur()}
                                     onKeyDown={(e) => {
                                       if (e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -1169,7 +1169,7 @@ export default function AssignIndividual() {
                                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${kra.isSaved
                                   ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
                                   : canSave
-                                    ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200"
+                                    ? "bg-purple-600 text-white hover:bg-purple-700 shadow-purple-200"
                                     : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
                                   }`}
                               >
@@ -1214,7 +1214,7 @@ export default function AssignIndividual() {
 
                     setStep(2);
                   }}
-                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all shadow-md shadow-purple-200"
                 >
                   {editingTemplateId ? "Configure Weights" : "Next Step"}
                 </button>
@@ -1228,7 +1228,7 @@ export default function AssignIndividual() {
 
                     setStep(3);
                   }}
-                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all shadow-md shadow-purple-200"
                 >
                   Next Step
                 </button>
@@ -1333,15 +1333,15 @@ export default function AssignIndividual() {
                 {savedTemplates.map((template) => (
                   <div
                     key={template.id}
-                    className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-300 hover:shadow-xl transition-all duration-300 flex flex-col"
+                    className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col"
                   >
                     <div className="flex-1">
                       <h4 className="font-bold text-gray-800 text-lg mb-4">
                         {template.name}
                       </h4>
                       <div className="flex flex-wrap gap-2 mb-6">
-                        <div className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                        <div className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                           {template.functionalKras.length} Func
                         </div>
                         <div className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5">
@@ -1395,7 +1395,7 @@ export default function AssignIndividual() {
                           setStep(1);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className="py-2 text-xs font-bold text-center border border-indigo-200 text-indigo-700 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+                        className="py-2 text-xs font-bold text-center border border-purple-200 text-purple-700 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
                       >
                         Edit
                       </button>
@@ -1420,7 +1420,7 @@ export default function AssignIndividual() {
                           setStep(2);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className="py-2 text-xs font-bold text-center border border-transparent bg-indigo-600 text-white flex items-center justify-center gap-1 rounded-xl hover:bg-indigo-700 transition-colors"
+                        className="py-2 text-xs font-bold text-center border border-transparent bg-purple-600 text-white flex items-center justify-center gap-1 rounded-xl hover:bg-purple-700 transition-colors"
                       >
                         <Play size={12} /> Assign
                       </button>
@@ -1516,7 +1516,7 @@ export default function AssignIndividual() {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => setViewMode("editAssigned")}
-                                  className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:text-indigo-600 transition-colors"
+                                  className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:text-purple-600 transition-colors"
                                 >
                                   Edit Config
                                 </button>

@@ -198,7 +198,7 @@ export default function QaAssignModal({
             <button
               type="submit"
               disabled={loading || !qaTesterId}
-              className="h-9 px-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-60"
+              className="h-9 px-3 rounded-xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition disabled:opacity-60"
             >
               {loading ? "Assigning..." : "Assign & Move to QA Testing"}
             </button>

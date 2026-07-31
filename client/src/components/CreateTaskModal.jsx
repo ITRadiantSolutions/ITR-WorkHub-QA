@@ -608,7 +608,7 @@ export default function CreateTaskModal({
             <button
               type="submit"
               disabled={submitting || dueDateError}
-              className="flex h-8 items-center gap-2 rounded-lg bg-slate-900 px-2  text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 items-center gap-2 rounded-lg bg-blue-700 px-2  text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? (
                 <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />

@@ -4,7 +4,7 @@ import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Icons from "../components/Icons";
-import { TimesheetStatusSection, NsaReportSection } from "./HrDashboardSections";
+import { NsaReportSection } from "./HrDashboardSections";
 
 const RANGE_OPTIONS = [
   { value: "this_week", label: "This Week" },
@@ -15,15 +15,49 @@ const RANGE_OPTIONS = [
 ];
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const SEGMENT_COLORS = ["#4f46e5", "#10b981", "#cbd5e1"]; // top project, leaves/2nd, other
+// top project (brand gradient), second/leaves (blue), everything else (neutral)
+const SEGMENT_COLORS = ["url(#donutPrimary)", "#2563eb", "#e2e8f0"];
+const SEGMENT_LEGEND_COLORS = ["linear-gradient(135deg,#4338ca,#6366f1)", "#2563eb", "#e2e8f0"];
+
+// Card shell shared by every panel on this page — soft shadow + 20px radius per brand spec.
+const CARD = "bg-white rounded-[20px] border border-slate-200 shadow-[0_4px_20px_rgba(15,23,42,0.06)] hover:shadow-[0_12px_30px_rgba(79,70,229,0.12)] transition-shadow";
+
+function Sparkline({ values, color, width = 90, height = 36 }) {
+  if (!values.length) return <div style={{ width, height }} className="shrink-0" />;
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => ({
+    x: values.length > 1 ? (i / (values.length - 1)) * width : width / 2,
+    y: height - 4 - ((v - min) / range) * (height - 8),
+  }));
+  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  const isGradient = Array.isArray(color);
+  const gradId = isGradient ? `spark-${color[0].replace("#", "")}-${color[1].replace("#", "")}` : null;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible shrink-0">
+      {isGradient && (
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor={color[0]} />
+            <stop offset="100%" stopColor={color[1]} />
+          </linearGradient>
+        </defs>
+      )}
+      <path d={path} fill="none" stroke={isGradient ? `url(#${gradId})` : color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function ActivityDonut({ segments }) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
-  const r = 62,
-    cx = 84,
-    cy = 84,
+  const r = 80,
+    cx = 110,
+    cy = 110,
     circ = 2 * Math.PI * r,
     gap = 3; // degrees of visual gap between segments
+  const [hovered, setHovered] = useState(null);
 
   const arcs = segments.reduce((acc, s) => {
     const cursor = acc.length ? acc[acc.length - 1].cursor : 0;
@@ -34,37 +68,65 @@ function ActivityDonut({ segments }) {
   }, []);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-5">
-      <svg width="132" height="132" viewBox="0 0 168 168" className="shrink-0">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth="18" />
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative shrink-0" style={{ width: 220, height: 220 }}>
+        <svg width="220" height="220" viewBox="0 0 220 220">
+          <defs>
+            <linearGradient id="donutPrimary" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#4338ca" />
+              <stop offset="100%" stopColor="#6366f1" />
+            </linearGradient>
+          </defs>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eef2ff" strokeWidth="24" />
+          {arcs.map((a, i) => (
+            <circle
+              key={i}
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke={a.color}
+              strokeWidth="24"
+              strokeDasharray={a.dasharray}
+              strokeDashoffset={a.dashoffset}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${cx} ${cy})`}
+              style={{
+                transition: "stroke-dasharray 0.6s ease, opacity 0.15s ease",
+                cursor: "pointer",
+                opacity: hovered && hovered.label !== a.label ? 0.35 : 1,
+              }}
+              onMouseEnter={() => setHovered(a)}
+              onMouseLeave={() => setHovered(null)}
+            />
+          ))}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-2xl font-bold text-slate-800 tabular-nums">{hovered.value.toFixed(1)}h</span>
+              <span className="mt-1 max-w-[120px] truncate text-xs font-semibold text-slate-500">{hovered.label}</span>
+              <span className="text-xs font-semibold text-slate-400">{hovered.pct}%</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-bold text-slate-800 tabular-nums">{total.toFixed(1)}h</span>
+              <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Total</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
         {arcs.map((a, i) => (
-          <circle
+          <span
             key={i}
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke={a.color}
-            strokeWidth="18"
-            strokeDasharray={a.dasharray}
-            strokeDashoffset={a.dashoffset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${cx} ${cy})`}
-            style={{ transition: "stroke-dasharray 0.6s ease", cursor: "pointer" }}
+            className="flex items-center gap-1.5 cursor-pointer"
+            onMouseEnter={() => setHovered(a)}
+            onMouseLeave={() => setHovered(null)}
           >
-            <title>{`${a.label}: ${a.value.toFixed(1)}h (${a.pct}%)`}</title>
-          </circle>
-        ))}
-      </svg>
-      <div className="flex-1 w-full space-y-2">
-        {arcs.map((a, i) => (
-          <div key={i} className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: a.color }} />
-            <span className="text-sm font-semibold text-slate-700 truncate flex-1">{a.label}</span>
-            <span className="text-sm font-bold text-slate-500 tabular-nums shrink-0">
-              {a.value.toFixed(1)}h ({a.pct}%)
-            </span>
-          </div>
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.legendColor }} />
+            <span className="text-sm font-semibold text-slate-700">{a.label}</span>
+          </span>
         ))}
       </div>
     </div>
@@ -89,6 +151,9 @@ function HoursLineChart({ series, totalHours }) {
     y: padT + plotH - (s.hours / yMax) * plotH,
   }));
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaPath = points.length
+    ? `${path} L ${points[points.length - 1].x} ${padT + plotH} L ${points[0].x} ${padT + plotH} Z`
+    : "";
 
   return (
     <div>
@@ -104,14 +169,15 @@ function HoursLineChart({ series, totalHours }) {
             </g>
           );
         })}
+        {series.length > 0 && <path d={areaPath} fill="rgba(99,102,241,.12)" stroke="none" />}
         {series.length > 0 && <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />}
         {points.map((p, i) => (
           <g key={i} style={{ cursor: "pointer" }}>
             <circle cx={p.x} cy={p.y} r="9" fill="transparent">
               <title>{`${series[i].name}: ${series[i].hours.toFixed(1)}h`}</title>
             </circle>
-            <circle cx={p.x} cy={p.y} r="4" fill="#4f46e5" />
-            <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="#4f46e5" className="tabular-nums">
+            <circle cx={p.x} cy={p.y} r="4" fill="#4338ca" />
+            <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="#4338ca" className="tabular-nums">
               {series[i].hours.toFixed(1)}
             </text>
           </g>
@@ -133,10 +199,10 @@ function HoursLineChart({ series, totalHours }) {
 function RecentActivityItem({ ts }) {
   const style =
     {
-      submitted: { icon: "Clock", cls: "bg-amber-50 text-amber-600" },
+      submitted: { icon: "Clock", cls: "bg-orange-50 text-orange-600" },
       approved: { icon: "CheckCircle", cls: "bg-emerald-50 text-emerald-600" },
       rejected: { icon: "X", cls: "bg-red-50 text-red-600" },
-      needs_edit: { icon: "Edit", cls: "bg-amber-50 text-amber-600" },
+      needs_edit: { icon: "Edit", cls: "bg-orange-50 text-orange-600" },
     }[ts.status] || { icon: "Clock", cls: "bg-slate-100 text-slate-500" };
   const Icon = Icons[style.icon];
   const fmt = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
@@ -205,9 +271,9 @@ export default function Dashboard() {
       .reduce((sum, [, v]) => sum + v, 0);
 
     const segments = [
-      { label: top ? top[0] : "Top Project", value: top ? top[1] : 0, color: SEGMENT_COLORS[0] },
-      { label: second ? second[0] : "Other Projects", value: second ? second[1] : 0, color: SEGMENT_COLORS[1] },
-      { label: "Other Projects", value: otherTotal, color: SEGMENT_COLORS[2] },
+      { label: top ? top[0] : "Top Project", value: top ? top[1] : 0, color: SEGMENT_COLORS[0], legendColor: SEGMENT_LEGEND_COLORS[0] },
+      { label: second ? second[0] : "Other Projects", value: second ? second[1] : 0, color: SEGMENT_COLORS[1], legendColor: SEGMENT_LEGEND_COLORS[1] },
+      { label: "Other Projects", value: otherTotal, color: SEGMENT_COLORS[2], legendColor: SEGMENT_LEGEND_COLORS[2] },
     ].filter((s) => s.value > 0);
 
     const lineSeries = DAY_LABELS.map((name, i) => ({ name, hours: byDay[i] }));
@@ -223,6 +289,23 @@ export default function Dashboard() {
         .slice(0, 4),
     [timesheets]
   );
+
+  // Last few weeks of submitted/approved counts, purely to feed the KPI card sparklines.
+  const weeklyTrend = useMemo(() => {
+    const byWeek = new Map();
+    timesheets.forEach((t) => {
+      const key = new Date(t.weekStart).toISOString().slice(0, 10);
+      const cur = byWeek.get(key) || { submitted: 0, approved: 0 };
+      if (t.status === "submitted") cur.submitted += 1;
+      if (t.status === "approved") cur.approved += 1;
+      byWeek.set(key, cur);
+    });
+    const weeks = [...byWeek.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-8);
+    return {
+      submitted: weeks.map(([, v]) => v.submitted),
+      approved: weeks.map(([, v]) => v.approved),
+    };
+  }, [timesheets]);
 
   const isHr = user?.roles?.timesheet === "hr";
   const firstName = user?.name?.split(" ")[0] || "there";
@@ -242,7 +325,7 @@ export default function Dashboard() {
           <select
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            className="appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm font-semibold text-slate-700 shadow-sm cursor-pointer"
+            className="appearance-none rounded-[14px] border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm font-semibold text-slate-700 shadow-sm cursor-pointer"
           >
             {RANGE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -258,50 +341,56 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-shadow p-4 overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-indigo-50 opacity-60 group-hover:scale-110 transition-transform" />
-          <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
-              <Icons.BarChart />
+        <div className={`${CARD} p-4`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                <Icons.BarChart />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Hours Logged</p>
+                <p className="text-2xl font-extrabold text-slate-900 tabular-nums tracking-tight leading-tight">
+                  {totalHours.toFixed(1)}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Hours Logged</p>
-              <p className="text-2xl font-extrabold text-slate-900 tabular-nums tracking-tight leading-tight">
-                {totalHours.toFixed(1)}
-              </p>
-            </div>
+            <Sparkline values={lineSeries.map((s) => s.hours)} color={["#4338ca", "#6366f1"]} />
           </div>
-          <p className="relative text-xs text-slate-400 font-medium mt-2">Total hours this period</p>
+          <p className="text-xs text-slate-400 font-medium mt-2">Total hours this period</p>
         </div>
 
-        <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-shadow p-4 overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-amber-50 opacity-60 group-hover:scale-110 transition-transform" />
-          <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-200 shrink-0">
-              <Icons.Clock />
+        <div className={`${CARD} p-4`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-[14px] bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                <Icons.Clock />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Pending Approval</p>
+                <p className="text-2xl font-extrabold text-slate-900 tabular-nums tracking-tight leading-tight">{statusCounts.submitted || 0}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Pending Approval</p>
-              <p className="text-2xl font-extrabold text-slate-900 tabular-nums tracking-tight leading-tight">{statusCounts.submitted || 0}</p>
-            </div>
+            <Sparkline values={weeklyTrend.submitted} color="#f97316" />
           </div>
-          <p className="relative text-xs text-slate-400 font-medium mt-2">
+          <p className="text-xs text-slate-400 font-medium mt-2">
             Timesheet{statusCounts.submitted === 1 ? "" : "s"} awaiting review
           </p>
         </div>
 
-        <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-shadow p-4 overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-emerald-50 opacity-60 group-hover:scale-110 transition-transform" />
-          <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200 shrink-0">
-              <Icons.CheckCircle />
+        <div className={`${CARD} p-4`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <Icons.CheckCircle />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Approved Timesheets</p>
+                <p className="text-2xl font-extrabold text-slate-900 tabular-nums tracking-tight leading-tight">{statusCounts.approved || 0}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Approved Timesheets</p>
-              <p className="text-2xl font-extrabold text-slate-900 tabular-nums tracking-tight leading-tight">{statusCounts.approved || 0}</p>
-            </div>
+            <Sparkline values={weeklyTrend.approved} color="#10b981" />
           </div>
-          <p className="relative text-xs text-slate-400 font-medium mt-2">Timesheets this period</p>
+          <p className="text-xs text-slate-400 font-medium mt-2">Timesheets this period</p>
         </div>
       </div>
 
@@ -310,10 +399,10 @@ export default function Dashboard() {
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow p-4">
+            <div className={`${CARD} p-4 flex flex-col`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
                     <Icons.Layers />
                   </div>
                   <h3 className="font-bold text-slate-900">Activity Distribution</h3>
@@ -322,23 +411,25 @@ export default function Dashboard() {
                   By Project <Icons.ChevronDown />
                 </span>
               </div>
-              {donutSegments.length ? (
-                <ActivityDonut segments={donutSegments} />
-              ) : (
-                <div className="text-center py-4">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center mx-auto mb-2">
-                    <Icons.Empty />
+              <div className="flex-1 flex items-center justify-center">
+                {donutSegments.length ? (
+                  <ActivityDonut segments={donutSegments} />
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="w-14 h-14 rounded-2xl bg-teal-50 text-teal-300 flex items-center justify-center mx-auto mb-2">
+                      <Icons.Empty />
+                    </div>
+                    <p className="font-bold text-slate-700">No data yet</p>
+                    <p className="text-sm text-slate-400 mt-1">No logged hours in this period.</p>
                   </div>
-                  <p className="font-bold text-slate-700">No data yet</p>
-                  <p className="text-sm text-slate-400 mt-1">No logged hours in this period.</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow p-4">
+            <div className={`${CARD} p-4 flex flex-col`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
                     <Icons.TrendUp />
                   </div>
                   <h3 className="font-bold text-slate-900">Hours Logged</h3>
@@ -347,20 +438,21 @@ export default function Dashboard() {
                   By Day <Icons.ChevronDown />
                 </span>
               </div>
-              <HoursLineChart series={lineSeries} totalHours={totalHours} />
+              <div className="flex-1 flex flex-col justify-center">
+                <HoursLineChart series={lineSeries} totalHours={totalHours} />
+              </div>
             </div>
           </div>
 
           {isHr ? (
             <div className="space-y-4">
-              <TimesheetStatusSection />
               <NsaReportSection />
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+              <div className={`${CARD} p-4`}>
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
                     <Icons.Clock />
                   </div>
                   <h3 className="font-bold text-slate-900">Recent Activity</h3>
@@ -372,8 +464,8 @@ export default function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-indigo-50/40 rounded-xl p-6 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-white text-indigo-300 flex items-center justify-center mx-auto mb-2 shadow-sm">
+                  <div className="bg-teal-50/60 rounded-xl p-6 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-white text-teal-300 flex items-center justify-center mx-auto mb-2 shadow-sm">
                       <Icons.Reports />
                     </div>
                     <p className="font-bold text-slate-700">No recent activity</p>
@@ -382,9 +474,9 @@ export default function Dashboard() {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+              <div className={`${CARD} p-4`}>
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
                     <Icons.Zap />
                   </div>
                   <h3 className="font-bold text-slate-900">Quick Actions</h3>
@@ -392,9 +484,9 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     onClick={() => navigate("/timesheet/new")}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left"
+                    className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-violet-200 hover:bg-violet-50 transition text-left"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-[14px] bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
                       <Icons.Plus />
                     </div>
                     <div className="min-w-0">
@@ -404,9 +496,9 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => navigate("/timesheet/new")}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left"
+                    className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                       <Icons.Calendar />
                     </div>
                     <div className="min-w-0">
@@ -416,9 +508,9 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => navigate("/timesheet/history")}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition text-left sm:col-span-2"
+                    className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left sm:col-span-2"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                       <Icons.Reports />
                     </div>
                     <div className="min-w-0">

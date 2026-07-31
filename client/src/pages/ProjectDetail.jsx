@@ -80,7 +80,7 @@ const ProjectAttachmentRow = ({ attachment, index }) => {
           href={url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-900 px-3.5 text-[11px] font-bold text-white transition hover:bg-black sm:self-center"
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-700 px-3.5 text-[11px] font-bold text-white transition hover:bg-blue-800 sm:self-center"
         >
           <Icons.Eye />
           Open file
@@ -617,7 +617,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
           {/* Modal Header */}
           <div className="px-5 py-4 border-b border-slate-100 shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="14"
@@ -804,7 +804,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
             <button
               onClick={createSprintInProjectDetail}
               disabled={sprintCreateSubmitting}
-              className="h-9 px-5 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-black transition flex items-center gap-1.5 disabled:opacity-50"
+              className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {sprintCreateSubmitting ? (
                 <>
@@ -1362,7 +1362,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
             {isLead && (
               <button
                 onClick={() => setShowCloneModal(true)}
-                className="flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition shadow-sm ml-auto"
+                className="flex items-center gap-1.5 bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-800 transition shadow-sm ml-auto"
                 title="Clone this project"
               >
                 <svg
@@ -1521,9 +1521,9 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     label: "Total",
                     value: total,
                     icon: <Icons.Tasks />,
-                    bg: "bg-slate-900",
+                    bg: "bg-indigo-50",
 
-                    fg: "text-white",
+                    fg: "text-indigo-700",
                   },
                   {
                     label: "Todo",
@@ -1615,7 +1615,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
                   <button
                     onClick={() => setShowCreateTaskModal(true)}
-                    className="flex items-center gap-1.5 bg-slate-900 text-white px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-slate-800 transition shadow-sm"
+                    className="flex items-center gap-1.5 bg-blue-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-blue-800 transition shadow-sm"
                   >
                     <Icons.Plus />
                     Add Task
@@ -2200,7 +2200,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                         projectId: project._id,
                       }));
                     }}
-                    className="mt-4 h-8 px-4 rounded-lg bg-slate-900 text-white text-[12.5px] font-semibold hover:bg-black transition inline-flex items-center gap-1.5"
+                    className="mt-4 h-8 px-4 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition inline-flex items-center gap-1.5"
                   >
                     <Icons.Plus /> Create First Sprint
                   </button>
@@ -2231,8 +2231,8 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                         {
                           label: "Total",
                           value: total,
-                          iconBg: "bg-slate-900",
-                          iconColor: "text-white",
+                          iconBg: "bg-indigo-50",
+                          iconColor: "text-indigo-500",
                           icon: (
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -2320,27 +2320,23 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                       ].map((s, i) => (
                         <div
                           key={i}
-                          className={`rounded-xl border p-3.5 shadow-sm ${i === 0 ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
+                          className="rounded-xl border p-3.5 shadow-sm bg-white border-slate-200"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span
-                              className={`text-[10.5px] font-semibold uppercase tracking-wider ${i === 0 ? "text-slate-400" : "text-slate-400"}`}
-                            >
+                            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
                               {s.label}
                             </span>
                             <div
-                              className={`w-6 h-6 rounded-md flex items-center justify-center ${i === 0 ? "bg-white/10 text-white/60" : `${s.iconBg} ${s.iconColor}`}`}
+                              className={`w-6 h-6 rounded-md flex items-center justify-center ${s.iconBg} ${s.iconColor}`}
                             >
                               {s.icon}
                             </div>
                           </div>
-                          <p
-                            className={`text-[24px] font-bold leading-none ${i === 0 ? "text-white" : "text-slate-800"}`}
-                          >
+                          <p className="text-[24px] font-bold leading-none text-slate-800">
                             {s.value}
                           </p>
                           {overdue > 0 && i === 0 && (
-                            <p className="text-[11px] text-red-400 mt-1">
+                            <p className="text-[11px] text-red-500 mt-1">
                               {overdue} overdue
                             </p>
                           )}
@@ -2372,7 +2368,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                           projectId: project._id,
                         }));
                       }}
-                      className="h-8 px-3.5 rounded-lg bg-slate-900 text-white text-[12.5px] font-semibold hover:bg-black transition flex items-center gap-1.5"
+                      className="h-8 px-3.5 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5"
                     >
                       <Icons.Plus /> Add Sprint
                     </button>
@@ -2696,7 +2692,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     </h3>
                   </div>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white">
                     <Icons.Tasks />
                   </div>
                 </div>
@@ -2734,7 +2730,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               {/* Header */}
               <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-700 text-white">
                   <Icons.Timeline />
                 </div>
 
@@ -2758,7 +2754,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                   {/* CREATED */}
                   {project.createdAt && (
                     <div className="relative flex gap-4">
-                      <div className="relative  flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">
+                      <div className="relative  flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-700 text-white">
                         <Icons.Plus />
                       </div>
 
@@ -2891,7 +2887,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     .map((task) => (
                       <div key={task._id} className="relative flex gap-3">
                         {/* Timeline Icon */}
-                        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-900 text-white">
+                        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-blue-700 text-white">
                           <Icons.Tasks />
                         </div>
 
@@ -3010,7 +3006,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                       type="button"
                       disabled={timelineLoading}
                       onClick={loadTimelineMore}
-                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-slate-900 px-4 text-[11px] font-semibold text-white hover:bg-slate-800 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-blue-700 px-4 text-[11px] font-semibold text-white hover:bg-blue-800 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {timelineLoading ? (
                         <div className="h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -3217,165 +3213,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
         {/* ---------------------Analytics----------------------------- */}
         {activeTab === "analytics" && (
           <div className="max-w-6xl space-y-4">
-            {/* Top Analytics Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              {/* Overview */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      Progress Overview
-                    </p>
-
-                    <h3 className="mt-1 text-lg font-bold text-slate-900">
-                      Sprint Health
-                    </h3>
-                  </div>
-
-                  <div className="rounded-xl bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white">
-                    {analytics.total} Tasks
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-center gap-5">
-                  {/* Donut */}
-                  <div className="shrink-0">
-                    <DonutChart
-                      value={analytics.completed}
-                      total={analytics.total}
-                    />
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex-1 space-y-2">
-                    {[
-                      {
-                        label: "Completed",
-                        val: analytics.completed,
-                        color: "bg-slate-900",
-                        text: "text-slate-800",
-                      },
-
-                      {
-                        label: "In Progress",
-                        val: analytics.inProgress,
-                        color: "bg-blue-500",
-                        text: "text-blue-700",
-                      },
-
-                      {
-                        label: "Todo",
-                        val: analytics.todo,
-                        color: "bg-slate-300",
-                        text: "text-slate-600",
-                      },
-                    ].map((d, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2"
-                      >
-                        <div
-                          className={`h-2.5 w-2.5 rounded-full ${d.color}`}
-                        />
-
-                        <span className="text-[11px] font-medium text-slate-500">
-                          {d.label}
-                        </span>
-
-                        <span className={`ml-auto text-sm font-bold ${d.text}`}>
-                          {d.val}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Breakdown */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      Task Status
-                    </p>
-
-                    <h3 className="mt-1 text-lg font-bold text-slate-900">
-                      Distribution
-                    </h3>
-                  </div>
-
-                  <div className="rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700">
-                    Live
-                  </div>
-                </div>
-
-                <div className="mt-5 space-y-4">
-                  <HBar
-                    label="Todo"
-                    count={analytics.todo}
-                    total={analytics.total}
-                    color="#cbd5e1"
-                  />
-
-                  <HBar
-                    label="In Progress"
-                    count={analytics.inProgress}
-                    total={analytics.total}
-                    color="#3b82f6"
-                  />
-
-                  <HBar
-                    label="Completed"
-                    count={analytics.completed}
-                    total={analytics.total}
-                    color="#0f172a"
-                  />
-                </div>
-              </div>
-
-              {/* Priority Breakdown */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      Priority Matrix
-                    </p>
-
-                    <h3 className="mt-1 text-lg font-bold text-slate-900">
-                      Workload
-                    </h3>
-                  </div>
-
-                  <div className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">
-                    Updated
-                  </div>
-                </div>
-
-                <div className="mt-5 space-y-4">
-                  <HBar
-                    label="High"
-                    count={analytics.high}
-                    total={analytics.total}
-                    color="#dc2626"
-                  />
-
-                  <HBar
-                    label="Medium"
-                    count={analytics.medium}
-                    total={analytics.total}
-                    color="#f59e0b"
-                  />
-
-                  <HBar
-                    label="Low"
-                    count={analytics.low}
-                    total={analytics.total}
-                    color="#94a3b8"
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Bottom Compact Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
@@ -3487,7 +3324,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 {/* Card header */}
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
-                  <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center text-white shrink-0">
+                  <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center text-white shrink-0">
                     <Icons.Edit />
                   </div>
                   <div>
@@ -3502,7 +3339,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     type="button"
                     onClick={handleSaveProject}
                     disabled={saving || !projectForm.name?.trim()}
-                    className="ml-auto inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:px-4 sm:text-sm"
+                    className="ml-auto inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-700 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:px-4 sm:text-sm"
                   >
                     {saving ? (
                       <>
@@ -3799,7 +3636,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                             type="button"
                             disabled={attachmentsUploading}
                             onClick={handleUploadAttachments}
-                            className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-bold hover:bg-blue-800 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {attachmentsUploading ? (
                               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -3878,7 +3715,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     <button
                       onClick={handleSaveProject}
                       disabled={saving || !projectForm.name?.trim()}
-                      className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                     >
                       {saving ? (
                         <>
@@ -4087,7 +3924,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                                   {u.name.charAt(0).toUpperCase()}
                                 </div>
 
-                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white">
+                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-700 text-white">
                                   {teamUpdating[u._id] ? (
                                     <div className="h-2.5 w-2.5 rounded-full border border-white border-t-transparent animate-spin" />
                                   ) : (

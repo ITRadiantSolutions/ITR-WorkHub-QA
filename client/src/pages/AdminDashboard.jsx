@@ -36,7 +36,7 @@ import {
   formatTimeAgo,
 } from "../utils/notificationDisplay.js";
 import RoleGuideFaqTabs from "./RoleGuideFaqTabs.jsx";
-import ThemeToggle from "../components/ThemeToggle";
+import TrackerSidebar from "../components/TrackerSidebar";
 import AdminClientTab from "../components/AdminClientTab";
 // import AdminOverview from "../components/AdminOverview.jsx";
 
@@ -92,13 +92,14 @@ function DonutChart({ value, total, label, color = "#00a21d" }) {
 
 function DistributionPieChart({ data, centerLabel, centerValue }) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  const radius = 36;
+  const radius = 40;
   const circumference = 2 * Math.PI * radius;
+  const [hovered, setHovered] = useState(null);
   let consumed = 0;
 
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row xl:flex-col 2xl:flex-row">
-      <div className="relative h-28 w-28 shrink-0">
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative h-40 w-40 shrink-0">
         <svg
           viewBox="0 0 100 100"
           className="h-full w-full -rotate-90"
@@ -128,38 +129,48 @@ function DistributionPieChart({ data, centerLabel, centerValue }) {
                 strokeWidth="12"
                 strokeDasharray={`${segment} ${circumference - segment}`}
                 strokeDashoffset={-offset}
-                className="transition-all duration-700"
+                className="transition-all duration-700 cursor-pointer"
+                style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
+                onMouseEnter={() => setHovered(item)}
+                onMouseLeave={() => setHovered(null)}
               />
             );
           })}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold leading-none text-slate-900">
-            {centerValue ?? total}
-          </span>
-          <span className="mt-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-            {centerLabel}
-          </span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-xl font-bold leading-none text-slate-900">{hovered.value}</span>
+              <span className="mt-1 max-w-[90px] truncate text-[9px] font-bold uppercase tracking-wide text-slate-400">{hovered.label}</span>
+              <span className="text-[9px] font-semibold text-slate-400">{total ? Math.round((hovered.value / total) * 100) : 0}%</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-bold leading-none text-slate-900">
+                {centerValue ?? total}
+              </span>
+              <span className="mt-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                {centerLabel}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="w-full min-w-0 space-y-2.5">
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
         {data.map((item) => (
-          <div key={item.label} className="flex items-center gap-2 text-xs">
+          <span
+            key={item.label}
+            className="flex items-center gap-1.5 cursor-pointer text-xs"
+            onMouseEnter={() => setHovered(item)}
+            onMouseLeave={() => setHovered(null)}
+          >
             <span
               className="h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: item.color }}
             />
-            <span className="truncate font-medium text-slate-500">
-              {item.label}
-            </span>
-            <span className="ml-auto font-bold text-slate-800">
-              {item.value}
-            </span>
-            <span className="w-9 text-right text-[10px] font-medium text-slate-400">
-              {total ? Math.round((item.value / total) * 100) : 0}%
-            </span>
-          </div>
+            <span className="font-medium text-slate-500">{item.label}</span>
+          </span>
         ))}
       </div>
     </div>
@@ -206,7 +217,6 @@ export default function AdminDashboard() {
   const [employeeLoading, setEmployeeLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [globalQuery, setGlobalQuery] = useState("");
   const [globalSearchFocused, setGlobalSearchFocused] = useState(false);
   const [pageSearchRequest, setPageSearchRequest] = useState(null);
@@ -491,7 +501,7 @@ export default function AdminDashboard() {
                   navigate("/");
                 }, 600);
               }}
-              className="flex-1 h-10 rounded-2xl bg-slate-900 text-white text-sm font-semibold hover:bg-black transition"
+              className="flex-1 h-10 rounded-2xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
             >
               Logout
             </button>
@@ -712,167 +722,30 @@ export default function AdminDashboard() {
     setActiveTab(result.tab);
   };
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: Icons.Dashboard },
-    { id: "clients", label: "Accounts", icon: Icons.Users },
+    { id: "dashboard", label: "Dashboard", Ic: Icons.Dashboard },
+    { id: "clients", label: "Accounts", Ic: Icons.Users },
 
-    { id: "projects", label: "Projects", icon: Icons.Projects },
-    { id: "tasks", label: "Tasks", icon: Icons.Tasks },
+    { id: "projects", label: "Projects", Ic: Icons.Projects },
+    { id: "tasks", label: "Tasks", Ic: Icons.Tasks },
 
-    { id: "sprints", label: "Sprints", icon: Icons.Sprints },
-    { id: "bugs", label: "Bug Reports", icon: Icons.Bug },
-    { id: "notifications", label: "Notifications", icon: Icons.Activity },
+    { id: "sprints", label: "Sprints", Ic: Icons.Sprints },
+    { id: "bugs", label: "Bug Reports", Ic: Icons.Bug },
+    { id: "notifications", label: "Notifications", Ic: Icons.Activity },
 
-    { id: "reports", label: "Reports", icon: Icons.Reports },
-    { id: "employees", label: "Users", icon: Icons.Employees },
-    { id: "guideFaq", label: "Guide & FAQ", icon: Icons.Help },
-    { id: "settings", label: "Settings", icon: Icons.Settings },
-  ];
+    { id: "reports", label: "Reports", Ic: Icons.Reports },
+    { id: "employees", label: "Users", Ic: Icons.Employees },
+    { id: "guideFaq", label: "Guide & FAQ", Ic: Icons.Help, tag: "NEW" },
+    { id: "settings", label: "Settings", Ic: Icons.Settings },
+  ].map((item) => ({ ...item, dot: tabCounts[item.id] > 0 }));
 
   return (
     <div
       style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }}
       className="flex min-h-screen bg-slate-50"
     >
-      <aside
-        className={`fixed left-0 top-0 h-screen bg-slate-900 border-r border-slate-800 flex flex-col z-50 transition-all duration-300 ${
-          sidebarOpen ? "w-56" : "w-16"
-        }`}
-      >
-        {/* Logo */}
-        <div className="h-16 px-3 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0">
-              <div className="w-4 h-4 rounded-md bg-slate-900" />
-            </div>
+      <TrackerSidebar navItems={navItems} activeId={activeTab} onSelect={setActiveTab} onLogout={handleLogout} />
 
-            {sidebarOpen && (
-              <div>
-                <p className="text-white text-sm font-bold leading-none">
-                  {/* WorkSpace */}
-                  Admin Portal
-                </p>
-                {/* <p className="text-slate-400 text-[10px] mt-1">
-            Admin Portal
-          </p> */}
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition shrink-0"
-          >
-            ☰
-          </button>
-        </div>
-
-        {/* User */}
-        <div className="px-3 py-3 border-b border-slate-800">
-          <div
-            className={`flex items-center ${
-              sidebarOpen ? "gap-3" : "justify-center"
-            }`}
-          >
-            <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center shrink-0">
-              <span className="text-white text-xs font-bold">
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </span>
-            </div>
-
-            {sidebarOpen && (
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-white text-xs font-semibold truncate">
-                    {user?.name}
-                  </p>
-
-                  <span className="px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-300 text-[10px] font-semibold">
-                    Admin
-                  </span>
-                </div>
-
-                <p className="text-slate-400 text-[10px] truncate mt-0.5">
-                  {user?.email}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-1">
-          {navItems.map((item) => {
-            const { id, label } = item;
-            const active = activeTab === id;
-
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`w-full rounded-xl transition-all duration-200 ${
-                  sidebarOpen
-                    ? "flex items-center gap-3 px-3 py-2.5 justify-start"
-                    : "flex items-center justify-center py-3"
-                } ${
-                  active
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                }`}
-              >
-                <div className="relative shrink-0">
-                  <span className="shrink-0 text-slate-300 group-hover:text-white">
-                    <item.icon />
-                  </span>
-
-                  {/* instagram-style badge (even in collapsed mode) */}
-                  {!active &&
-                    ((id === "projects" && tabCounts.projects > 0) ||
-                      (id === "tasks" && tabCounts.tasks > 0) ||
-                      (id === "sprints" && tabCounts.sprints > 0) ||
-                      (id === "bugs" && tabCounts.bugs > 0) ||
-                      (id === "notifications" &&
-                        tabCounts.notifications > 0)) && (
-                      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-70" />
-                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
-                      </span>
-                    )}
-                </div>
-
-                {sidebarOpen && (
-                  <span className="text-xs font-medium flex items-center gap-2">
-                    <span>{label}</span>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Logout */}
-        <div className="p-2 border-t border-slate-800">
-          <button
-            onClick={handleLogout}
-            className={`danger-action w-full rounded-xl text-slate-400 transition-all ${
-              sidebarOpen
-                ? "flex items-center gap-3 px-3 py-2.5"
-                : "flex items-center justify-center py-3"
-            }`}
-          >
-            <Icons.Logout />
-
-            {sidebarOpen && (
-              <span className="text-xs font-medium">Sign Out</span>
-            )}
-          </button>
-        </div>
-      </aside>
-
-      <div
-        className={`flex-1 min-h-screen flex flex-col bg-slate-50 transition-all duration-300 ease-in-out ${
-          sidebarOpen ? "ml-56" : "ml-16"
-        }`}
-      >
+      <div className="flex-1 min-w-0 min-h-screen flex flex-col bg-slate-50">
         <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between sticky top-0 z-10">
           <div>
             <h1 className="text-base font-bold text-slate-800">
@@ -1006,7 +879,6 @@ export default function AdminDashboard() {
 
           <div className="flex shrink-0 items-center gap-3">
             <NotificationBell />
-            <ThemeToggle />
             <div className="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5">
               <Icons.Shield />
               <span className="font-medium text-slate-700">{user?.name}</span>
@@ -1026,16 +898,14 @@ export default function AdminDashboard() {
                     label: "Total Projects",
                     value: m.totalProjects,
                     sub: `${m.activeProjects} active`,
-                    dark: true,
                     Ic: Icons.Projects,
-                    iconCls: "bg-white/10 text-white/60",
+                    iconCls: "bg-indigo-50 text-indigo-500",
                     loading: metricsLoading,
                   },
                   {
                     label: "Total Users",
                     value: m.totalUsers,
                     sub: `${m.totalUsers} employees`,
-                    dark: false,
                     Ic: Icons.Employees,
                     iconCls: "bg-blue-50 text-blue-500",
                     loading: employeeLoading,
@@ -1044,7 +914,6 @@ export default function AdminDashboard() {
                     label: "Total Tasks",
                     value: m.totalTasks,
                     sub: `${m.doneTasks} completed`,
-                    dark: false,
                     Ic: Icons.Activity,
                     iconCls: "bg-emerald-50 text-emerald-500",
                     loading: metricsLoading,
@@ -1053,7 +922,6 @@ export default function AdminDashboard() {
                     label: "Bug Count",
                     value: stats.bugs.length,
                     sub: `${stats.bugs.length} total bugs`,
-                    dark: false,
                     Ic: Icons.Bug,
                     iconCls: "bg-red-50 text-red-500",
                     loading: metricsLoading,
@@ -1061,18 +929,10 @@ export default function AdminDashboard() {
                 ].map((card, i) => (
                   <div
                     key={i}
-                    className={`rounded-xl p-4 border shadow-sm transition-shadow hover:shadow-md ${
-                      card.dark
-                        ? "bg-slate-900 border-slate-800"
-                        : "bg-white border-slate-200"
-                    }`}
+                    className="rounded-xl p-4 border shadow-sm transition-shadow hover:shadow-md bg-white border-slate-200"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <p
-                        className={`text-[10.5px] font-semibold uppercase tracking-wider ${
-                          card.dark ? "text-slate-400" : "text-slate-400"
-                        }`}
-                      >
+                      <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
                         {card.label}
                       </p>
                       <div
@@ -1081,11 +941,7 @@ export default function AdminDashboard() {
                         <card.Ic />
                       </div>
                     </div>
-                    <p
-                      className={`text-[28px] font-bold leading-none mb-1.5 ${
-                        card.dark ? "text-white" : "text-slate-800"
-                      }`}
-                    >
+                    <p className="text-[28px] font-bold leading-none mb-1.5 text-slate-800">
                       {card.loading ? (
                         <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500">
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
@@ -1095,11 +951,7 @@ export default function AdminDashboard() {
                         card.value
                       )}
                     </p>
-                    <p
-                      className={`text-[11px] ${
-                        card.dark ? "text-slate-500" : "text-slate-400"
-                      }`}
-                    >
+                    <p className="text-[11px] text-slate-400">
                       {card.loading ? "Fetching dashboard data..." : card.sub}
                     </p>
                   </div>
@@ -1612,7 +1464,7 @@ export default function AdminDashboard() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white">
                         <Icons.Activity />
                       </div>
                       <div>
@@ -1706,7 +1558,7 @@ export default function AdminDashboard() {
                       label: "Total activity",
                       value: total,
                       note: "All matching records",
-                      dot: "bg-slate-900",
+                      dot: "bg-blue-700",
                     },
                     {
                       label: "Unread",
@@ -1861,7 +1713,7 @@ export default function AdminDashboard() {
                           setAdminStatusFilter("all");
                           setAdminQuery("");
                         }}
-                        className="mt-4 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+                        className="mt-4 rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white"
                       >
                         Clear filters
                       </button>

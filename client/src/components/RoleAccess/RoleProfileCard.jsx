@@ -39,7 +39,7 @@ export default function RoleProfileCard({ user, roleConfig }) {
     >
       {/* Header */}
 <div className="flex items-center gap-2.5 px-4 sm:px-5 py-3 border-b border-slate-100 bg-slate-50">
-        <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white shrink-0">
+        <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white shrink-0">
           <Icons.Shield />
         </div>
         <div>
@@ -54,7 +54,7 @@ export default function RoleProfileCard({ user, roleConfig }) {
         {/* User identity block */}
        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4">
           {/* Avatar */}
-<div className="w-12 h-12 mx-auto sm:mx-0 rounded-xl bg-slate-900 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm">            {user?.name?.charAt(0)?.toUpperCase() || "?"}
+<div className="w-12 h-12 mx-auto sm:mx-0 rounded-xl bg-blue-700 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm">            {user?.name?.charAt(0)?.toUpperCase() || "?"}
           </div>
 
        <div className="flex-1 min-w-0 text-center sm:text-left">

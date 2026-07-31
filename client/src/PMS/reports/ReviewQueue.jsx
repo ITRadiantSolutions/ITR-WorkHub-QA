@@ -11,7 +11,7 @@ const COMPLETED = ["manager_reviewed", "final_manager_reviewed"];
 const STATUS_STYLES = {
   draft: "bg-slate-100 text-slate-600",
   pending_manager_approval: "bg-amber-100 text-amber-700",
-  manager_approved: "bg-blue-100 text-blue-700",
+  manager_approved: "bg-violet-100 text-violet-700",
   employee_submitted: "bg-amber-100 text-amber-700",
   final_employee_submitted: "bg-amber-100 text-amber-700",
   manager_reviewed: "bg-emerald-100 text-emerald-700",

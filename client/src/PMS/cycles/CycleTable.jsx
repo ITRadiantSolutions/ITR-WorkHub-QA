@@ -6,7 +6,7 @@ import { isPMS_HR } from "../../utils/pmsrolecheck";
 
 const statusStyles = {
   Active: "bg-green-100 text-green-700 border-green-200",
-  Upcoming: "bg-blue-100 text-blue-700 border-blue-200",
+  Upcoming: "bg-violet-100 text-violet-700 border-violet-200",
   Closed: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
@@ -281,7 +281,7 @@ export default function CycleTable({
               <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-indigo-500" />
+                    <Users className="w-4 h-4 text-purple-500" />
                     <span className="font-semibold text-slate-700 text-sm">
                       {popup.roleType === "employee"
                         ? "Select Employees"
@@ -303,7 +303,7 @@ export default function CycleTable({
                       value={popupSearch}
                       onChange={e => setPopupSearch(e.target.value)}
                       placeholder="Search users..."
-                      className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
                     />
                   </div>
                   <div className="flex items-center justify-between mt-2">
@@ -311,7 +311,7 @@ export default function CycleTable({
                       {selectedUsers.length} selected of {getPopupUsers().length}
                     </span>
                     <div className="flex gap-2">
-                      <button onClick={selectAll} className="text-xs text-indigo-600 hover:underline font-medium">Select All</button>
+                      <button onClick={selectAll} className="text-xs text-purple-600 hover:underline font-medium">Select All</button>
                       <span className="text-slate-300">|</span>
                       <button onClick={clearAll} className="text-xs text-slate-500 hover:underline font-medium">Clear</button>
                     </div>
@@ -325,11 +325,11 @@ export default function CycleTable({
                     return (
                       <label key={user.id}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition
-                          ${checked ? "bg-indigo-50 border border-indigo-200" : "hover:bg-slate-50 border border-transparent"}`}>
+                          ${checked ? "bg-purple-50 border border-purple-200" : "hover:bg-slate-50 border border-transparent"}`}>
                         <input type="checkbox" checked={checked} onChange={() => toggleUserSelection(user.id)}
-                          className="accent-indigo-600 w-3.5 h-3.5 rounded" />
+                          className="accent-purple-600 w-3.5 h-3.5 rounded" />
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0">
                             {(user.name || user.username || "?").slice(0, 2).toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -337,7 +337,7 @@ export default function CycleTable({
                             <p className="text-[10px] text-slate-400 capitalize">{user.role}</p>
                           </div>
                         </div>
-                        {checked && <span className="text-[10px] font-semibold text-indigo-500 shrink-0">✓</span>}
+                        {checked && <span className="text-[10px] font-semibold text-purple-500 shrink-0">✓</span>}
                       </label>
                     );
                   })}
@@ -348,7 +348,7 @@ export default function CycleTable({
                     Cancel
                   </button>
                   <button onClick={confirmPopup} disabled={selectedUsers.length === 0}
-                    className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition">
+                    className="px-4 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition">
                     Confirm ({selectedUsers.length})
                   </button>
                 </div>
@@ -397,7 +397,7 @@ export default function CycleTable({
             {/* Type */}
             <div>
               <p className="md:hidden text-[11px] uppercase tracking-wide text-slate-500 mb-1">Type</p>
-              <span className="inline-flex px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">
+              <span className="inline-flex px-2.5 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700">
                 {cycle.type}
               </span>
             </div>
@@ -415,7 +415,7 @@ export default function CycleTable({
             <div>
               <p className="md:hidden text-[11px] uppercase tracking-wide text-slate-500 mb-1">Status</p>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyle(cycle.status)}`}>
-                <span className={`w-2 h-2 rounded-full mr-2 ${cycle.status === "Active" ? "bg-green-500" : cycle.status === "Upcoming" ? "bg-blue-500" : "bg-gray-500"}`} />
+                <span className={`w-2 h-2 rounded-full mr-2 ${cycle.status === "Active" ? "bg-green-500" : cycle.status === "Upcoming" ? "bg-violet-500" : "bg-gray-500"}`} />
                 {cycle.status}
               </span>
             </div>
@@ -455,7 +455,7 @@ export default function CycleTable({
                         setPopupSearch("");
                         setPopup({ cycleId: cycle.id, roleType: "employee", desiredEnabled: true });
                       }}
-                      className="mt-1 text-[10px] text-indigo-600 hover:underline font-medium"
+                      className="mt-1 text-[10px] text-purple-600 hover:underline font-medium"
                     >
                       {p.selectedEmployees.length} employee(s) selected ✏️
                     </button>
@@ -553,7 +553,7 @@ export default function CycleTable({
                         setPopupSearch("");
                         setPopup({ cycleId: cycle.id, roleType: "manager", desiredEnabled: true });
                       }}
-                      className="mt-1 text-[10px] text-indigo-600 hover:underline font-medium"
+                      className="mt-1 text-[10px] text-purple-600 hover:underline font-medium"
                     >
                       {p.selectedManagers.length} manager(s) selected ✏️
                     </button>
@@ -628,7 +628,7 @@ export default function CycleTable({
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => handleSave(cycle)}
                     disabled={isSaving}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
                   >
                     <Save className="w-3.5 h-3.5" />
                     {isSaving ? "Saving..." : "Save Changes"}
@@ -646,7 +646,7 @@ export default function CycleTable({
                   <motion.button
                     onClick={() => onEdit(cycle)}
                     title="Edit"
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
                     whileHover={{ scale: 1.08 }}
                     whileTap={{ scale: 0.94 }}
                   >

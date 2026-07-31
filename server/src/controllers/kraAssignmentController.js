@@ -19,8 +19,17 @@ export const listAssignments = async (req, res) => {
 };
 
 export const getAssignment = async (req, res) => {
-  const assignment = await KraAssignment.findById(req.params.id).populate("assignedTo", "name email");
+  const assignment = await KraAssignment.findById(req.params.id).populate("assignedTo", "name email managerId");
   if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+  const isSelf = assignment.assignedTo?._id?.equals(req.user._id);
+  const isHr = req.user.roles.pms === "hr";
+  const isManagerOfAssignee =
+    req.user.roles.pms === "manager" && assignment.assignedTo?.managerId?.equals(req.user._id);
+  if (!isSelf && !isHr && !isManagerOfAssignee) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
   res.json(assignment);
 };
 

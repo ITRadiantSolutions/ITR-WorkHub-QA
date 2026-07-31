@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { protect } from "../middleware/authMiddleware.js";
+import { allowRoles } from "../middleware/roleMiddleware.js";
+import { objectIdParam } from "../middleware/validateObjectId.js";
 import {
   listStories,
   getStory,
@@ -13,14 +15,16 @@ import {
 
 const router = Router();
 router.use(protect);
+router.param("id", objectIdParam);
+router.param("sprintId", objectIdParam);
 
 router.get("/", listStories);
-router.post("/", createStory);
+router.post("/", allowRoles("tracker", "ADMIN", "PM", "DEVELOPER", "QA"), createStory);
 router.get("/total/:sprintId", getSprintTotalStoryPoints);
 router.get("/:id", getStory);
-router.put("/:id", updateStory);
+router.put("/:id", allowRoles("tracker", "ADMIN", "PM", "QA", "DEVELOPER"), updateStory);
 router.get("/:id/comments", getStoryComments);
 router.post("/:id/comments", addStoryComment);
-router.delete("/:id", deleteStory);
+router.delete("/:id", allowRoles("tracker", "ADMIN", "PM"), deleteStory);
 
 export default router;

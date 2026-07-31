@@ -242,14 +242,14 @@ export default function UserGroups() {
       {/* ================= HEADER ================= */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold flex items-center gap-2 text-slate-800">
-          <Users className="w-6 h-6 text-blue-600" />
+          <Users className="w-6 h-6 text-violet-600" />
           Employee Groups
         </h1>
 
         <button
           onClick={openCreateModal}
           className="flex items-center gap-2 px-5 py-2 rounded-xl
-                     bg-gradient-to-r from-blue-600 to-indigo-600
+                     bg-gradient-to-r from-violet-600 to-purple-600
                      text-white text-sm font-semibold
                      shadow-lg hover:scale-105 transition"
         >
@@ -299,10 +299,10 @@ export default function UserGroups() {
                         openEditModal(g);
                       }}
 
-                      className="p-1.5 rounded-lg hover:bg-blue-100 transition"
+                      className="p-1.5 rounded-lg hover:bg-violet-100 transition"
                       title="Edit Group"
                     >
-                      <Pencil size={16} className="text-blue-600" />
+                      <Pencil size={16} className="text-violet-600" />
                     </button>
 
                     <button
@@ -347,7 +347,7 @@ export default function UserGroups() {
                           <span
                             key={id}
                             className="px-3 py-1 text-xs rounded-full
-                     bg-blue-100 text-blue-700 font-medium"
+                     bg-violet-100 text-violet-700 font-medium"
                           >
                             {user?.name || "Unknown"}
                           </span>
@@ -424,7 +424,7 @@ export default function UserGroups() {
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
                     placeholder="Enter group name"
-                    className="w-full px-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full px-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
                   />
                 </div>
 
@@ -438,7 +438,7 @@ export default function UserGroups() {
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
                     placeholder="Describe this group..."
-                    className="w-full px-2 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full px-2 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
                   />
                 </div>
 
@@ -451,7 +451,7 @@ export default function UserGroups() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search users..."
-                    className="w-full px-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full px-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
                   />
                 </div>
 
@@ -461,7 +461,7 @@ export default function UserGroups() {
                     Click user to select
                   </p>
 
-                  <span className="text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
                     {selectedUsers.length} selected
                   </span>
                 </div>
@@ -481,7 +481,7 @@ export default function UserGroups() {
                         onClick={() => toggleUser(id)}
                         className={`flex justify-between items-center px-4 py-2.5 text-sm cursor-pointer transition
                     ${selected
-                            ? "bg-indigo-50 text-indigo-700"
+                            ? "bg-purple-50 text-purple-700"
                             : "hover:bg-gray-50"
                           }`}
                       >
@@ -520,7 +520,7 @@ export default function UserGroups() {
                 <button
                   onClick={saveGroup}
                   className="px-6 py-2 text-sm rounded-xl text-white font-semibold
-                       bg-gradient-to-r from-indigo-600 to-blue-600
+                       bg-gradient-to-r from-purple-600 to-violet-600
                        shadow-md hover:shadow-lg hover:scale-[1.02] transition"
                 >
                   {editMode ? "Save Update" : "Save Group"}

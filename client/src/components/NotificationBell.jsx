@@ -308,7 +308,7 @@ const handleClearAll = () => {
         title={`${unreadCount} unread notifications`}
         className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all ${
           open
-            ? "bg-slate-900 text-white"
+            ? "bg-blue-700 text-white"
             : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
         }`}
         style={{ animation: shake ? "bellShake 0.5s ease" : undefined }}
@@ -425,7 +425,7 @@ const handleClearAll = () => {
                     onClick={() => setFilter(f.id)}
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
                       filter === f.id
-                        ? "bg-slate-900 text-white shadow-sm"
+                        ? "bg-blue-700 text-white shadow-sm"
                         : "text-slate-500 hover:text-slate-800 hover:bg-slate-200"
                     }`}
                   >

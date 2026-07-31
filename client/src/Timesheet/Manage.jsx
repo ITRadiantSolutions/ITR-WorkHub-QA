@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { API } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 
 const PAGE_SIZE = 12;
-const AVATAR_COLORS = ["bg-indigo-600", "bg-blue-600", "bg-cyan-600", "bg-emerald-600", "bg-purple-600", "bg-amber-500", "bg-rose-500", "bg-teal-600"];
+const AVATAR_COLORS = ["bg-indigo-600", "bg-slate-600", "bg-blue-600", "bg-teal-600", "bg-cyan-700", "bg-sky-700"];
 const colorFor = (str) => {
   const hash = [...(str || "")].reduce((h, c) => h * 31 + c.charCodeAt(0), 0);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
@@ -86,7 +87,7 @@ function ProjectModal({ project, onClose, onSaved }) {
           </div>
         </div>
         <div className="flex items-center gap-2 mt-5">
-          <button onClick={submit} disabled={saving} className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow">
+          <button onClick={submit} disabled={saving} className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow">
             {saving ? "Saving..." : "Save"}
           </button>
           <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-slate-500 text-sm font-semibold">Cancel</button>
@@ -96,9 +97,82 @@ function ProjectModal({ project, onClose, onSaved }) {
   );
 }
 
+// ── Company-wide holiday calendar (HR only) ─────────────────────────────────
+function CompanyHolidaysPanel({ holidays, onChanged }) {
+  const [newDate, setNewDate] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const addDate = async () => {
+    if (!newDate) return;
+    setBusy(true);
+    try {
+      const res = await API.post("/company-holidays", { date: newDate, label: newLabel });
+      onChanged((prev) => [...prev.filter((h) => h.date !== res.data.date), res.data].sort((a, b) => a.date.localeCompare(b.date)));
+      setNewDate("");
+      setNewLabel("");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to add holiday");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeDate = async (date) => {
+    setBusy(true);
+    try {
+      await API.delete(`/company-holidays/${date}`);
+      onChanged((prev) => prev.filter((h) => h.date !== date));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove holiday");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 max-w-2xl">
+      <h3 className="text-lg font-bold text-slate-900 mb-1">Company Holiday Calendar</h3>
+      <p className="text-sm text-slate-500 mb-4">
+        Applies to every project by default. A project can opt out of a specific date (e.g. a client who works through it) from that project's "Declare Holidays" panel.
+      </p>
+
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+        <input
+          value={newLabel}
+          onChange={(e) => setNewLabel(e.target.value)}
+          placeholder="Label (optional, e.g. Republic Day)"
+          className="flex-1 min-w-[160px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
+        />
+        <button onClick={addDate} disabled={busy || !newDate} className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold disabled:opacity-50">
+          Add
+        </button>
+      </div>
+
+      {!holidays.length ? (
+        <p className="text-sm text-slate-400 text-center py-4">No company holidays declared yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {[...holidays].sort((a, b) => a.date.localeCompare(b.date)).map((h) => (
+            <div key={h.date} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
+              <span className="font-medium text-slate-700">
+                {new Date(h.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                {h.label && <span className="text-slate-400 font-normal"> — {h.label}</span>}
+              </span>
+              <button onClick={() => removeDate(h.date)} disabled={busy} className="text-red-400 hover:text-red-600"><Icons.Trash /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Holidays modal ──────────────────────────────────────────────────────────
-function HolidaysModal({ project, onClose, onSaved }) {
+function HolidaysModal({ project, companyHolidays, onClose, onSaved }) {
   const [holidays, setHolidays] = useState(project.holidays || []);
+  const [excluded, setExcluded] = useState(new Set(project.excludedHolidays || []));
   const [newDate, setNewDate] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -130,9 +204,24 @@ function HolidaysModal({ project, onClose, onSaved }) {
     }
   };
 
+  const toggleExcluded = async (date, isExcluded) => {
+    setBusy(true);
+    try {
+      const res = isExcluded
+        ? await API.delete(`/projects/${project._id}/excluded-holidays/${date}`)
+        : await API.post(`/projects/${project._id}/excluded-holidays`, { date });
+      setExcluded(new Set(res.data.excludedHolidays || []));
+      onSaved(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update exception");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-lg font-bold text-slate-900">Holidays — {project.name}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
@@ -141,21 +230,51 @@ function HolidaysModal({ project, onClose, onSaved }) {
 
         <div className="flex items-center gap-2 mb-4">
           <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-          <button onClick={addDate} disabled={busy || !newDate} className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-50">
+          <button onClick={addDate} disabled={busy || !newDate} className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold disabled:opacity-50">
             Add
           </button>
         </div>
 
         {!holidays.length ? (
-          <p className="text-sm text-slate-400 text-center py-4">No holidays declared yet.</p>
+          <p className="text-sm text-slate-400 text-center py-4">No project-specific holidays declared yet.</p>
         ) : (
-          <div className="max-h-56 overflow-y-auto space-y-1.5">
+          <div className="max-h-40 overflow-y-auto space-y-1.5">
             {[...holidays].sort().map((d) => (
               <div key={d} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <span className="font-medium text-slate-700">{new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
                 <button onClick={() => removeDate(d)} disabled={busy} className="text-red-400 hover:text-red-600"><Icons.Trash /></button>
               </div>
             ))}
+          </div>
+        )}
+
+        {companyHolidays.length > 0 && (
+          <div className="border-t border-slate-100 mt-5 pt-4">
+            <p className="text-sm font-bold text-slate-700 mb-1">Company holiday exceptions</p>
+            <p className="text-xs text-slate-500 mb-3">
+              Check a date to let this project's team log hours on it anyway (e.g. a client who works through that public holiday).
+            </p>
+            <div className="max-h-48 overflow-y-auto space-y-1.5">
+              {companyHolidays.map((h) => {
+                const isExcluded = excluded.has(h.date);
+                return (
+                  <label key={h.date} className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isExcluded}
+                      disabled={busy}
+                      onChange={() => toggleExcluded(h.date, isExcluded)}
+                      className="accent-amber-600"
+                    />
+                    <span className="font-medium text-slate-700 flex-1">
+                      {new Date(h.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                      {h.label && <span className="text-slate-400 font-normal"> — {h.label}</span>}
+                    </span>
+                    {isExcluded && <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Working</span>}
+                  </label>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -273,14 +392,14 @@ function ModifyProjectsModal({ user, projects, assignedIds, onClose, onSaved }) 
         <p className="text-sm text-slate-500 mb-4">Update which projects {user.name} is assigned to.</p>
         <div className="space-y-1.5 mb-5">
           {projects.map((p) => (
-            <label key={p._id} className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm cursor-pointer ${selected.has(p._id) ? "border-indigo-300 bg-indigo-50/50" : "border-slate-200"}`}>
-              <input type="checkbox" checked={selected.has(p._id)} onChange={() => toggle(p._id)} className="accent-indigo-600" />
+            <label key={p._id} className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm cursor-pointer ${selected.has(p._id) ? "border-teal-300 bg-teal-50/50" : "border-slate-200"}`}>
+              <input type="checkbox" checked={selected.has(p._id)} onChange={() => toggle(p._id)} className="accent-teal-600" />
               <span className="font-medium text-slate-800">{p.name}</span>
             </label>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={submit} disabled={busy} className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-50">
+          <button onClick={submit} disabled={busy} className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold disabled:opacity-50">
             Save changes
           </button>
           <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-slate-500 text-sm font-semibold">Cancel</button>
@@ -303,7 +422,7 @@ function EmployeeCard({ user, projectNames, onAddProject, onModifyProjects }) {
       <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
         {projectNames.length ? (
           projectNames.map((name) => (
-            <span key={name} className="text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">{name}</span>
+            <span key={name} className="text-[11px] font-medium text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">{name}</span>
           ))
         ) : (
           <span className="text-[11px] text-slate-400">No projects assigned</span>
@@ -350,7 +469,7 @@ function NewEmployeeModal({ onClose, onSaved }) {
           <input value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} placeholder="Temporary password" type="password" className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" />
         </div>
         <div className="flex items-center gap-2 mt-5">
-          <button onClick={submit} disabled={saving} className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-50">
+          <button onClick={submit} disabled={saving} className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold disabled:opacity-50">
             {saving ? "Adding..." : "Add employee"}
           </button>
           <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-slate-500 text-sm font-semibold">Cancel</button>
@@ -453,7 +572,7 @@ function AssignShiftsModal({ users, onClose, onChanged }) {
               <button
                 onClick={() => save(u)}
                 disabled={busyId === u._id}
-                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold disabled:opacity-50 shrink-0"
+                className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold disabled:opacity-50 shrink-0"
               >
                 Save
               </button>
@@ -466,9 +585,12 @@ function AssignShiftsModal({ users, onClose, onChanged }) {
 }
 
 export default function Manage() {
+  const { user } = useAuth();
+  const isHr = user?.roles?.timesheet === "hr";
   const [tab, setTab] = useState("projects");
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
+  const [companyHolidays, setCompanyHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -483,10 +605,11 @@ export default function Manage() {
 
   const load = () => {
     setLoading(true);
-    Promise.all([API.get("/projects"), API.get("/users")])
-      .then(([pRes, uRes]) => {
+    Promise.all([API.get("/projects"), API.get("/users"), API.get("/company-holidays")])
+      .then(([pRes, uRes, hRes]) => {
         setProjects(pRes.data || []);
         setUsers(uRes.data || []);
+        setCompanyHolidays(hRes.data || []);
       })
       .catch(() => toast.error("Failed to load workspace data"))
       .finally(() => setLoading(false));
@@ -519,7 +642,7 @@ export default function Manage() {
     return users.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
   }, [users, search]);
 
-  const items = tab === "projects" ? filteredProjects : filteredUsers;
+  const items = tab === "projects" ? filteredProjects : tab === "teams" ? filteredUsers : [];
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -533,10 +656,10 @@ export default function Manage() {
           <p className="text-sm text-slate-500">Manage your projects and workspace settings</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setAssignRolesOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-indigo-200 text-indigo-700 text-sm font-bold hover:bg-indigo-50">
+          <button onClick={() => setAssignRolesOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-teal-200 text-teal-700 text-sm font-bold hover:bg-teal-50">
             <Icons.Users /> Assign Roles
           </button>
-          <button onClick={() => setAssignShiftsOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow">
+          <button onClick={() => setAssignShiftsOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold shadow">
             <Icons.Calendar /> Assign Shifts
           </button>
         </div>
@@ -546,74 +669,94 @@ export default function Manage() {
         <div className="flex items-center gap-1 bg-white rounded-xl border border-slate-100 shadow-sm p-1.5 w-fit">
           <button
             onClick={() => setTab("projects")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === "projects" ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === "projects" ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
           >
             <Icons.Dashboard /> Projects
           </button>
           <button
             onClick={() => setTab("teams")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === "teams" ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === "teams" ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
           >
             <Icons.Users /> Teams
           </button>
+          {isHr && (
+            <button
+              onClick={() => setTab("holidays")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === "holidays" ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            >
+              <Icons.Calendar /> Company Holidays
+            </button>
+          )}
         </div>
-        <div className="relative w-full sm:w-80">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></span>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, POC..."
-            className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="p-12 text-center text-slate-500">Loading...</div>
-      ) : !pageItems.length ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-slate-500">No results.</div>
-      ) : tab === "projects" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {pageItems.map((p) => (
-            <ProjectCard key={p._id} project={p} onEdit={setProjectModal} onHolidays={setHolidaysProject} />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {pageItems.map((u) => (
-            <EmployeeCard
-              key={u._id}
-              user={u}
-              projectNames={(projectsByUser.get(u._id) || []).map((p) => p.name)}
-              onAddProject={setAddProjectFor}
-              onModifyProjects={setModifyProjectsFor}
+        {tab !== "holidays" && (
+          <div className="relative w-full sm:w-80">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, POC..."
+              className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
             />
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mt-6 flex-wrap gap-3">
-        <p className="text-sm text-slate-500">
-          Showing {items.length ? (page - 1) * PAGE_SIZE + 1 : 0} to {Math.min(page * PAGE_SIZE, items.length)} of {items.length}
-        </p>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50">
-            <Icons.Back />
-          </button>
-          <span className="text-sm font-semibold text-slate-600">Page {page} of {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50">
-            <Icons.Arrow />
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
-      <button
-        onClick={() => (tab === "projects" ? setProjectModal("new") : setNewEmployeeOpen(true))}
-        className="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 flex items-center justify-center text-2xl font-bold z-30"
-        title={tab === "projects" ? "New project" : "New employee"}
-      >
-        <Icons.Plus />
-      </button>
+      {tab === "holidays" ? (
+        loading ? (
+          <div className="p-12 text-center text-slate-500">Loading...</div>
+        ) : (
+          <CompanyHolidaysPanel holidays={companyHolidays} onChanged={setCompanyHolidays} />
+        )
+      ) : (
+        <>
+          {loading ? (
+            <div className="p-12 text-center text-slate-500">Loading...</div>
+          ) : !pageItems.length ? (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-slate-500">No results.</div>
+          ) : tab === "projects" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {pageItems.map((p) => (
+                <ProjectCard key={p._id} project={p} onEdit={setProjectModal} onHolidays={setHolidaysProject} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {pageItems.map((u) => (
+                <EmployeeCard
+                  key={u._id}
+                  user={u}
+                  projectNames={(projectsByUser.get(u._id) || []).map((p) => p.name)}
+                  onAddProject={setAddProjectFor}
+                  onModifyProjects={setModifyProjectsFor}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mt-6 flex-wrap gap-3">
+            <p className="text-sm text-slate-500">
+              Showing {items.length ? (page - 1) * PAGE_SIZE + 1 : 0} to {Math.min(page * PAGE_SIZE, items.length)} of {items.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50">
+                <Icons.Back />
+              </button>
+              <span className="text-sm font-semibold text-slate-600">Page {page} of {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50">
+                <Icons.Arrow />
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={() => (tab === "projects" ? setProjectModal("new") : setNewEmployeeOpen(true))}
+            className="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-lg flex items-center justify-center text-2xl font-bold z-30"
+            title={tab === "projects" ? "New project" : "New employee"}
+          >
+            <Icons.Plus />
+          </button>
+        </>
+      )}
 
       {projectModal && (
         <ProjectModal
@@ -625,8 +768,13 @@ export default function Manage() {
       {holidaysProject && (
         <HolidaysModal
           project={holidaysProject}
+          companyHolidays={companyHolidays}
           onClose={() => setHolidaysProject(null)}
-          onSaved={(updated) => setProjects((prev) => prev.map((p) => (p._id === updated._id ? { ...p, holidays: updated.holidays } : p)))}
+          onSaved={(updated) =>
+            setProjects((prev) =>
+              prev.map((p) => (p._id === updated._id ? { ...p, holidays: updated.holidays, excludedHolidays: updated.excludedHolidays } : p)),
+            )
+          }
         />
       )}
       {newEmployeeOpen && <NewEmployeeModal onClose={() => setNewEmployeeOpen(false)} onSaved={() => { setNewEmployeeOpen(false); load(); }} />}

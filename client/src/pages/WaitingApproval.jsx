@@ -58,7 +58,7 @@ function Step({ num, label, done }) {
       <div
         className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 border ${
           done
-            ? "bg-slate-900 border-slate-900 text-white"
+            ? "bg-emerald-600 border-emerald-600 text-white"
             : "bg-white border-slate-300 text-slate-500"
         }`}
       >
@@ -226,7 +226,7 @@ export default function WaitingApproval() {
             <button
               onClick={pollStatus}
               disabled={checkingStatus || !email}
-              className="w-full h-11 rounded-2xl bg-slate-900 text-white text-sm font-semibold hover:bg-black transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full h-11 rounded-2xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Icons.Refresh />
               {checkingStatus ? "Checking..." : "Check Status"}

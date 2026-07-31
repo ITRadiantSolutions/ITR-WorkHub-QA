@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 import WorkHubLogo from "../components/WorkHubLogo";
+import NotificationBell from "../components/NotificationBell";
 import getInitials from "../utils/getInitials";
 
 const TRACKER_ROUTES = {
@@ -19,6 +20,7 @@ const TILES = [
     description: "Plan, organize and track work across projects, sprints, tasks and bugs.",
     icon: "Zap",
     accent: "blue",
+    decor: "flowtrack",
     tags: [
       { icon: "Folder", label: "Projects" },
       { icon: "Sprints", label: "Sprints" },
@@ -33,6 +35,8 @@ const TILES = [
     description: "Log hours, submit and approve timesheets with ease.",
     icon: "Clock",
     accent: "emerald",
+    filled: true,
+    decor: "timesheet",
     tags: [
       { icon: "Clock", label: "Log Hours" },
       { icon: "Reports", label: "My Timesheets" },
@@ -46,6 +50,7 @@ const TILES = [
     description: "Manage performance cycles, KRAs and reviews.",
     icon: "Target",
     accent: "violet",
+    decor: "pms",
     tags: [
       { icon: "Star", label: "Reviews" },
       { icon: "Target", label: "KRAs" },
@@ -57,35 +62,113 @@ const TILES = [
 ];
 
 const FEATURES = [
-  { icon: "Shield", title: "Secure & Reliable", description: "Enterprise grade security" },
-  { icon: "Users", title: "One Platform", description: "All your work in one place" },
-  { icon: "TrendUp", title: "Better Productivity", description: "Track, analyze and improve" },
-  { icon: "Bell", title: "Real-time Updates", description: "Stay informed, always" },
+  { icon: "Shield", title: "Secure & Reliable", description: "Enterprise grade security", accent: "blue" },
+  { icon: "Users", title: "One Platform", description: "All your work in one place", accent: "violet" },
+  { icon: "TrendUp", title: "Better Productivity", description: "Track, analyze and improve", accent: "emerald" },
+  { icon: "Bell", title: "Real-time Updates", description: "Stay informed, always", accent: "amber" },
 ];
 
 const ACCENTS = {
   blue: {
     iconBg: "bg-gradient-to-br from-blue-600 to-indigo-600",
     text: "text-blue-700",
+    tagIcon: "text-blue-500",
     border: "border-blue-600",
     hoverBorder: "hover:border-blue-300",
     ring: "focus-visible:ring-blue-500/40",
+    solidBg: "bg-blue-600 hover:bg-blue-700",
+    featureBg: "bg-blue-50",
+    featureFg: "text-blue-600",
   },
   emerald: {
     iconBg: "bg-gradient-to-br from-emerald-600 to-teal-600",
     text: "text-emerald-700",
+    tagIcon: "text-emerald-500",
     border: "border-emerald-600",
     hoverBorder: "hover:border-emerald-300",
     ring: "focus-visible:ring-emerald-500/40",
+    solidBg: "bg-emerald-600 hover:bg-emerald-700",
+    featureBg: "bg-emerald-50",
+    featureFg: "text-emerald-600",
   },
   violet: {
     iconBg: "bg-gradient-to-br from-violet-600 to-purple-600",
     text: "text-purple-700",
+    tagIcon: "text-purple-500",
     border: "border-purple-600",
     hoverBorder: "hover:border-purple-300",
     ring: "focus-visible:ring-purple-500/40",
+    solidBg: "bg-purple-600 hover:bg-purple-700",
+    featureBg: "bg-violet-50",
+    featureFg: "text-violet-600",
+  },
+  amber: {
+    featureBg: "bg-amber-50",
+    featureFg: "text-amber-600",
   },
 };
+
+// Per-card decorative illustrations — purely visual, sit behind/beside the
+// card copy in the empty space toward the right edge.
+function FlowTrackDecor() {
+  return (
+    <div className="pointer-events-none absolute right-2 top-24 w-28 h-24" aria-hidden>
+      <div className="absolute right-0 top-2 w-20 h-20 rounded-xl bg-blue-100/70 rotate-6" />
+      <div className="absolute right-3 top-0 w-20 h-20 rounded-xl bg-white border border-blue-100 shadow-md -rotate-3 p-2.5">
+        <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+          <Icons.Check />
+        </div>
+        <svg width="52" height="20" viewBox="0 0 52 20" className="mt-2 overflow-visible">
+          <polyline
+            points="1,17 11,10 20,13 30,5 41,8 51,1"
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function TimesheetDecor() {
+  return (
+    <div className="pointer-events-none absolute right-2 top-20 w-28 h-28" aria-hidden>
+      <div className="absolute right-1 top-1 w-20 h-20 rounded-2xl bg-emerald-100/70 border border-emerald-100 rotate-2 p-2.5">
+        <div className="flex gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span className="w-2 h-2 rounded-full bg-emerald-300" />
+        </div>
+        <div className="mt-3 space-y-1.5">
+          <div className="h-1.5 w-12 rounded-full bg-emerald-300/70" />
+          <div className="h-1.5 w-8 rounded-full bg-emerald-300/70" />
+        </div>
+      </div>
+      <div className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white border border-emerald-200 shadow-md flex items-center justify-center text-emerald-500">
+        <Icons.Clock />
+      </div>
+    </div>
+  );
+}
+
+function PmsDecor() {
+  return (
+    <div className="pointer-events-none absolute right-4 top-24 flex items-end gap-1.5 h-20" aria-hidden>
+      <div className="w-3.5 rounded-t-md bg-purple-200" style={{ height: "35%" }} />
+      <div className="w-3.5 rounded-t-md bg-purple-300" style={{ height: "60%" }} />
+      <div className="w-3.5 rounded-t-md bg-purple-400" style={{ height: "48%" }} />
+      <div className="relative w-3.5 rounded-t-md bg-purple-600" style={{ height: "85%" }}>
+        <span className="absolute -top-4 -right-1 text-purple-500">
+          <Icons.Star />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const DECORS = { flowtrack: FlowTrackDecor, timesheet: TimesheetDecor, pms: PmsDecor };
 
 export default function Hub() {
   const { user, logout } = useAuth();
@@ -97,17 +180,26 @@ export default function Hub() {
         <WorkHubLogo size="sm" subtitle />
 
         <div className="flex items-center gap-4">
-          <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm shrink-0">
-            {getInitials(user?.name)}
-          </div>
-          <div className="hidden sm:block leading-tight">
-            <p className="text-sm font-bold text-slate-900">{user?.name || "there"}</p>
-            <p className="text-xs text-slate-500">{user?.email}</p>
-          </div>
+          <NotificationBell />
+
           <div className="hidden sm:block w-px h-8 bg-slate-200" />
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
+              {getInitials(user?.name)}
+            </div>
+            <div className="hidden sm:flex items-center gap-1">
+              <div className="leading-tight">
+                <p className="text-sm font-bold text-slate-900">{user?.name || "there"}</p>
+                <p className="text-xs text-slate-500">{user?.email}</p>
+              </div>
+              <span className="text-slate-400"><Icons.ChevronDown /></span>
+            </div>
+          </div>
+
           <button
             onClick={logout}
-            className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
           >
             <Icons.Logout /> Sign out
           </button>
@@ -115,11 +207,12 @@ export default function Hub() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-4 min-h-0">
-        <div className="w-full max-w-4xl mb-3">
+        <div className="w-full max-w-5xl mb-3">
           <p className="text-sm text-slate-500">Welcome back,</p>
           <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             {user?.name || "there"} <span aria-hidden>👋</span>
           </h1>
+          <p className="text-sm text-slate-500 mt-1">Let's continue building amazing things today.</p>
         </div>
 
         <div className="flex items-center gap-3 text-blue-300 mb-1">
@@ -133,22 +226,25 @@ export default function Hub() {
           {TILES.map((tile) => {
             const Icon = Icons[tile.icon];
             const a = ACCENTS[tile.accent];
+            const Decor = DECORS[tile.decor];
             return (
               <button
                 key={tile.key}
                 onClick={() => tile.go(user, navigate)}
-                className={`group text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-5 pb-0 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-200 ${a.hoverBorder} focus:outline-none focus-visible:ring-4 ${a.ring}`}
+                className={`group relative text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-5 pb-0 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-200 ${a.hoverBorder} focus:outline-none focus-visible:ring-4 ${a.ring}`}
               >
+                {Decor && <Decor />}
+
                 <div
-                  className={`w-12 h-12 rounded-2xl ${a.iconBg} flex items-center justify-center text-white shadow-lg mb-3`}
+                  className={`relative z-10 w-12 h-12 rounded-2xl ${a.iconBg} flex items-center justify-center text-white shadow-lg mb-3`}
                 >
                   {Icon ? <Icon /> : null}
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900 mb-1">{tile.title}</h3>
-                <p className="text-xs text-slate-600 mb-3 leading-relaxed">{tile.description}</p>
+                <h3 className="relative z-10 text-base font-bold text-slate-900 mb-1">{tile.title}</h3>
+                <p className="relative z-10 text-xs text-slate-600 mb-3 leading-relaxed max-w-[75%]">{tile.description}</p>
 
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                <div className="relative z-10 flex flex-wrap gap-1.5 mb-3">
                   {tile.tags.map((tag) => {
                     const TagIcon = Icons[tag.icon];
                     return (
@@ -156,18 +252,22 @@ export default function Hub() {
                         key={tag.label}
                         className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600"
                       >
-                        {TagIcon ? <TagIcon /> : null}
+                        {TagIcon ? <span className={a.tagIcon}><TagIcon /></span> : null}
                         {tag.label}
                       </span>
                     );
                   })}
                 </div>
 
-                <div className={`flex items-center justify-center gap-1.5 rounded-xl border ${a.border} ${a.text} font-bold text-xs py-2.5 mb-3 group-hover:gap-2.5 transition-all`}>
+                <div
+                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl font-bold text-xs py-2.5 mb-3 group-hover:gap-2.5 transition-all ${
+                    tile.filled ? `${a.solidBg} text-white` : `border ${a.border} ${a.text}`
+                  }`}
+                >
                   Open {tile.title} <Icons.ArrowRight />
                 </div>
 
-                <div className={`h-1 -mx-5 ${a.iconBg}`} />
+                <div className={`relative z-10 h-1 -mx-5 ${a.iconBg}`} />
               </button>
             );
           })}
@@ -176,19 +276,27 @@ export default function Hub() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-5xl mt-6">
           {FEATURES.map((f) => {
             const FIcon = Icons[f.icon];
+            const a = ACCENTS[f.accent];
             return (
               <div key={f.title} className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <div className={`w-9 h-9 rounded-full ${a.featureBg} ${a.featureFg} flex items-center justify-center shrink-0`}>
                   {FIcon ? <FIcon /> : null}
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-900">{f.title}</p>
-                  <p className="text-[11px] text-slate-500">{f.description}</p>
+                  <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                    {f.description}
+                    <span className="text-emerald-500"><Icons.CheckCircle /></span>
+                  </p>
                 </div>
               </div>
             );
           })}
         </div>
+
+        <p className="text-center text-xs text-slate-400 mt-8 mb-2">
+          © {new Date().getFullYear()} <span className="font-semibold text-slate-500">ITR WorkHub</span>. All rights reserved.
+        </p>
       </main>
     </div>
   );

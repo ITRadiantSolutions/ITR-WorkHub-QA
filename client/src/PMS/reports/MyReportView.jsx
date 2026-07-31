@@ -65,7 +65,7 @@ export default function MyReportView({ report, onBack, user }) {
           </p>
           <button
             onClick={() => navigate("/mytemplate")}
-            className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+            className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition"
           >
             <ArrowLeft size={16} />
             Go to My KRA
@@ -273,7 +273,7 @@ export default function MyReportView({ report, onBack, user }) {
             )}
 
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-2">
                 My Performance Review
               </h1>
               <p className="text-gray-600">
@@ -289,7 +289,7 @@ export default function MyReportView({ report, onBack, user }) {
           {/* RIGHT SIDE */}
           <motion.button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-all"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -307,9 +307,9 @@ export default function MyReportView({ report, onBack, user }) {
           className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200"
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center gap-3 p-4 bg-violet-50 rounded-xl">
+              <div className="p-2 bg-violet-100 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-violet-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-600 font-medium">Cycle</p>
@@ -322,13 +322,13 @@ export default function MyReportView({ report, onBack, user }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-xl">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Star className="w-5 h-5 text-indigo-600 fill-indigo-600" />
+            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-xl">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Star className="w-5 h-5 text-purple-600 fill-purple-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-600 font-medium">Your Rating</p>
-                <p className="text-lg font-bold text-indigo-600">
+                <p className="text-lg font-bold text-purple-600">
                   {report.selfAvg ? Number(report.selfAvg).toFixed(1) : "—"}
                 </p>
               </div>
@@ -372,10 +372,10 @@ export default function MyReportView({ report, onBack, user }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200 shadow-lg"
+            className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-200 shadow-lg"
           >
             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-blue-600" />
+              <CheckCircle2 className="w-5 h-5 text-violet-600" />
               Manager Overall Feedback
             </h3>
             <p className="text-gray-800 leading-relaxed whitespace-pre-line">
@@ -388,11 +388,11 @@ export default function MyReportView({ report, onBack, user }) {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 shadow-sm"
+            className="bg-purple-50 border border-purple-200 rounded-2xl p-6 shadow-sm"
           >
             <div className="flex items-center gap-2 mb-4">
-              <CheckCircle2 className="w-5 h-5 text-indigo-600" />
-              <h3 className="text-lg font-bold text-indigo-700">
+              <CheckCircle2 className="w-5 h-5 text-purple-600" />
+              <h3 className="text-lg font-bold text-purple-700">
                 1:1 Meeting Details
               </h3>
             </div>
@@ -463,7 +463,7 @@ export default function MyReportView({ report, onBack, user }) {
                         <span className="text-sm text-gray-600">
                           Weightage: <span className="font-semibold">{kra.weight}%</span>
                         </span>
-                        <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
+                        <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
                           KRA
                         </span>
                       </div>
@@ -473,7 +473,7 @@ export default function MyReportView({ report, onBack, user }) {
                   {/* KPIs */}
                   {Array.isArray(kra.kpis) && kra.kpis.length > 0 && (
                     <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-xs font-semibold text-indigo-700 mb-3 uppercase tracking-wide">
+                      <p className="text-xs font-semibold text-purple-700 mb-3 uppercase tracking-wide">
                         Key Performance Indicators
                       </p>
                       <div className="space-y-2">
@@ -497,8 +497,8 @@ export default function MyReportView({ report, onBack, user }) {
                   {/* Responses */}
                   <div className="grid md:grid-cols-2 gap-4">
                     {/* Employee Response */}
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm font-semibold text-blue-700 mb-2">
+                    <div className="p-4 bg-violet-50 rounded-lg border border-violet-200">
+                      <p className="text-sm font-semibold text-violet-700 mb-2">
                         Your Response
                       </p>
                       <p className="text-sm text-gray-800 mb-4">

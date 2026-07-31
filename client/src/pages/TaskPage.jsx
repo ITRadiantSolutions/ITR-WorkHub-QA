@@ -125,7 +125,7 @@ function MultiStatusFilter({ value, onChange }) {
             className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-slate-50"
           >
             <span
-              className={`flex h-4 w-4 items-center justify-center rounded border ${value.length === 0 ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300"}`}
+              className={`flex h-4 w-4 items-center justify-center rounded border ${value.length === 0 ? "border-blue-700 bg-blue-700 text-white" : "border-slate-300"}`}
             >
               {value.length === 0 ? "✓" : ""}
             </span>
@@ -394,9 +394,8 @@ export default function TasksPage({ onTaskUpdated }) {
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const limit = 10;
   const [pages, setPages] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalTasks, setTotalTasks] = useState(0);
 
@@ -722,24 +721,24 @@ export default function TasksPage({ onTaskUpdated }) {
   const latestRequestIdRef = useRef(0);
   const searchInputRef = useRef(null);
 
-  const fetchPaginatedTasks = async ({ reset }) => {
+  // reset: jump back to page 1 (filters/search changed). pageOverride: go to
+  // a specific page (pagination bar). Every call replaces the page's worth of
+  // tasks — this is numbered pagination, not infinite accumulation.
+  const fetchPaginatedTasks = async ({ reset, pageOverride } = {}) => {
     ++latestRequestIdRef.current;
-    // While switching filters/search, show loader for smooth UX.
 
-    // setLoading(true);
     if (reset && !searchQuery.trim()) {
       setLoading(true);
+    } else if (!reset) {
+      setLoadingMore(true);
     }
 
     if (reset) {
       setPage(1);
-      // setTasks([]);
-
       setPages(1);
-      setHasMore(false);
     }
 
-    const currentPage = reset ? 1 : page;
+    const currentPage = reset ? 1 : pageOverride || page;
 
     try {
       const params = {
@@ -758,22 +757,20 @@ export default function TasksPage({ onTaskUpdated }) {
       const newTasks = payload?.data || payload || [];
       const pg = payload?.pagination;
 
-      setTasks((prev) => (reset ? newTasks : [...prev, ...newTasks]));
-
+      setTasks(newTasks);
+      setPage(currentPage);
       setPages(pg?.pages ?? 1);
       setTotalTasks(pg?.total ?? 0);
-
-      setHasMore(currentPage < (pg?.pages ?? 1));
     } catch (err) {
       console.error("Error fetching paginated tasks:", err);
       if (reset) {
         setTasks([]);
-        setHasMore(false);
         setPages(1);
         setTotalTasks(0);
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -795,7 +792,6 @@ export default function TasksPage({ onTaskUpdated }) {
     if (reset) {
       setPage(1);
       setPages(1);
-      setHasMore(false);
 
       // IMPORTANT:
       // instantly clear old search result
@@ -853,15 +849,11 @@ export default function TasksPage({ onTaskUpdated }) {
       requestAnimationFrame(() => {
         searchInputRef.current?.focus();
       });
-      setGlobalSearchResults((prev) =>
-        reset ? newTasks : [...prev, ...newTasks],
-      );
+      setGlobalSearchResults(newTasks);
 
       setPages(pg?.pages ?? 1);
 
       setTotalTasks(pg?.total ?? 0);
-
-      setHasMore(currentPage < (pg?.pages ?? 1));
 
       setPage(currentPage);
     } catch (err) {
@@ -870,8 +862,6 @@ export default function TasksPage({ onTaskUpdated }) {
       // Only clear latest request
       if (reset && requestId === latestRequestIdRef.current) {
         setGlobalSearchResults([]);
-
-        setHasMore(false);
 
         setPages(1);
 
@@ -884,6 +874,15 @@ export default function TasksPage({ onTaskUpdated }) {
       }
     }
   };
+  const goToPage = (targetPage) => {
+    if (targetPage < 1 || targetPage > pages || targetPage === page || loadingMore) return;
+    if (user?.role === "ADMIN" || user?.role === "PM") {
+      fetchGlobalSearchTasks({ pageOverride: targetPage });
+    } else {
+      fetchPaginatedTasks({ pageOverride: targetPage });
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -1545,7 +1544,7 @@ export default function TasksPage({ onTaskUpdated }) {
             {/* Create */}
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white  hover:bg-slate-800"
+              className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-3.5 py-2 text-xs font-semibold text-white  hover:bg-blue-800"
             >
               <Icons.Plus />
               Create Task
@@ -1561,14 +1560,14 @@ export default function TasksPage({ onTaskUpdated }) {
           {
             label: "Total ",
             val: counts.total,
-            dark: true,
+            color: "text-indigo-700",
+            bg: "bg-indigo-50",
             icon: <Icons.Tasks />,
           },
 
           {
             label: "Todo",
             val: counts.todo,
-            dark: false,
             color: "text-slate-500",
             bg: "bg-slate-100",
             icon: <Icons.Alert />,
@@ -1577,7 +1576,6 @@ export default function TasksPage({ onTaskUpdated }) {
           {
             label: "Progress",
             val: counts.progress,
-            dark: false,
             color: "text-blue-600",
             bg: "bg-blue-50",
             icon: <Icons.InProgess />,
@@ -1586,7 +1584,6 @@ export default function TasksPage({ onTaskUpdated }) {
           {
             label: "On Hold",
             val: counts.onHold,
-            dark: false,
             color: "text-amber-600",
             bg: "bg-amber-50",
             icon: <Icons.OnHold />,
@@ -1594,7 +1591,6 @@ export default function TasksPage({ onTaskUpdated }) {
           {
             label: "QA",
             val: counts.qaTesting,
-            dark: false,
             color: "text-purple-600",
             bg: "bg-purple-50",
             icon: <Icons.QATesting />,
@@ -1603,7 +1599,6 @@ export default function TasksPage({ onTaskUpdated }) {
           {
             label: "Done",
             val: counts.done,
-            dark: false,
             color: "text-emerald-600",
             bg: "bg-emerald-50",
             icon: <Icons.Check />,
@@ -1611,37 +1606,21 @@ export default function TasksPage({ onTaskUpdated }) {
         ].map((s, i) => (
           <div
             key={i}
-            className={`flex items-center justify-between rounded-xl border px-3 py-2  ${
-              s.dark
-                ? "border-slate-800 bg-slate-900"
-                : "border-slate-200 bg-white"
-            }`}
+            className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_4px_16px_rgba(15,23,42,0.06)]"
           >
             {/* Left */}
             <div className="min-w-0">
-              <p
-                className={`truncate text-[10px] font-semibold uppercase tracking-wide ${
-                  s.dark ? "text-slate-400" : "text-slate-400"
-                }`}
-              >
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 {s.label}
               </p>
 
-              <p
-                className={`mt-0.5 text-sm font-bold leading-none ${
-                  s.dark ? "text-white" : "text-slate-800"
-                }`}
-              >
+              <p className="mt-1 text-lg font-extrabold leading-none tracking-tight text-slate-900">
                 {s.val}
               </p>
             </div>
 
             {/* Icon */}
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-lg ${
-                s.dark ? "bg-slate-800 text-white" : `${s.bg} ${s.color}`
-              }`}
-            >
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${s.bg} ${s.color}`}>
               {s.icon}
             </div>
           </div>
@@ -1658,7 +1637,7 @@ export default function TasksPage({ onTaskUpdated }) {
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-white shrink-0">
+              <div className="w-8 h-8 bg-blue-700 rounded-xl flex items-center justify-center text-white shrink-0">
                 {/* task icon */}
                 <svg
                   width="14"
@@ -1913,7 +1892,7 @@ export default function TasksPage({ onTaskUpdated }) {
                   <span
                     className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                       formData.assignees.length > 0
-                        ? "bg-slate-900 text-white"
+                        ? "bg-blue-700 text-white"
                         : "bg-slate-200 text-slate-600"
                     }`}
                   >
@@ -1951,7 +1930,7 @@ export default function TasksPage({ onTaskUpdated }) {
                             key={employee._id}
                             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border cursor-pointer transition-all select-none ${
                               checked
-                                ? "border-slate-900 bg-slate-900 text-white"
+                                ? "border-blue-700 bg-blue-700 text-white"
                                 : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                             }`}
                           >
@@ -2039,7 +2018,7 @@ export default function TasksPage({ onTaskUpdated }) {
                         key={id}
                         className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-full px-2 py-1 text-[11px] font-semibold text-slate-700"
                       >
-                        <div className="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px] font-bold">
+                        <div className="w-4 h-4 rounded-full bg-blue-700 text-white flex items-center justify-center text-[9px] font-bold">
                           {emp.name?.charAt(0)?.toUpperCase()}
                         </div>
                         {emp.name}
@@ -2076,7 +2055,7 @@ export default function TasksPage({ onTaskUpdated }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm hover:shadow-md disabled:opacity-60 active:scale-[0.98]"
+                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm hover:shadow-md disabled:opacity-60 active:scale-[0.98]"
               >
                 {submitting ? (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -2207,7 +2186,7 @@ export default function TasksPage({ onTaskUpdated }) {
                               className="
                   flex h-6 w-6 shrink-0
                   items-center justify-center
-                  rounded-full bg-slate-900
+                  rounded-full bg-blue-700
                   text-[10px] font-bold text-white
                 "
                             >
@@ -2465,7 +2444,7 @@ export default function TasksPage({ onTaskUpdated }) {
 
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 transition"
+            className="inline-flex items-center gap-2 bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-blue-800 transition"
           >
             <Icons.Plus />
             Create Task
@@ -2491,7 +2470,7 @@ export default function TasksPage({ onTaskUpdated }) {
         </div>
       ) : (
         // <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <div className="relative bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           {searchLoading && (
             // <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
             <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
@@ -2506,7 +2485,7 @@ export default function TasksPage({ onTaskUpdated }) {
           )}
 
           <table className="w-full table-fixed">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
                 <th className="w-[18%] px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Task
@@ -2550,7 +2529,7 @@ export default function TasksPage({ onTaskUpdated }) {
                   <tr
                     key={task._id}
                     onClick={() => handleViewTask(task)}
-                    className="hover:bg-slate-50 transition cursor-pointer"
+                    className="hover:bg-slate-50/70 transition-colors cursor-pointer"
                   >
                     {/* TASK */}
                     <td className="px-3 py-3">
@@ -2706,82 +2685,61 @@ export default function TasksPage({ onTaskUpdated }) {
             </tbody>
           </table>
 
-          {/* Load more (pagination) */}
-          {hasMore && !loading && (
-            <div className="px-6 py-4 bg-white border-t border-slate-200 text-center">
-              <div className="mb-2 text-[11px] text-slate-500">
-                {Math.max(
-                  0,
-                  totalTasks -
-                    (hasGlobalSearch
-                      ? globalSearchResults.length
-                      : tasks.length),
-                )}{" "}
-                remaining
-              </div>
-              <button
-                disabled={loadingMore}
-                onClick={async () => {
-                  try {
-                    setLoadingMore(true);
-                    const nextPage = page + 1;
-
-                    if (hasGlobalSearch) {
-                      await fetchGlobalSearchTasks({
-                        reset: false,
-                        pageOverride: nextPage,
-                      });
-                      setPage(nextPage);
-                      return;
-                    }
-
-                    const params = {
-                      page: String(nextPage),
-                      limit: String(limit),
-                    };
-                    if (filterStatuses.length > 0)
-                      params.status = filterStatuses.join(",");
-                    if (filterPriority !== "ALL")
-                      params.priority = filterPriority;
-                    if (searchQuery.trim().length >= 2) {
-                      params.q = searchQuery.trim();
-                    }
-                    // if (searchQuery.trim()) params.q = searchQuery.trim();
-
-                    const tasksRes = await API.get("/tasks", { params });
-                    const payload = tasksRes.data;
-                    const newTasks = payload?.data || payload || [];
-                    const pg = payload?.pagination;
-
-                    setTasks((prev) => [...prev, ...newTasks]);
-                    setPage(nextPage);
-                    setPages(pg?.pages ?? pages);
-                    setHasMore(nextPage < (pg?.pages ?? pages));
-                  } catch (err) {
-                    console.error("Load more tasks failed:", err);
-                  } finally {
-                    setLoadingMore(false);
-                  }
-                }}
-                className="
-  inline-flex items-center justify-center gap-1.5
-  h-8 rounded-lg
-  bg-slate-900 px-3.5
-  text-[11px] font-semibold text-white
-  hover:bg-slate-800
-  active:scale-[0.98]
-  transition-all
-  disabled:opacity-50 disabled:cursor-not-allowed
-"
-              >
-                <>
-                  {loadingMore && (
-                    <div className="h-3 w-3 rounded-full border border-white/40 border-t-white animate-spin" />
+          {/* Pagination */}
+          {pages > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-5 py-3.5">
+              <p className="text-[11px] font-medium text-slate-500">
+                Showing{" "}
+                <span className="font-semibold text-slate-700">{(page - 1) * limit + 1}</span>–
+                <span className="font-semibold text-slate-700">{Math.min(page * limit, totalTasks)}</span> of{" "}
+                <span className="font-semibold text-slate-700">{totalTasks}</span> tasks
+              </p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page === 1 || loadingMore}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
+                >
+                  <Icons.Back />
+                </button>
+                {Array.from({ length: pages }, (_, i) => i + 1)
+                  .filter((n) => n === 1 || n === pages || Math.abs(n - page) <= 1)
+                  .reduce((acc, n) => {
+                    const prev = acc[acc.length - 1];
+                    if (prev !== undefined && n - prev > 1) acc.push("…");
+                    acc.push(n);
+                    return acc;
+                  }, [])
+                  .map((n, i) =>
+                    n === "…" ? (
+                      <span key={`ellipsis-${i}`} className="px-1 text-[11px] text-slate-400">
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={n}
+                        onClick={() => goToPage(n)}
+                        disabled={loadingMore}
+                        className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2.5 text-[11px] font-semibold transition disabled:cursor-not-allowed ${
+                          n === page
+                            ? "bg-blue-700 text-white shadow-sm shadow-blue-200"
+                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ),
                   )}
-
-                  {loadingMore ? "Loading" : "Load More"}
-                </>
-              </button>
+                <button
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page === pages || loadingMore}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
+                >
+                  <Icons.Arrow />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -3014,7 +2972,7 @@ export default function TasksPage({ onTaskUpdated }) {
         rounded-full px-2 py-1 text-[10px] font-bold
         ${
           formData.assignees.length > 0
-            ? "bg-slate-900 text-white"
+            ? "bg-blue-700 text-white"
             : "bg-slate-100 text-slate-500"
         }
       `}
@@ -3158,7 +3116,7 @@ export default function TasksPage({ onTaskUpdated }) {
                     transition-all
                     ${
                       checked
-                        ? "border-slate-900 bg-slate-900 text-white"
+                        ? "border-blue-700 bg-blue-700 text-white"
                         : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
                     }
                   `}
@@ -3276,7 +3234,7 @@ export default function TasksPage({ onTaskUpdated }) {
               font-medium text-slate-700
             "
                         >
-                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-[9px] font-bold text-white">
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-700 text-[9px] font-bold text-white">
                             {emp.name?.charAt(0)?.toUpperCase()}
                           </div>
 
@@ -3318,7 +3276,7 @@ export default function TasksPage({ onTaskUpdated }) {
                 <button
                   type="submit"
                   disabled={editing}
-                  className="min-w-[150px] px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="min-w-[150px] px-5 py-2.5 rounded-xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   {editing ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

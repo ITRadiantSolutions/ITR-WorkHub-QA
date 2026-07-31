@@ -6,6 +6,7 @@ import {
   saveDraft,
   submitTimesheet,
   managerAction,
+  bulkManagerAction,
   clearWeek,
   managerTimesheets,
   managerTimesheetById,
@@ -20,6 +21,7 @@ router.post("/save", saveDraft);
 router.get("/manager", managerTimesheets);
 router.get("/manager/status", managerTimesheetStatus);
 router.get("/manager/:id", managerTimesheetById);
+router.post("/bulk-action", bulkManagerAction);
 router.delete("/week/:weekStart/clear", clearWeek);
 router.get("/:id", getTimesheet);
 router.post("/:id/submit", submitTimesheet);

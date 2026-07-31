@@ -30,15 +30,15 @@ export default function EmployeeKPIForm({ kra, onSave, onCancel, setError }) {
   };
 
   return (
-    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 shadow-inner">
+    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100 shadow-inner">
       {/* Remaining weight indicator */}
       <div className="flex items-center gap-2 mb-4">
-        <AlertCircle size={14} className="text-indigo-500" />
+        <AlertCircle size={14} className="text-purple-500" />
         <p className="text-xs font-semibold text-gray-600">
           Remaining weight for this KRA:{" "}
           <span
             className={`font-bold ${
-              remaining <= 0 ? "text-red-500" : "text-indigo-600"
+              remaining <= 0 ? "text-red-500" : "text-purple-600"
             }`}
           >
             {remaining}%
@@ -54,7 +54,7 @@ export default function EmployeeKPIForm({ kra, onSave, onCancel, setError }) {
           </label>
           <input
             placeholder="e.g. Code Review Quality"
-            className="w-full px-3 py-2.5 text-sm rounded-xl bg-white border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+            className="w-full px-3 py-2.5 text-sm rounded-xl bg-white border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
             value={kpi.title}
             onChange={(e) => setKpi({ ...kpi, title: e.target.value })}
           />
@@ -67,7 +67,7 @@ export default function EmployeeKPIForm({ kra, onSave, onCancel, setError }) {
           <input
             type="number"
             placeholder="%"
-            className="w-full px-3 py-2.5 text-sm rounded-xl bg-white border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+            className="w-full px-3 py-2.5 text-sm rounded-xl bg-white border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
             value={kpi.weight}
             onChange={(e) => setKpi({ ...kpi, weight: e.target.value })}
           />
@@ -85,7 +85,7 @@ export default function EmployeeKPIForm({ kra, onSave, onCancel, setError }) {
         </button>
         <button
           onClick={save}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 transition shadow-md"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 transition shadow-md"
         >
           <Save size={13} />
           Add KPI

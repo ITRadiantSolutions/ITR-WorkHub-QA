@@ -297,7 +297,7 @@ export default function AdminClientTab({
             setForm(emptyForm);
             setModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
         >
           <Icons.Plus className="h-4 w-4" />
           Create Account
@@ -313,7 +313,7 @@ export default function AdminClientTab({
               value: groups.length,
               sub: `${new Set(groups.flatMap((group) => (group.projects || []).map((project) => project._id))).size} assigned projects`,
               Icon: Icons.Folder,
-              dark: true,
+              iconClass: "bg-indigo-50 text-indigo-600",
             },
             {
               label: "Active",
@@ -342,37 +342,29 @@ export default function AdminClientTab({
           ].map((item) => (
             <article
               key={item.label}
-              className={`relative overflow-hidden rounded-xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${item.dark ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"}`}
+              className="relative overflow-hidden rounded-xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md border-slate-200 bg-white"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p
-                    className={`text-[10px] font-bold uppercase tracking-[0.12em] ${item.dark ? "text-slate-400" : "text-slate-400"}`}
-                  >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
                     {item.label}
                   </p>
-                  <p
-                    className={`mt-2 text-2xl font-bold leading-none ${item.dark ? "text-white" : "text-slate-900"}`}
-                  >
+                  <p className="mt-2 text-2xl font-bold leading-none text-slate-900">
                     {item.value}
                   </p>
                 </div>
                 <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${item.dark ? "bg-white/10 text-white" : item.iconClass}`}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${item.iconClass}`}
                 >
                   <item.Icon />
                 </span>
               </div>
-              <p
-                className={`mt-2 truncate text-[10px] ${item.dark ? "text-slate-500" : "text-slate-400"}`}
-              >
+              <p className="mt-2 truncate text-[10px] text-slate-400">
                 {item.sub}
               </p>
-              {!item.dark && (
-                <span
-                  className={`absolute bottom-0 left-0 h-0.5 w-full ${item.label === "Active" ? "bg-emerald-500" : item.label === "Planning" ? "bg-blue-500" : "bg-violet-500"}`}
-                />
-              )}
+              <span
+                className={`absolute bottom-0 left-0 h-0.5 w-full ${item.label === "Active" ? "bg-emerald-500" : item.label === "Planning" ? "bg-blue-500" : item.label === "Done" ? "bg-violet-500" : "bg-indigo-500"}`}
+              />
             </article>
           ))}
         </div>
@@ -434,7 +426,7 @@ export default function AdminClientTab({
               setForm(emptyForm);
               setModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition"
+            className="inline-flex items-center gap-1.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition"
           >
             <Icons.Plus />
             Create First Account
@@ -610,7 +602,7 @@ export default function AdminClientTab({
             {/* Modal header */}
             <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shrink-0">
+                <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center text-white shrink-0">
                   <Icons.Folder />
                 </div>
                 <div>
@@ -766,7 +758,7 @@ export default function AdminClientTab({
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center text-white shrink-0">
+                <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center text-white shrink-0">
                   {modalMode === "edit" ? <Icons.Edit /> : <Icons.Plus />}
                 </div>
                 <div>
@@ -906,7 +898,7 @@ export default function AdminClientTab({
                       New Project
                     </button>
                     <span
-                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${form.projects.length > 0 ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-600"}`}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${form.projects.length > 0 ? "bg-blue-700 text-white" : "bg-slate-200 text-slate-600"}`}
                     >
                       {form.projects.length} selected
                     </span>
@@ -953,7 +945,7 @@ export default function AdminClientTab({
                               key={project._id}
                               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
                                 checked
-                                  ? "border-slate-900 bg-slate-900 text-white"
+                                  ? "border-blue-700 bg-blue-700 text-white"
                                   : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                               }`}
                             >
@@ -1041,7 +1033,7 @@ export default function AdminClientTab({
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm disabled:opacity-60 active:scale-[0.98]"
+                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm disabled:opacity-60 active:scale-[0.98]"
               >
                 {saving ? (
                   <>

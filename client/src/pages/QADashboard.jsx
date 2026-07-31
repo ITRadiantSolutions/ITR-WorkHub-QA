@@ -23,7 +23,7 @@ import KeepAliveTab from "../components/KeepAliveTab";
 import RoleGuideFaq from "./RoleGuideFaq";
 import useAdminSidebarTabCounts from "../hooks/useAdminSidebarTabCounts";
 import { adminNotificationAPI } from "../services/adminNotificationApi";
-import ThemeToggle from "../components/ThemeToggle";
+import TrackerSidebar from "../components/TrackerSidebar";
 
 // ── Severity config ───────────────────────────────────────────────────────────
 const SEVERITY = {
@@ -194,12 +194,13 @@ function DonutChart({ completed, total }) {
 
 function DistributionDonut({ data, centerLabel }) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  const radius = 38;
+  const radius = 40;
   const circumference = 2 * Math.PI * radius;
+  const [hovered, setHovered] = useState(null);
   let consumed = 0;
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row">
-      <div className="relative h-36 w-36 shrink-0">
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative h-40 w-40 shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
           <circle
             cx="50"
@@ -224,33 +225,45 @@ function DistributionDonut({ data, centerLabel }) {
                 strokeWidth="13"
                 strokeDasharray={`${length} ${circumference - length}`}
                 strokeDashoffset={-offset}
-                className="transition-all duration-700"
+                className="transition-all duration-700 cursor-pointer"
+                style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
+                onMouseEnter={() => setHovered(item)}
+                onMouseLeave={() => setHovered(null)}
               />
             );
           })}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-slate-900">{total}</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            {centerLabel}
-          </span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-xl font-bold text-slate-900">{hovered.value}</span>
+              <span className="max-w-[90px] truncate text-[9px] font-semibold uppercase tracking-wide text-slate-400">{hovered.label}</span>
+              <span className="text-[9px] font-semibold text-slate-400">{total ? Math.round((hovered.value / total) * 100) : 0}%</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-bold text-slate-900">{total}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {centerLabel}
+              </span>
+            </>
+          )}
         </div>
       </div>
-      <div className="w-full space-y-2">
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
         {data.map((item) => (
-          <div key={item.label} className="flex items-center gap-2 text-xs">
+          <span
+            key={item.label}
+            className="flex items-center gap-1.5 cursor-pointer text-xs"
+            onMouseEnter={() => setHovered(item)}
+            onMouseLeave={() => setHovered(null)}
+          >
             <span
               className="h-2.5 w-2.5 rounded-full"
               style={{ backgroundColor: item.color }}
             />
             <span className="text-slate-500">{item.label}</span>
-            <span className="ml-auto font-bold text-slate-800">
-              {item.value}
-            </span>
-            <span className="w-9 text-right text-[10px] text-slate-400">
-              {total ? Math.round((item.value / total) * 100) : 0}%
-            </span>
-          </div>
+          </span>
         ))}
       </div>
     </div>
@@ -344,7 +357,6 @@ export default function QADashboard() {
   const [taskComments, setTaskComments] = useState([]);
   const [newTaskComment, setNewTaskComment] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sprints, setSprints] = useState([]);
   const [globalQuery, setGlobalQuery] = useState("");
   const [globalSearchFocused, setGlobalSearchFocused] = useState(false);
@@ -368,18 +380,6 @@ export default function QADashboard() {
 
   useEffect(() => {
     window.history.replaceState(null, "", window.location.href);
-  }, []);
-
-  // Prevent the expanded sidebar from covering tablet and mobile content.
-  useEffect(() => {
-    const collapseSidebarForViewport = () => {
-      if (window.innerWidth < 1024) setSidebarOpen(false);
-    };
-
-    collapseSidebarForViewport();
-    window.addEventListener("resize", collapseSidebarForViewport);
-    return () =>
-      window.removeEventListener("resize", collapseSidebarForViewport);
   }, []);
 
   const fetchProjects = async () => {
@@ -656,7 +656,7 @@ export default function QADashboard() {
                   navigate("/");
                 }, 600);
               }}
-              className="flex-1 h-10 rounded-2xl bg-slate-900 text-white text-sm font-semibold hover:bg-black transition"
+              className="flex-1 h-10 rounded-2xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
             >
               Logout
             </button>
@@ -1015,147 +1015,19 @@ export default function QADashboard() {
     { id: "sprints", label: "Sprints", Ic: Icons.SprintBoardIcon },
     { id: "bugs", label: "Bug Reports", Ic: Icons.Bug },
     { id: "reports", label: "Reports", Ic: Icons.Reports },
-    { id: "guideFaq", label: "Guide & FAQ", Ic: Icons.Help },
+    { id: "guideFaq", label: "Guide & FAQ", Ic: Icons.Help, tag: "NEW" },
     { id: "settings", label: "Settings", Ic: Icons.Settings },
-  ];
+  ].map((item) => ({ ...item, dot: tabCounts[item.id] > 0 }));
 
   return (
     <div
       style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }}
       className="flex min-h-screen bg-slate-50"
     >
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside
-        className={`fixed left-0 top-0 h-screen bg-slate-900 border-r border-slate-800 flex flex-col z-50 transition-all duration-300 ${
-          sidebarOpen ? "w-56" : "w-16"
-        }`}
-      >
-        {/* Logo */}
-        <div className="h-16 px-3 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0">
-              <div className="w-4 h-4 rounded-md bg-slate-900" />
-            </div>
-
-            {sidebarOpen && (
-              <div>
-                <p className="text-white text-sm font-bold leading-none">
-                  {/* WorkSpace */}
-                  QA Portal
-                </p>
-                {/* <p className="text-slate-400 text-[10px] mt-1">QA Portal</p> */}
-              </div>
-            )}
-          </div>
-
-          {/* Toggle */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition shrink-0"
-          >
-            ☰
-          </button>
-        </div>
-
-        {/* User */}
-        <div className="px-3 py-3 border-b border-slate-800">
-          <div
-            className={`flex items-center ${
-              sidebarOpen ? "gap-3" : "justify-center"
-            }`}
-          >
-            <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center shrink-0">
-              <span className="text-white text-xs font-bold">
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </span>
-            </div>
-
-            {sidebarOpen && (
-              <div className="min-w-0">
-                <p className="text-white text-xs font-semibold truncate">
-                  {user?.name}
-                </p>
-                <p className="text-slate-400 text-[10px] truncate">
-                  {user?.email}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
-          {navItems.map(({ id, label, Ic }) => {
-            const active = activeTab === id;
-
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`w-full rounded-xl transition-all duration-200 ${
-                  sidebarOpen
-                    ? "flex items-center gap-3 px-3 py-2.5 justify-start"
-                    : "flex items-center justify-center py-3"
-                } ${
-                  active
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                }`}
-              >
-                <span className="relative inline-flex shrink-0">
-                  {Ic ? <Ic /> : <span className="text-red-500">Missing</span>}
-                  {activeTab !== id && tabCounts[id] > 0 && (
-                    <span
-                      className="absolute -right-1.5 -top-1.5 flex h-2.5 w-2.5"
-                      title={`${tabCounts[id]} unread ${label.toLowerCase()} updates`}
-                      aria-label={`${tabCounts[id]} unread ${label.toLowerCase()} updates`}
-                    >
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-70" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-900" />
-                    </span>
-                  )}
-                </span>
-                {sidebarOpen && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium">{label}</span>
-
-                    {id === "guideFaq" && (
-                      <span className="px-1.5 py-0.5 relative bottom-2 rounded-full bg-red-500 text-white text-[8px] font-bold uppercase leading-none">
-                        NEW
-                      </span>
-                    )}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Logout */}
-        <div className="p-2 border-t border-slate-800">
-          <button
-            onClick={handleLogout}
-            className={`danger-action w-full rounded-xl text-slate-400 transition-all ${
-              sidebarOpen
-                ? "flex items-center gap-3 px-3 py-2.5"
-                : "flex items-center justify-center py-3"
-            }`}
-          >
-            <Icons.Logout />
-
-            {sidebarOpen && (
-              <span className="text-xs font-medium">Sign Out</span>
-            )}
-          </button>
-        </div>
-      </aside>
+      <TrackerSidebar navItems={navItems} activeId={activeTab} onSelect={setActiveTab} onLogout={handleLogout} />
 
       {/* ── Main ────────────────────────────────────────────────────────── */}
-      <div
-        className={`flex-1 min-h-screen flex flex-col bg-slate-50 transition-all duration-300 ease-in-out ${
-          sidebarOpen ? "ml-56" : "ml-16"
-        }`}
-      >
+      <div className="flex-1 min-w-0 min-h-screen flex flex-col bg-slate-50">
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-3 py-3 sm:px-5 lg:flex-nowrap lg:px-6 lg:py-3.5">
           <div className="min-w-0 shrink-0">
             <h1 className="text-base font-bold text-slate-800">
@@ -1267,7 +1139,6 @@ export default function QADashboard() {
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 lg:gap-4">
             <NotificationBell />
-            <ThemeToggle />
             <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5">
               <Icons.User />
               <span className="font-medium text-slate-700">{user?.name}</span>
@@ -1303,7 +1174,6 @@ export default function QADashboard() {
                     value: counts.totalproject,
                     sub: "overall projects",
                     Icon: Icons.Folder,
-                    dark: true,
                     loading: projectsLoading,
                   },
                   {
@@ -1332,28 +1202,22 @@ export default function QADashboard() {
                 ].map((card) => (
                   <div
                     key={card.label}
-                    className={`rounded-xl p-4 border shadow-sm ${card.dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
+                    className="rounded-xl p-4 border shadow-sm bg-white border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <p
-                        className={`text-[10px] font-bold uppercase tracking-widest ${card.dark ? "text-slate-400" : "text-slate-500"}`}
-                      >
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                         {card.label}
                       </p>
                       <div
                         className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                          card.dark
-                            ? "bg-slate-700 text-slate-300"
-                            : card.warn
-                              ? "bg-red-50 text-red-500"
-                              : "bg-slate-100 text-slate-500"
+                          card.warn ? "bg-red-50 text-red-500" : "bg-slate-100 text-slate-500"
                         }`}
                       >
                         <card.Icon />
                       </div>
                     </div>
                     <p
-                      className={`text-3xl font-bold ${card.dark ? "text-white" : card.warn ? "text-red-600" : "text-slate-900"}`}
+                      className={`text-3xl font-bold ${card.warn ? "text-red-600" : "text-slate-900"}`}
                     >
                       {card.loading ? (
                         <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent opacity-60" />
@@ -1361,9 +1225,7 @@ export default function QADashboard() {
                         card.value
                       )}
                     </p>
-                    <p
-                      className={`text-[11px] mt-0.5 ${card.dark ? "text-slate-400" : "text-slate-400"}`}
-                    >
+                    <p className="text-[11px] mt-0.5 text-slate-400">
                       {card.loading ? "Loading..." : card.sub}
                     </p>
                   </div>
@@ -1375,7 +1237,7 @@ export default function QADashboard() {
                 {/* Bug Analytics */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white"><Icons.Bug /></div><div><p className="text-sm font-bold text-slate-800">Bug Status</p><p className="text-[10px] text-slate-400">Current QA issue distribution</p></div></div>
+                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white"><Icons.Bug /></div><div><p className="text-sm font-bold text-slate-800">Bug Status</p><p className="text-[10px] text-slate-400">Current QA issue distribution</p></div></div>
                     <span className="text-[11px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-full">{counts.resolved} resolved</span>
                   </div>
                   <div className="p-5"><DistributionDonut centerLabel="bugs" data={[
@@ -1387,7 +1249,7 @@ export default function QADashboard() {
                 {/* Task Analytics */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white"><Icons.Tasks /></div><div><p className="text-sm font-bold text-slate-800">Task Progress</p><p className="text-[10px] text-slate-400">Assigned QA workload</p></div></div>
+                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white"><Icons.Tasks /></div><div><p className="text-sm font-bold text-slate-800">Task Progress</p><p className="text-[10px] text-slate-400">Assigned QA workload</p></div></div>
                     <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">{taskCounts.total ? Math.round((taskCounts.done / taskCounts.total) * 100) : 0}% done</span>
                   </div>
                   <div className="p-5"><DistributionDonut centerLabel="tasks" data={[
@@ -1400,7 +1262,7 @@ export default function QADashboard() {
                 {/* Bugs by Severity */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white">
+                    <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
                       <Icons.Alert />
                     </div>
                     <p className="text-sm font-bold text-slate-800">
@@ -1469,7 +1331,7 @@ export default function QADashboard() {
                 {/* Tasks by Priority */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white">
+                    <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
                       <Icons.Tasks />
                     </div>
                     <p className="text-sm font-bold text-slate-800">
@@ -1545,7 +1407,7 @@ export default function QADashboard() {
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white">
+                      <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
                         <Icons.Bug />
                       </div>
                       <p className="text-sm font-bold text-slate-800">
@@ -1632,7 +1494,7 @@ export default function QADashboard() {
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white">
+                      <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
                         <Icons.Tasks />
                       </div>
                       <p className="text-sm font-bold text-slate-800">
@@ -1747,7 +1609,7 @@ export default function QADashboard() {
               <div className="flex items-center justify-between rounded-2xl   px-1 py-1">
                 {/* Left */}
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-700 text-white">
                     <Icons.Tasks />
                   </div>
 
@@ -1786,7 +1648,7 @@ export default function QADashboard() {
                         setSelectedTask(null);
                         setShowCreateModal(true);
                       }}
-                      className="flex h-7 items-center gap-1.5 rounded-sm bg-slate-900 px-2 text-[11px] font-semibold text-white transition hover:bg-slate-800"
+                      className="flex h-7 items-center gap-1.5 rounded-sm bg-blue-700 px-2 text-[11px] font-semibold text-white transition hover:bg-blue-800"
                     >
                       <Icons.Plus />
                       Create Task
@@ -1801,10 +1663,10 @@ export default function QADashboard() {
                     label: "Total",
                     value: tasks.length,
                     icon: <Icons.Tasks />,
-                    bg: "bg-slate-900",
-                    text: "text-white",
+                    bg: "bg-indigo-50",
+                    text: "text-indigo-700",
 
-                    iconBg: "bg-white/10",
+                    iconBg: "bg-indigo-100",
                   },
 
                   {

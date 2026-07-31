@@ -153,7 +153,7 @@ export default function TemplateSubmit({
   const StatusBadge = ({ text, color }) => {
     const colors = {
       yellow: "bg-yellow-50 border-yellow-200 text-yellow-800",
-      blue: "bg-blue-50 border-blue-200 text-blue-700",
+      blue: "bg-violet-50 border-violet-200 text-violet-700",
       green: "bg-green-50 border-green-200 text-green-700",
       purple: "bg-purple-50 border-purple-200 text-purple-700",
     };
@@ -342,7 +342,7 @@ export default function TemplateSubmit({
               }}
               className={`px-6 py-3 rounded-lg text-white font-semibold transition
         ${canSendForApproval
-                  ? "bg-blue-600 hover:bg-blue-700"
+                  ? "bg-violet-600 hover:bg-violet-700"
                   : "bg-gray-300 cursor-not-allowed opacity-60"
                 }`}
             >

@@ -88,7 +88,7 @@ function ModalShell({
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center text-white shrink-0">
               {icon || <Icons.Book />}
             </div>
             <div>
@@ -339,7 +339,7 @@ function StoryForm({
             if (!validate()) return;
             await onSubmit();
           }}
-          className="h-9 px-5 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-black transition flex items-center gap-2 disabled:opacity-50"
+          className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-2 disabled:opacity-50"
         >
           {submitting ? (
             <>
@@ -433,7 +433,7 @@ function StoryView({
         <div className="max-h-[280px] overflow-y-auto px-4 py-3 space-y-3">
           {isLoadingComments ? (
             <div className="flex items-center justify-center py-10 gap-2">
-              <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin" />
               <span className="text-[12px] text-slate-400">Loading…</span>
             </div>
           ) : comments?.length ? (
@@ -509,7 +509,7 @@ function StoryView({
               disabled={
                 !newComment.trim() || isLoadingComments || postingComment
               }
-              className="h-9 px-3 bg-slate-900 text-white rounded-lg text-[12px] font-semibold hover:bg-black transition disabled:opacity-40 flex items-center gap-1.5 shrink-0"
+              className="h-9 px-3 bg-blue-700 text-white rounded-lg text-[12px] font-semibold hover:bg-blue-800 transition disabled:opacity-40 flex items-center gap-1.5 shrink-0"
             >
               {postingComment ? (
                 <div className="w-3.5 h-3.5 border-2 border-white/30 border-r-white rounded-full animate-spin" />
@@ -860,7 +860,7 @@ export default function SprintStories({ sprint, onClose }) {
                     }
                     className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
                       filterStatus === s.key
-                        ? "bg-slate-900 text-white border-slate-900"
+                        ? "bg-blue-700 text-white border-blue-700"
                         : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                     }`}
                   >
@@ -882,7 +882,7 @@ export default function SprintStories({ sprint, onClose }) {
           {canCreateStory && (
             <button
               onClick={openCreate}
-              className="h-8 px-3.5 rounded-lg bg-slate-900 text-white text-[12.5px] font-semibold hover:bg-black transition flex items-center gap-1.5"
+              className="h-8 px-3.5 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5"
             >
               <Icons.Plus /> New Story
             </button>
@@ -967,7 +967,7 @@ export default function SprintStories({ sprint, onClose }) {
       {/* ── Story list ── */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-2">
-          <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-blue-700 border-t-transparent rounded-full animate-spin" />
           <p className="text-[12px] text-slate-400">Loading stories…</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -988,7 +988,7 @@ export default function SprintStories({ sprint, onClose }) {
           {canCreateStory && !search && (
             <button
               onClick={openCreate}
-              className="mt-4 h-8 px-4 rounded-lg bg-slate-900 text-white text-[12.5px] font-semibold hover:bg-black transition inline-flex items-center gap-1.5"
+              className="mt-4 h-8 px-4 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition inline-flex items-center gap-1.5"
             >
               <Icons.Plus /> New Story
             </button>

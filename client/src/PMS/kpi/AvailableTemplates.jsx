@@ -149,7 +149,7 @@ export default function AvailableTemplatesPage() {
             {/* 🔙 BACK BUTTON */}
             <button
               onClick={() => navigate("/employeetemplate")}   // or navigate(-1)
-              className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-indigo-600"
+              className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-purple-600"
             >
               <ArrowLeft size={18} />
               Back
@@ -176,13 +176,13 @@ export default function AvailableTemplatesPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3">
-              <p className="text-xs text-indigo-700">Templates</p>
-              <p className="text-xl font-bold text-indigo-900">{uniqueTemplates.length}</p>
+            <div className="rounded-xl border border-purple-100 bg-purple-50 p-3">
+              <p className="text-xs text-purple-700">Templates</p>
+              <p className="text-xl font-bold text-purple-900">{uniqueTemplates.length}</p>
             </div>
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-              <p className="text-xs text-blue-700">Job Specified KRAs</p>
-              <p className="text-xl font-bold text-blue-900">{totalFunctional}</p>
+            <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
+              <p className="text-xs text-violet-700">Job Specified KRAs</p>
+              <p className="text-xl font-bold text-violet-900">{totalFunctional}</p>
             </div>
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
               <p className="text-xs text-emerald-700">Organizational KRAs</p>
@@ -197,7 +197,7 @@ export default function AvailableTemplatesPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search templates by name"
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
               />
             </div>
 
@@ -250,7 +250,7 @@ export default function AvailableTemplatesPage() {
               return (
                 <div
                   key={template.id}
-                  className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-200 flex flex-col justify-between h-full"
+                  className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all duration-200 flex flex-col justify-between h-full"
                 >
                   <div className="space-y-3">
                     <h4 className="font-bold text-slate-800 text-lg leading-tight">
@@ -259,7 +259,7 @@ export default function AvailableTemplatesPage() {
                     <p className="text-xs text-slate-500">
                       Total KRAs: {totalKras}
                     </p>
-                    {/* <p className="text-xs text-indigo-600 font-semibold">
+                    {/* <p className="text-xs text-purple-600 font-semibold">
                       Assigned: {template.assignedUsers?.length || 0}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1">
@@ -274,7 +274,7 @@ export default function AvailableTemplatesPage() {
                     </div> */}
 
                     <div className="flex gap-2 flex-wrap">
-                      <div className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                      <div className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-semibold">
                         {functionalCount} Job Specified
                       </div>
                       <div className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-semibold">
@@ -293,14 +293,14 @@ export default function AvailableTemplatesPage() {
 
                     <button
                       onClick={() => navigate(`/create_template?edit=${template.id}`)}
-                      className="py-2.5 text-xs font-semibold border border-indigo-200 text-indigo-700 bg-indigo-50 rounded-xl hover:bg-indigo-100"
+                      className="py-2.5 text-xs font-semibold border border-purple-200 text-purple-700 bg-purple-50 rounded-xl hover:bg-purple-100"
                     >
                       Edit
                     </button>
 
                     <button
                       onClick={() => navigate(`/create_template?assign=${template.id}`)}
-                      className="py-2.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center gap-1"
+                      className="py-2.5 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-xl flex items-center justify-center gap-1"
                     >
                       <Play size={12} />
                       Assign

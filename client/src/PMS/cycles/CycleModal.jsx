@@ -41,8 +41,8 @@ export default function CycleModal({
               {/* Header */}
               <div className="flex justify-between items-center p-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Calendar className="w-5 h-5 text-blue-600" />
+                  <div className="p-2 bg-violet-100 rounded-lg">
+                    <Calendar className="w-5 h-5 text-violet-600" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800">
                     {isEditing ? "Edit Cycle" : "Create Cycle"}
@@ -68,7 +68,7 @@ export default function CycleModal({
                   <input
                     className={`w-full px-4 py-2.5 rounded-lg border transition-all duration-200 focus:ring-2 focus:outline-none ${errors.name
                         ? "border-red-500 focus:ring-red-500"
-                        : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                        : "border-gray-300 focus:ring-violet-500 focus:border-violet-500"
                       }`}
                     value={form.name}
                     onChange={(e) => onChange({ ...form, name: e.target.value })}
@@ -92,7 +92,7 @@ export default function CycleModal({
                     Cycle Type
                   </label>
                   <select
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-200"
                     value={form.type}
                     onChange={(e) => onChange({ ...form, type: e.target.value })}
                   >
@@ -112,7 +112,7 @@ export default function CycleModal({
                       type="date"
                        className={`w-full px-4 py-2.5 rounded-lg border transition-all duration-200 focus:ring-2 focus:outline-none ${errors.start
                           ? "border-red-500 focus:ring-red-500"
-                          : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                          : "border-gray-300 focus:ring-violet-500 focus:border-violet-500"
                         }`}
                       value={form.start}
                       onChange={(e) =>
@@ -158,7 +158,7 @@ export default function CycleModal({
                 <motion.button
                   onClick={onSave}
                   disabled={loading}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   whileHover={!loading ? { scale: 1.05 } : {}}
                   whileTap={!loading ? { scale: 0.95 } : {}}
                 >

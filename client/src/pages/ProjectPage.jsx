@@ -547,7 +547,7 @@ export default function ProjectsPage({
                   setShowForm(true);
                   setErrors({});
                 }}
-                className="flex h-10 items-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.98]"
+                className="flex h-10 items-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 active:scale-[0.98]"
               >
                 <Icon.Plus className="h-4 w-4" />
                 New Project
@@ -1059,7 +1059,7 @@ export default function ProjectsPage({
               <button
                 onClick={createProject}
                 disabled={submitting}
-                className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-xl bg-blue-700 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
               >
                 {submitting ? (
                   <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -1093,7 +1093,7 @@ export default function ProjectsPage({
           {canCreate && (
             <button
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 bg-slate-900 text-white px-3 py-2.5 rounded-xl text-sm font-semibold"
+              className="inline-flex items-center gap-2 bg-blue-700 text-white px-3 py-2.5 rounded-xl text-sm font-semibold"
             >
               <Icon.Plus />
               Create Project

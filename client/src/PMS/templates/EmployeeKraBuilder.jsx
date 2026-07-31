@@ -333,7 +333,7 @@ export default function EmployeeKraBuilder() {
             {"<-"} Back
           </motion.button>
 
-          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent">
             {isEditMode ? "Edit KRA" : "Create KRA"}
           </h2>
 
@@ -349,7 +349,7 @@ export default function EmployeeKraBuilder() {
               <button
                 onClick={() => setType("functional")}
                 className={`p-3 rounded-xl border text-sm font-semibold transition-all ${type === "functional"
-                  ? "bg-indigo-100 border-indigo-400 text-indigo-700"
+                  ? "bg-purple-100 border-purple-400 text-purple-700"
                   : "bg-white border-slate-300 hover:bg-slate-50"
                   }`}
               >
@@ -406,7 +406,7 @@ export default function EmployeeKraBuilder() {
                   value={kra.name}
                   onChange={(e) => updateKraName(kra.id, e.target.value)}
                   placeholder="Enter KRA title"
-                  className="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-sm"
+                  className="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 outline-none bg-white text-sm"
                 />
 
                 {!isEditMode && (
@@ -435,7 +435,7 @@ export default function EmployeeKraBuilder() {
                       value={kpi.name}
                       onChange={(e) => updateKpi(kra.id, kpi.id, e.target.value)}
                       placeholder={`KPI ${i + 1} description`}
-                      className="flex-1 px-3 py-1.5 rounded-md border border-slate-300 focus:ring-2 focus:ring-indigo-400 outline-none text-sm"
+                      className="flex-1 px-3 py-1.5 rounded-md border border-slate-300 focus:ring-2 focus:ring-purple-400 outline-none text-sm"
                     />
 
                     <button
@@ -450,7 +450,7 @@ export default function EmployeeKraBuilder() {
               <div className="flex justify-end ml-8">
                 <button
                   onClick={() => addKpi(kra.id)}
-                  className="w-8 h-8 rounded-full border border-indigo-300 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center"
+                  className="w-8 h-8 rounded-full border border-purple-300 text-purple-600 hover:bg-purple-50 flex items-center justify-center"
                   title="Add KPI"
                 >
                   <Plus size={16} />
@@ -482,7 +482,7 @@ export default function EmployeeKraBuilder() {
               onClick={save}
               disabled={!canSave}
               className={`inline-flex items-center gap-2 px-8 py-3 rounded-2xl text-white font-semibold shadow-2xl ${canSave
-                ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600"
+                ? "bg-gradient-to-r from-purple-600 via-purple-600 to-pink-600"
                 : "bg-slate-400 cursor-not-allowed"
                 }`}
             >

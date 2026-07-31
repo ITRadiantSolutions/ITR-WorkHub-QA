@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import ActivityLog from "../models/ActivityLog.js";
+import { escapeRegex } from "../utils/taskFilters.js";
 
 const processStartedAt = new Date();
 const DB_STATES = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
@@ -18,7 +19,12 @@ export const listActivityLogs = async (req, res) => {
   const filter = {};
   if (req.query.logType) filter.logType = req.query.logType;
   if (req.query.level) filter.level = req.query.level;
-  if (req.query.actorId) filter.actorId = req.query.actorId;
+  if (req.query.actorId) {
+    if (!mongoose.Types.ObjectId.isValid(req.query.actorId)) {
+      return res.status(400).json({ message: "Invalid actorId" });
+    }
+    filter.actorId = req.query.actorId;
+  }
 
   const logs = await ActivityLog.find(filter).sort({ createdAt: -1 }).limit(500);
   res.json(logs);
@@ -78,7 +84,7 @@ export const getMicrosoftLoginLogs = async (req, res) => {
   const { page = 1, limit = 50, email, step, status } = req.query;
 
   const filter = { logType: "ms_login" };
-  if (email) filter["msLogin.email"] = { $regex: email, $options: "i" };
+  if (email) filter["msLogin.email"] = { $regex: escapeRegex(String(email)), $options: "i" };
   if (step) filter["msLogin.step"] = step;
   if (status) filter["msLogin.status"] = status;
 
@@ -111,8 +117,8 @@ export const getMicrosoftLoginErrors = async (req, res) => {
   const { page = 1, limit = 20, email, error } = req.query;
 
   const filter = { logType: "ms_login", "msLogin.status": "failed" };
-  if (email) filter["msLogin.email"] = { $regex: email, $options: "i" };
-  if (error) filter.error = { $regex: error, $options: "i" };
+  if (email) filter["msLogin.email"] = { $regex: escapeRegex(String(email)), $options: "i" };
+  if (error) filter.error = { $regex: escapeRegex(String(error)), $options: "i" };
 
   const [logs, total, errorStats] = await Promise.all([
     ActivityLog.find(filter)

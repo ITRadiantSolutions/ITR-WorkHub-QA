@@ -610,10 +610,10 @@ export default function EmployeesPage({ searchRequest }) {
         {tabs.map((tab, i) => {
           const colors = [
             {
-              dark: "bg-slate-900 border-slate-800",
-              icon: "bg-white/10 text-white/60",
-              val: "text-white",
-              lbl: "text-slate-400",
+              dark: "bg-slate-100 border-slate-200",
+              icon: "bg-slate-200 text-slate-500",
+              val: "text-slate-800",
+              lbl: "text-slate-500",
             },
             {
               dark: "bg-white border-slate-200",
@@ -641,7 +641,7 @@ export default function EmployeesPage({ searchRequest }) {
                 setActiveTab(tab.id);
                 setSearch("");
               }}
-              className={`rounded-xl border p-2 cursor-pointer  transition-all  ${colors.dark} ${activeTab === tab.id && i !== 0 ? "ring-1 ring-slate-900 border-slate-900" : ""}`}
+              className={`rounded-xl border p-2 cursor-pointer  transition-all  ${colors.dark} ${activeTab === tab.id ? "ring-1 ring-blue-600 border-blue-600" : ""}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span
@@ -1015,7 +1015,7 @@ const col4 = isRejected
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center">
                   <Icons.Edit />
                 </div>
                 <div>
@@ -1104,7 +1104,7 @@ const col4 = isRejected
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 h-9 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-black transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 h-9 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   {saving ? (
                     <>

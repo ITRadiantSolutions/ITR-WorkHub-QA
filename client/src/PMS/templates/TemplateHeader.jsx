@@ -19,7 +19,7 @@ export default function TemplateHeader({
       className="mb-6 px-4"
     >
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
           KPI Templates
         </h1>
       </div>
@@ -43,7 +43,7 @@ export default function TemplateHeader({
           <button
             onClick={() => setTemplateView("my")}
             className={`relative z-10 w-[140px] h-[36px] text-sm font-semibold transition-colors duration-200 ${isMyView
-                ? "text-blue-700"
+                ? "text-violet-700"
                 : "text-gray-500 hover:text-gray-700"
               }`}
           >
@@ -53,7 +53,7 @@ export default function TemplateHeader({
           <button
             onClick={() => setTemplateView("employees")}
             className={`relative z-10 w-[160px] h-[36px] text-sm font-semibold transition-colors duration-200 ${isEmployeeView
-                ? "text-blue-700"
+                ? "text-violet-700"
                 : "text-gray-500 hover:text-gray-700"
               }`}
           >

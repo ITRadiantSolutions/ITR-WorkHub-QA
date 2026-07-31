@@ -305,7 +305,7 @@ export default function TemplateCard({
         ${isPMS_HR(loggedInUser) && templateView === "employees" && temp.selected
           ? "bg-gradient-to-br from-green-50 to-emerald-50 shadow-[0_10px_25px_rgba(34,197,94,0.25)]"
           : isSelected
-            ? "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 shadow-[0_12px_28px_rgba(59,130,246,0.28)] scale-[1.01]"
+            ? "bg-gradient-to-br from-violet-50 via-purple-50 to-purple-50 shadow-[0_12px_28px_rgba(59,130,246,0.28)] scale-[1.01]"
             : "bg-white shadow-lg hover:shadow-xl"
         }
       `}
@@ -334,7 +334,7 @@ export default function TemplateCard({
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${completionPercentage}%` }}
-                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                        className="h-full bg-gradient-to-r from-violet-500 to-purple-500"
                       />
                     </div>
                     <span className="text-xs font-semibold text-gray-600">
@@ -422,10 +422,10 @@ export default function TemplateCard({
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-50 border border-violet-200 rounded-lg shadow-sm"
                   >
-                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                    <span className="text-sm font-semibold text-blue-700">In Progress</span>
+                    <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
+                    <span className="text-sm font-semibold text-violet-700">In Progress</span>
                   </motion.div>
                 );
               }
@@ -451,7 +451,7 @@ export default function TemplateCard({
             <div className="flex items-center gap-2 mb-5 bg-slate-100 p-1 rounded-xl w-fit">
               <button
                 onClick={() => setActiveView("kras")}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeView === "kras" ? "bg-white shadow text-indigo-600" : "text-slate-500"
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeView === "kras" ? "bg-white shadow text-purple-600" : "text-slate-500"
                   }`}
               >
                 My KRAs
@@ -626,7 +626,7 @@ export default function TemplateCard({
 
                           const statusColors = {
                             met: "bg-emerald-100 text-emerald-700 border-emerald-200",
-                            on_track: "bg-blue-100 text-blue-700 border-blue-200",
+                            on_track: "bg-violet-100 text-violet-700 border-violet-200",
                             not_started: "bg-slate-100 text-slate-500 border-slate-200",
                           };
 
@@ -649,7 +649,7 @@ export default function TemplateCard({
                                   </h4>
                                   {/* Attachment count badge */}
                                   {totalAttachments > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">
                                       <svg
                                         className="w-3 h-3"
                                         fill="none"
@@ -778,11 +778,11 @@ export default function TemplateCard({
                                       {entry.newFiles.map((file) => (
                                         <div
                                           key={file.name}
-                                          className="flex items-center gap-2 p-2.5 rounded-lg border border-indigo-200 bg-indigo-50 text-xs"
+                                          className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-200 bg-purple-50 text-xs"
                                         >
-                                          <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                                          <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
                                             <svg
-                                              className="w-3.5 h-3.5 text-indigo-600"
+                                              className="w-3.5 h-3.5 text-purple-600"
                                               fill="none"
                                               stroke="currentColor"
                                               viewBox="0 0 24 24"
@@ -795,10 +795,10 @@ export default function TemplateCard({
                                               />
                                             </svg>
                                           </div>
-                                          <span className="flex-1 truncate font-medium text-indigo-700">
+                                          <span className="flex-1 truncate font-medium text-purple-700">
                                             {file.name}
                                           </span>
-                                          <span className="text-indigo-400 shrink-0">
+                                          <span className="text-purple-400 shrink-0">
                                             {(file.size / 1024).toFixed(0)} KB
                                           </span>
                                           <button
@@ -816,7 +816,7 @@ export default function TemplateCard({
                                   {/* ── Upload zone — hidden when locked ── */}
                                   {!isPipLocked && (
                                     <label className="flex items-center gap-2 cursor-pointer group mt-1">
-                                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition text-xs text-slate-500 group-hover:text-indigo-600 w-full">
+                                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 hover:bg-purple-50 hover:border-purple-300 transition text-xs text-slate-500 group-hover:text-purple-600 w-full">
                                         <svg
                                           className="w-4 h-4 shrink-0"
                                           fill="none"
@@ -882,7 +882,7 @@ export default function TemplateCard({
                                 ? "No changes to submit"
                                 : undefined
                             }
-                            className="px-5 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-sm"
+                            className="px-5 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-sm"
                           >
                             {submittingPip ? "Submitting…" : "Submit PIP Update"}
                           </button>

@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 import Timesheet from "../models/Timesheet.js";
 import User from "../models/User.js";
 import { flattenTimesheetRows } from "../utils/timesheetEntries.js";
-import { startOfWeek, addDays } from "../utils/dateRanges.js";
+import { startOfWeek, addDays, resolvePresetRange } from "../utils/dateRanges.js";
 
 const requireHr = (req, res) => {
   if (req.user.roles.timesheet !== "hr") {
@@ -13,9 +13,17 @@ const requireHr = (req, res) => {
 };
 
 const buildDateFilter = (req) => {
-  const filter = { status: { $in: ["submitted", "approved"] } };
-  if (req.query.startDate) filter.weekEnd = { $gte: new Date(req.query.startDate) };
-  if (req.query.endDate) filter.weekStart = { ...(filter.weekStart || {}), $lte: new Date(req.query.endDate) };
+  const filter = {};
+  filter.status = req.query.status && req.query.status !== "all" ? req.query.status : { $in: ["submitted", "approved"] };
+
+  const range = req.query.range ? resolvePresetRange(req.query.range) : null;
+  if (range) {
+    filter.weekStart = { $lte: range.end };
+    filter.weekEnd = { $gte: range.start };
+  } else {
+    if (req.query.startDate) filter.weekEnd = { $gte: new Date(req.query.startDate) };
+    if (req.query.endDate) filter.weekStart = { ...(filter.weekStart || {}), $lte: new Date(req.query.endDate) };
+  }
   return filter;
 };
 
@@ -201,4 +209,116 @@ export const exportNsaReport = async (req, res) => {
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", 'attachment; filename="nsa-report.csv"');
   res.send(toCsv(timesheets));
+};
+
+// Date-range-only portion of the filter, shared by every status branch below.
+const resolveDateRangeFilter = (req) => {
+  const filter = {};
+  const range = req.query.range ? resolvePresetRange(req.query.range) : null;
+  if (range) {
+    filter.weekStart = { $lte: range.end };
+    filter.weekEnd = { $gte: range.start };
+  } else if (req.query.startDate || req.query.endDate) {
+    if (req.query.endDate) filter.weekStart = { $lte: new Date(req.query.endDate) };
+    if (req.query.startDate) filter.weekEnd = { ...(filter.weekEnd || {}), $gte: new Date(req.query.startDate) };
+  }
+  return filter;
+};
+
+// Real Timesheet.status values the report's "status" filter can map to
+// directly. "all" and "not_submitted" (no submission at all — handled
+// separately below) aren't in this enum.
+const REAL_STATUSES = ["draft", "submitted", "approved", "rejected", "needs_edit"];
+
+const EMPTY_EMPLOYEE = (u) => ({
+  userId: u._id,
+  userName: u.name,
+  email: u.email,
+  totalHours: 0,
+  projectCount: 0,
+  nsaDays: 0,
+  weeksCount: 0,
+  avgPerDay: 0,
+});
+
+// Per-employee table for the Reports page: hours, distinct projects, an
+// 8h/day-implied average, NSA day count and weeks submitted — for every
+// active employee, including those with nothing logged in range (0s).
+export const getEmployeeReport = async (req, res) => {
+  if (!requireHr(req, res)) return;
+
+  const dateFilter = resolveDateRangeFilter(req);
+  const users = await User.find({ "archived.timesheet": false }).select("name email");
+
+  // "Not submitted": employees who never moved a timesheet past draft in
+  // this range — invert the set of users who *did* submit something.
+  if (req.query.status === "not_submitted") {
+    const submittedUserIds = new Set(
+      (
+        await Timesheet.find({ ...dateFilter, status: { $in: ["submitted", "approved", "rejected", "needs_edit"] } }).distinct(
+          "userId",
+        )
+      ).map(String),
+    );
+    const employees = users.filter((u) => !submittedUserIds.has(String(u._id))).map(EMPTY_EMPLOYEE);
+    return res.json({
+      employees,
+      totals: { totalEmployees: users.length, totalHours: 0, totalProjects: 0, totalNsaDays: 0 },
+    });
+  }
+
+  const filter = { ...dateFilter };
+  if (req.query.status && REAL_STATUSES.includes(req.query.status)) filter.status = req.query.status;
+
+  const timesheets = await Timesheet.find(filter).populate("rows.projectId", "name");
+
+  const byUser = new Map(
+    users.map((u) => [
+      String(u._id),
+      { userId: u._id, userName: u.name, email: u.email, totalHours: 0, projectIds: new Set(), nsaDays: 0, weeksCount: 0 },
+    ]),
+  );
+
+  const projectIdsInRange = new Set();
+  for (const ts of timesheets) {
+    const entry = byUser.get(String(ts.userId));
+    if (!entry) continue; // archived or otherwise no-longer-listed user
+    entry.weeksCount += 1;
+    for (const row of ts.rows) {
+      const projectId = row.projectId?._id?.toString() || row.projectId?.toString();
+      (row.secs || []).forEach((secs, i) => {
+        if (secs) {
+          entry.totalHours += secs / 3600;
+          if (projectId) {
+            entry.projectIds.add(projectId);
+            projectIdsInRange.add(projectId);
+          }
+        }
+        if (row.nsa?.[i]) entry.nsaDays += 1;
+      });
+    }
+  }
+
+  const employees = [...byUser.values()]
+    .map((e) => ({
+      userId: e.userId,
+      userName: e.userName,
+      email: e.email,
+      totalHours: Number(e.totalHours.toFixed(2)),
+      projectCount: e.projectIds.size,
+      nsaDays: e.nsaDays,
+      weeksCount: e.weeksCount,
+      avgPerDay: e.weeksCount ? Number((e.totalHours / (e.weeksCount * 5)).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => b.totalHours - a.totalHours);
+
+  res.json({
+    employees,
+    totals: {
+      totalEmployees: users.length,
+      totalHours: Number(employees.reduce((sum, e) => sum + e.totalHours, 0).toFixed(2)),
+      totalProjects: projectIdsInRange.size,
+      totalNsaDays: employees.reduce((sum, e) => sum + e.nsaDays, 0),
+    },
+  });
 };

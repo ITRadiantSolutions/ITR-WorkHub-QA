@@ -645,7 +645,7 @@ export function BugDetailModal({
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="h-9 px-5 rounded-lg bg-slate-900 text-white text-[12.5px] font-semibold hover:bg-black transition flex items-center gap-1.5 disabled:opacity-50"
+                  className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {saving ? (
                     <>
@@ -704,7 +704,7 @@ export function BugDetailModal({
             )}
             <button
               onClick={onClose}
-              className="h-8 px-4 rounded-lg bg-slate-900 text-white text-[12px] font-semibold hover:bg-black transition"
+              className="h-8 px-4 rounded-lg bg-blue-700 text-white text-[12px] font-semibold hover:bg-blue-800 transition"
             >
               Close
             </button>

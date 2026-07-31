@@ -280,7 +280,7 @@ function ChangeCard({ log }) {
             </button>
           )}
           {expanded && log.changes && (
-            <pre className="mt-2 max-h-40 overflow-auto rounded-xl bg-slate-900 p-3 text-[10px] leading-4 text-slate-200 whitespace-pre-wrap">
+            <pre className="mt-2 max-h-40 overflow-auto rounded-xl bg-slate-50 border border-slate-200 p-3 text-[10px] leading-4 text-slate-700 whitespace-pre-wrap">
               {JSON.stringify(log.changes, null, 2)}
             </pre>
           )}
@@ -449,7 +449,7 @@ function LogRow({ log }) {
                   <p className="text-[11px] font-bold text-slate-500 mb-1.5">
                     Changed values
                   </p>
-                  <pre className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-3 text-[10px] leading-4 text-slate-200 whitespace-pre-wrap">
+                  <pre className="max-h-40 overflow-auto rounded-xl bg-slate-50 border border-slate-200 p-3 text-[10px] leading-4 text-slate-700 whitespace-pre-wrap">
                     {JSON.stringify(log.changes, null, 2)}
                   </pre>
                 </div>
@@ -689,7 +689,7 @@ export default function AdminLogs() {
                 <h1 className="text-xl font-black tracking-tight text-slate-900 md:text-2xl">
                   System Audit
                 </h1>
-                <span className="rounded-full bg-slate-900 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">
+                <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">
                   Admin
                 </span>
                 {autoRefresh && (
@@ -720,7 +720,7 @@ export default function AdminLogs() {
               type="button"
               onClick={() => loadLogs()}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-800 disabled:opacity-60"
             >
               <Icon
                 name="refresh"

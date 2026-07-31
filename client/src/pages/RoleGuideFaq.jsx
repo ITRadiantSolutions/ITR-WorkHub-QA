@@ -487,7 +487,7 @@ function IssueModal({ user, onClose, accent }) {
             <button
               type="submit"
               disabled={submitting || submitted}
-              className="h-9 px-5 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-black transition flex items-center gap-2 disabled:opacity-50"
+              className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-2 disabled:opacity-50"
             >
               {submitting ? (
                 <>

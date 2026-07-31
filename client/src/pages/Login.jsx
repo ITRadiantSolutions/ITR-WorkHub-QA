@@ -5,6 +5,7 @@ import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 import WorkHubLogo from "../components/WorkHubLogo";
+import LoginDashboardPreview from "../components/LoginDashboardPreview";
 
 // Icons.jsx has no EyeOff variant — a small local fallback for the
 // hide-password toggle.
@@ -45,13 +46,31 @@ function InputField({ label, type = "text", placeholder, value, onChange, disabl
   );
 }
 
-const TILES = [
-  { Ic: Icons.Folder, label: "Projects" },
-  { Ic: Icons.Tasks, label: "Tasks" },
-  { Ic: Icons.Clock, label: "Timesheets" },
-  { Ic: Icons.Target, label: "PMS" },
-  { Ic: Icons.BarChart, label: "Reports" },
-  { Ic: Icons.Team, label: "Team" },
+const FEATURES = [
+  {
+    Ic: Icons.Folder,
+    bg: "bg-blue-600",
+    title: "Project Management",
+    desc: "Plan, track and deliver projects efficiently.",
+  },
+  {
+    Ic: Icons.Clock,
+    bg: "bg-teal-500",
+    title: "Time Tracking",
+    desc: "Log hours, timesheets and stay productive.",
+  },
+  {
+    Ic: Icons.Star,
+    bg: "bg-violet-500",
+    title: "Performance Management",
+    desc: "Set goals, review performance and grow together.",
+  },
+  {
+    Ic: Icons.BarChart,
+    bg: "bg-orange-500",
+    title: "Insights & Reports",
+    desc: "Real-time insights to make smarter decisions.",
+  },
 ];
 
 export default function Login() {
@@ -113,61 +132,59 @@ export default function Login() {
   };
 
   return (
-    <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }} className="min-h-screen w-screen flex flex-col lg:flex-row">
+    <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }} className="h-screen w-screen overflow-hidden flex flex-col lg:flex-row">
       {/* ── Left panel — brand side ─────────────────────────────────────── */}
       <div
-        className="hidden lg:flex lg:w-[46%] flex-col justify-between p-12 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[52%] flex-col justify-center gap-5 px-10 xl:px-14 py-6 relative overflow-hidden"
         style={{ background: "linear-gradient(150deg, #eff6ff 0%, #dbeafe 60%, #bfdbfe 100%)" }}
       >
-        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-          <svg className="absolute inset-0 w-full h-full opacity-[0.35]" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="dotgrid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1.5" fill="#3b82f6" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#dotgrid)" />
-          </svg>
-          <div
-            className="absolute -bottom-24 -right-24 w-[28rem] h-[28rem] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)" }}
-          />
-        </div>
-
         <div className="relative z-10">
           <WorkHubLogo size="lg" />
-          <p className="text-slate-600 text-xs mt-2.5 font-medium">One Platform. All Your Work.</p>
+          <p className="text-slate-600 text-xs mt-2 font-medium">One Platform. All Your Work.</p>
         </div>
 
         <div className="relative z-10">
-          <h1 className="font-extrabold text-slate-900 leading-[1.15] tracking-tight mb-4" style={{ fontSize: "2.4rem" }}>
-            Manage Projects,
-            <br />
-            Track Time,
+          <h1 className="font-extrabold text-slate-900 leading-[1.15] tracking-tight mb-2" style={{ fontSize: "2rem" }}>
+            Manage Projects, Track Time.
             <br />
             <span className="text-blue-600">Drive Performance.</span>
           </h1>
-
-          <div className="grid grid-cols-3 gap-2.5 mt-8">
-            {TILES.map(({ Ic, label }, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center gap-1.5 rounded-xl px-3 py-3.5 bg-white/70 border border-white shadow-sm"
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-600 bg-blue-50 shrink-0">
-                  <Ic />
-                </div>
-                <span className="text-slate-700 text-[11px] font-semibold leading-snug text-center">{label}</span>
-              </div>
-            ))}
-          </div>
+          <p className="text-slate-500 text-sm max-w-md">
+            Streamline projects, track productivity, manage performance and achieve more together.
+          </p>
         </div>
 
-        <div />
+        <div className="relative z-10 grid grid-cols-2 gap-x-6 gap-y-3">
+          {FEATURES.map(({ Ic, bg, title, desc }) => (
+            <div key={title} className="flex items-start gap-2.5">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 ${bg}`}>
+                <Ic />
+              </div>
+              <div>
+                <p className="text-slate-800 text-sm font-bold leading-tight">{title}</p>
+                <p className="text-slate-500 text-xs mt-0.5 leading-snug">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="relative z-10">
+          <LoginDashboardPreview />
+        </div>
+
+        <div className="relative z-10 flex items-center gap-2.5 bg-white/70 border border-white rounded-xl px-4 py-2.5 max-w-md">
+          <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+            <Icons.Shield />
+          </div>
+          <div>
+            <p className="text-slate-800 text-xs font-bold leading-tight">Secure &nbsp;•&nbsp; Reliable &nbsp;•&nbsp; Trusted by Teams</p>
+            <p className="text-slate-500 text-[11px] mt-0.5">Enterprise grade security for your business</p>
+          </div>
+        </div>
       </div>
 
       {/* ── Right panel — sign-in form ───────────────────────────────────── */}
-      <div className="flex-1 min-h-screen bg-white relative overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center justify-center">
+      <div className="flex-1 h-full bg-white relative overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col items-center justify-center">
         <div className="relative z-10 w-full max-w-[430px]">
           <div className="flex justify-center mb-6 lg:hidden">
             <WorkHubLogo size="lg" />
@@ -292,6 +309,7 @@ export default function Login() {
           <div className="text-center mt-6">
             <p className="text-[11px] font-semibold text-slate-400 tracking-wide">Secure &nbsp;•&nbsp; Reliable &nbsp;•&nbsp; Trusted</p>
             <p className="text-[11px] text-slate-400 mt-1">© {new Date().getFullYear()} ITRadiant Solutions Pvt. Ltd. All rights reserved.</p>
+            <p className="text-[10px] text-slate-300 mt-1">Version 2.1.0</p>
           </div>
         </div>
       </div>

@@ -143,7 +143,6 @@ function StatCard({
   iconBg,
   iconColor,
   icon,
-  dark,
   onClick,
   active,
 }) {
@@ -151,28 +150,22 @@ function StatCard({
     <div
       onClick={onClick}
       className={`rounded-lg border p-2   cursor-pointer  ${
-        dark
-          ? "bg-slate-900 border-slate-800"
-          : active
-            ? "bg-white border-slate-900 ring-1 ring-slate-900"
-            : "bg-white border-slate-200 hover:border-slate-300"
+        active
+          ? "bg-white border-blue-600 ring-1 ring-blue-600"
+          : "bg-white border-slate-200 hover:border-slate-300"
       }`}
     >
       <div className="flex items-start justify-between mb-2.5">
-        <span
-          className={`text-[10.5px] font-semibold uppercase tracking-wider ${dark ? "text-slate-400" : "text-slate-400"}`}
-        >
+        <span className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
           {label}
         </span>
         <div
-          className={`w-6 h-6 rounded-md flex items-center justify-center ${dark ? "bg-white/10 text-white/60" : `${iconBg} ${iconColor}`}`}
+          className={`w-6 h-6 rounded-md flex items-center justify-center ${iconBg} ${iconColor}`}
         >
           {icon}
         </div>
       </div>
-      <p
-        className={`text-[26px] font-bold leading-none ${dark ? "text-white" : "text-slate-800"}`}
-      >
+      <p className="text-[26px] font-bold leading-none text-slate-800">
         {value}
       </p>
     </div>
@@ -549,7 +542,7 @@ export default function BugReportPage({ searchRequest }) {
                 setShowForm((v) => !v);
                 setFormError("");
               }}
-              className="h-8 px-3.5 rounded-lg bg-slate-900 text-white text-[12.5px] font-semibold hover:bg-black transition flex items-center gap-1.5"
+              className="h-8 px-3.5 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5"
             >
               <Icons.Plus /> Report Bug
             </button>
@@ -562,7 +555,8 @@ export default function BugReportPage({ searchRequest }) {
         <StatCard
           label="Total"
           value={counts.total}
-          dark={true}
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-500"
           icon={<Icons.Bug />}
           onClick={() => setFilterStatus("ALL")}
           active={filterStatus === "ALL"}
@@ -792,7 +786,7 @@ export default function BugReportPage({ searchRequest }) {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-50 to-purple-50/40 px-4 py-4 sm:px-6">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white shadow-sm">
                 <Icons.Bug />
               </div>
               <div>
@@ -925,7 +919,7 @@ export default function BugReportPage({ searchRequest }) {
                     accept=".xlsx,.xls,.csv"
                     multiple
                     disabled={submitting}
-                    className="w-full text-[11px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-900 file:px-2.5 file:py-1 file:text-[10.5px] file:font-semibold file:text-white hover:file:bg-slate-800"
+                    className="w-full text-[11px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-blue-700 file:px-2.5 file:py-1 file:text-[10.5px] file:font-semibold file:text-white hover:file:bg-blue-800"
                     onChange={async (e) => {
                       const files = Array.from(e.target.files || []);
                       if (!files.length) {
@@ -1078,7 +1072,7 @@ export default function BugReportPage({ searchRequest }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="h-9 px-5 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-black transition flex items-center gap-1.5 disabled:opacity-50"
+                className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 {submitting ? (
                   <>

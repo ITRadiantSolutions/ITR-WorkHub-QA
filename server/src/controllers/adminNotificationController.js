@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import Notification from "../models/Notification.js";
+import { escapeRegex } from "../utils/taskFilters.js";
 
 const requireAdmin = (req, res) => {
   if (req.user.roles.tracker !== "ADMIN") {
@@ -30,12 +32,20 @@ export const getAdminNotifications = async (req, res) => {
   if (unreadBool === true) filter.isRead = false;
   else if (readBool === true) filter.isRead = true;
 
-  if (employeeId) filter.userId = employeeId;
-  if (performedById) filter.performedBy = performedById;
-  if (projectId) filter.projectId = projectId;
+  for (const [param, field] of [
+    [employeeId, "userId"],
+    [performedById, "performedBy"],
+    [projectId, "projectId"],
+  ]) {
+    if (!param) continue;
+    if (!mongoose.Types.ObjectId.isValid(param)) {
+      return res.status(400).json({ message: `Invalid ${field === "userId" ? "employeeId" : field}` });
+    }
+    filter[field] = param;
+  }
 
   if (q && String(q).trim()) {
-    const qq = String(q).trim();
+    const qq = escapeRegex(String(q).trim());
     filter.$or = [
       { title: { $regex: qq, $options: "i" } },
       { message: { $regex: qq, $options: "i" } },
@@ -120,9 +130,17 @@ export const markAdminSidebarTabRead = async (req, res) => {
   const { employeeId, performedById, projectId, tab = "notifications" } = req.body || {};
 
   const filter = { isRead: false, userId: req.user._id };
-  if (employeeId) filter.userId = employeeId;
-  if (performedById) filter.performedBy = performedById;
-  if (projectId) filter.projectId = projectId;
+  for (const [param, field] of [
+    [employeeId, "userId"],
+    [performedById, "performedBy"],
+    [projectId, "projectId"],
+  ]) {
+    if (!param) continue;
+    if (!mongoose.Types.ObjectId.isValid(param)) {
+      return res.status(400).json({ message: `Invalid ${field === "userId" ? "employeeId" : field}` });
+    }
+    filter[field] = param;
+  }
 
   if (tab !== "notifications" && tab !== "all") {
     const regex = TAB_FILTERS[tab];

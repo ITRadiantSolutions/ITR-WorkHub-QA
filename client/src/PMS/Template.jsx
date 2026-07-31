@@ -752,13 +752,13 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
           <div className="flex items-center justify-between">
             <div>
               {templateView === "my" && (
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-purple-600 bg-clip-text text-transparent mb-2">
                   My KRA & KPI's
                 </h1>
               )}
               {(isPMS_HR(loggedInUser) || isPMS_Manager(loggedInUser)) &&
                 templateView === "employees" && (
-                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-purple-600 bg-clip-text text-transparent mb-2">
                     Define KRA & KPI's
                   </h1>
                 )}
@@ -766,7 +766,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
             {templateView === "employees" && (
               <button
                 onClick={() => navigate("/kra-builder")}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-semibold shadow hover:shadow-lg"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg text-sm font-semibold shadow hover:shadow-lg"
               >
                 <Plus size={16} />
                 Create KRA
@@ -783,7 +783,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                     whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 px-5 py-2.5
       rounded-xl font-semibold text-white
-      bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600
+      bg-gradient-to-r from-purple-600 via-violet-600 to-purple-600
       shadow-lg hover:shadow-2xl transition-all duration-300"
                   >
                     <Users className="w-4 h-4" />
@@ -798,7 +798,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                       whileTap={{ scale: 0.95 }}
                       className="flex items-center gap-3 px-3 py-2
       rounded-2xl font-semibold text-white
-      bg-gradient-to-br from-indigo-600 via-blue-600 to-purple-600
+      bg-gradient-to-br from-purple-600 via-violet-600 to-purple-600
       shadow-xl hover:shadow-2xl transition-all duration-300"
                     >
                       <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md shadow-inner">
@@ -828,11 +828,11 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                 navigate("/create_template");
                               }}
                               className="flex items-center gap-4 w-full px-4 py-3 
-              rounded-xl hover:bg-indigo-50 transition-all"
+              rounded-xl hover:bg-purple-50 transition-all"
                             >
                               <div
                                 className="p-2 rounded-xl 
-              bg-gradient-to-br from-indigo-500 to-purple-600
+              bg-gradient-to-br from-purple-500 to-purple-600
               text-white shadow-md"
                               >
                                 <Plus size={12} />
@@ -855,11 +855,11 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                 navigate("/available_template");
                               }}
                               className="flex items-center gap-4 w-full px-4 py-3 
-              rounded-xl hover:bg-blue-50 transition-all"
+              rounded-xl hover:bg-violet-50 transition-all"
                             >
                               <div
                                 className="p-2 rounded-xl 
-              bg-gradient-to-br from-blue-500 to-indigo-600
+              bg-gradient-to-br from-violet-500 to-purple-600
               text-white shadow-md"
                               >
                                 <LayoutTemplateIcon size={12} />
@@ -909,11 +909,11 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                 <div className="flex justify-between items-center mb-3">
                   {/* LEFT SIDE */}
                   <div className="flex items-center gap-3">
-                    <h2 className="font-semibold text-base bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    <h2 className="font-semibold text-base bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
                       Job Specified KRA
                     </h2>
 
-                    <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">
                       {filteredFunctional.length}
                     </span>
                   </div>
@@ -939,8 +939,8 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
       bg-white
       shadow-sm
       focus:outline-none
-      focus:ring-2 focus:ring-blue-500/40
-      focus:border-blue-400
+      focus:ring-2 focus:ring-violet-500/40
+      focus:border-violet-400
       transition-colors duration-150
       placeholder:text-gray-400
     "
@@ -994,7 +994,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                             <div className="flex flex-col gap-1">
                               {/* Title Row */}
                               <div className="flex items-center gap-2">
-                                <p className="font-semibold text-gray-800 group-hover:text-blue-600 transition">
+                                <p className="font-semibold text-gray-800 group-hover:text-violet-600 transition">
                                   {index + 1} • {kra.name}
                                 </p>
                               </div>
@@ -1021,7 +1021,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                   </>
                                 ) : kra.createdAt ? (
                                   <>
-                                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                                    <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 font-medium">
                                       Created
                                     </span>
 
@@ -1053,10 +1053,10 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                 e.stopPropagation();
                                 handleEditLibraryKra(kra);
                               }}
-                              className="p-1.5 rounded-md hover:bg-blue-100 transition"
+                              className="p-1.5 rounded-md hover:bg-violet-100 transition"
                               title="Edit KRA"
                             >
-                              <Pencil size={16} className="text-blue-600" />
+                              <Pencil size={16} className="text-violet-600" />
                             </button>
 
                             <button
@@ -1071,7 +1071,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                             </button>
 
                             {/* KPI COUNT BADGE */}
-                            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-medium">
+                            <span className="text-xs bg-violet-100 text-violet-600 px-2 py-1 rounded-full font-medium">
                               {kra.kpis?.length || 0} KPI
                             </span>
 
@@ -1105,9 +1105,9 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                       initial={{ opacity: 0, x: -10 }}
                                       animate={{ opacity: 1, x: 0 }}
                                       transition={{ duration: 0.25 }}
-                                      className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-2 rounded-lg border border-slate-200 hover:bg-blue-50 transition"
+                                      className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-2 rounded-lg border border-slate-200 hover:bg-violet-50 transition"
                                     >
-                                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                      <div className="w-2 h-2 rounded-full bg-violet-500" />
                                       {kpi.name}
                                     </motion.div>
                                   ))}
@@ -1134,11 +1134,11 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
         flex items-center gap-2
         px-4 py-2
         rounded-full
-        bg-blue-50
-        text-blue-600
+        bg-violet-50
+        text-violet-600
         text-sm font-medium
-        border border-blue-100
-        hover:bg-blue-100
+        border border-violet-100
+        hover:bg-violet-100
         transition-colors duration-200
       "
                       >
@@ -1149,7 +1149,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                         <motion.span
                           animate={{ rotate: showAllFunctional ? 180 : 0 }}
                           transition={{ duration: 0.25 }}
-                          className="text-blue-500"
+                          className="text-violet-500"
                         >
                           ▼
                         </motion.span>
@@ -1162,16 +1162,16 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                       className="flex flex-col items-center justify-center
     py-10 px-6 rounded-2xl
    
-    border border-indigo-100 text-center"
+    border border-purple-100 text-center"
                     >
                       <div
                         className="mb-4 p-4 rounded-full
-      bg-white shadow-md border border-indigo-100"
+      bg-white shadow-md border border-purple-100"
                       >
                         {functionalSearch ? (
-                          <Search className="w-6 h-6 text-indigo-400" />
+                          <Search className="w-6 h-6 text-purple-400" />
                         ) : (
-                          <Briefcase className="w-6 h-6 text-indigo-500" />
+                          <Briefcase className="w-6 h-6 text-purple-500" />
                         )}
                       </div>
 
@@ -1203,7 +1203,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                     <div className="flex justify-between items-center mb-3">
                       {/* LEFT */}
                       <div className="flex items-center gap-3">
-                        <h2 className="font-semibold text-base bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                        <h2 className="font-semibold text-base bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent">
                           Organizational KRA
                         </h2>
 
@@ -1327,7 +1327,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                     </>
                                   ) : kra.createdAt ? (
                                     <>
-                                      <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                                      <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 font-medium">
                                         Created
                                       </span>
 
@@ -1358,10 +1358,10 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                     e.stopPropagation();
                                     handleEditLibraryKra(kra);
                                   }}
-                                  className="p-1.5 rounded-md hover:bg-blue-100 transition"
+                                  className="p-1.5 rounded-md hover:bg-violet-100 transition"
                                   title="Edit KRA"
                                 >
-                                  <Pencil size={16} className="text-blue-600" />
+                                  <Pencil size={16} className="text-violet-600" />
                                 </button>
 
                                 <button
@@ -1440,11 +1440,11 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
         flex items-center gap-2
         px-4 py-2
         rounded-full
-        bg-blue-50
+        bg-violet-50
         text-purple-600
         text-sm font-medium
-        border border-blue-100
-        hover:bg-blue-100
+        border border-violet-100
+        hover:bg-violet-100
         transition-colors duration-200
       "
                           >
@@ -1596,7 +1596,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
             >
               <motion.button
                 onClick={handleApplyTemplate}
-                className="flex items-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300"
+                className="flex items-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >

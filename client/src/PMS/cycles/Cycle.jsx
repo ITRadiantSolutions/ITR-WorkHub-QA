@@ -136,7 +136,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
       icon: <UserCheck className="w-4 h-4" />,
       desc: "Only specific users can view",
       color: "border-slate-200 text-slate-600",
-      activeColor: "border-indigo-500 bg-indigo-50 text-indigo-700",
+      activeColor: "border-purple-500 bg-purple-50 text-purple-700",
     },
   ];
 
@@ -163,8 +163,8 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                <FileText className="w-4 h-4 text-indigo-600" />
+              <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                <FileText className="w-4 h-4 text-purple-600" />
               </div>
               <div>
                 <p className="font-semibold text-slate-800 text-sm">Publish Report</p>
@@ -190,7 +190,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
               <select
                 value={selectedCycleId}
                 onChange={(e) => handleCycleChange(e.target.value)}
-                className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-700"
+                className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 text-slate-700"
               >
                 <option value="">— Choose a cycle —</option>
                 {cycles.map((c) => (
@@ -246,7 +246,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search users..."
-                    className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
                   />
                 </div>
 
@@ -256,7 +256,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                     {selectedUsers.length} selected of {filteredUsers.length}
                   </span>
                   <div className="flex gap-2">
-                    <button onClick={selectAll} className="text-xs text-indigo-600 hover:underline font-medium">
+                    <button onClick={selectAll} className="text-xs text-purple-600 hover:underline font-medium">
                       Select All
                     </button>
                     <span className="text-slate-300">|</span>
@@ -277,16 +277,16 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                         <label
                           key={user.id}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition
-                            ${checked ? "bg-indigo-50 border border-indigo-200" : "hover:bg-slate-50 border border-transparent"}`}
+                            ${checked ? "bg-purple-50 border border-purple-200" : "hover:bg-slate-50 border border-transparent"}`}
                         >
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleUser(user.id)}
-                            className="accent-indigo-600 w-3.5 h-3.5 rounded"
+                            className="accent-purple-600 w-3.5 h-3.5 rounded"
                           />
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0">
                               {(user.name || "?").slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -295,7 +295,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                             </div>
                           </div>
                           {checked && (
-                            <span className="text-[10px] font-semibold text-indigo-500 shrink-0">✓</span>
+                            <span className="text-[10px] font-semibold text-purple-500 shrink-0">✓</span>
                           )}
                         </label>
                       );
@@ -321,7 +321,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                 saving ||
                 (visibility === "selected" && selectedUsers.length === 0)
               }
-              className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition flex items-center gap-2"
+              className="px-5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition flex items-center gap-2"
             >
               <FileText className="w-3.5 h-3.5" />
               {saving ? "Publishing..." : "Publish Report"}
@@ -551,102 +551,80 @@ useEffect(() => {
 }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-lg p-6 md:p-8 border border-gray-200"
-        >
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                Performance Cycles
-              </h2>
-              <p className="text-gray-600">
-                Manage performance review cycles and timelines
-              </p>
-            </div>
+    <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900">Review Cycles</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Manage performance review cycles and timelines</p>
+        </div>
 
-            {loggedInUser && isPMS_HR(loggedInUser) && (
-              <div className="flex items-center gap-3">
-                {/* ── Publish Report Button ── */}
-                <motion.button
-                  onClick={() => setShowPublishPopup(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-indigo-500 text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition-all duration-200"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Publish Report</span>
-                </motion.button>
-
-                {/* ── Create Cycle Button ── */}
-                <motion.button
-                  onClick={openCreate}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Create Cycle</span>
-                </motion.button>
-              </div>
-            )}
-          </div>
-
-          {/* Error Message */}
-          {apiError && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+        {loggedInUser && isPMS_HR(loggedInUser) && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPublishPopup(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-violet-200 text-violet-700 text-sm font-semibold rounded-xl hover:bg-violet-50 transition"
             >
-              {apiError}
-            </motion.div>
-          )}
+              <FileText className="w-4 h-4" />
+              <span>Publish Report</span>
+            </button>
 
-          {/* Cycles Table */}
-          <CycleTable
-            cycles={sortedCycles}
-            loggedInUser={loggedInUser}
-            onEdit={openEdit}
-            onDelete={deleteCycle}
-            onToggleResponseRating={toggleResponse}
-            onUpdateDuration={updateDuration}
-            durationDays={durationDays}
-            remainingTimes={remainingTimes}
-            onUpdateReportVisibility={updateReportVisibility}
-            onToggleUserReportAccess={toggleUserReportAccess}
-            allUsers={allUsers}
-          />
-
-          {/* Create/Edit Modal */}
-          <CycleModal
-            isOpen={showModal}
-            isEditing={Boolean(editingId)}
-            form={form}
-            errors={errors}
-            loading={loading}
-            onChange={setForm}
-            onClose={closeModal}
-            onSave={saveCycle}
-          />
-
-          {/* ── Publish Report Popup ── */}
-          <AnimatePresence>
-            {showPublishPopup && (
-              <PublishReportPopup
-                cycles={sortedCycles}
-                allUsers={allUsers}
-                onClose={() => setShowPublishPopup(false)}
-                onConfirm={updateReportVisibility}
-              />
-            )}
-          </AnimatePresence>
-        </motion.div>
+            <button
+              onClick={openCreate}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-violet-700 hover:bg-violet-600 text-white text-sm font-semibold rounded-xl shadow-sm transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Cycle</span>
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Error Message */}
+      {apiError && (
+        <div className="mb-4 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">{apiError}</div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        {/* Cycles Table */}
+        <CycleTable
+          cycles={sortedCycles}
+          loggedInUser={loggedInUser}
+          onEdit={openEdit}
+          onDelete={deleteCycle}
+          onToggleResponseRating={toggleResponse}
+          onUpdateDuration={updateDuration}
+          durationDays={durationDays}
+          remainingTimes={remainingTimes}
+          onUpdateReportVisibility={updateReportVisibility}
+          onToggleUserReportAccess={toggleUserReportAccess}
+          allUsers={allUsers}
+        />
+      </div>
+
+      {/* Create/Edit Modal */}
+      <CycleModal
+        isOpen={showModal}
+        isEditing={Boolean(editingId)}
+        form={form}
+        errors={errors}
+        loading={loading}
+        onChange={setForm}
+        onClose={closeModal}
+        onSave={saveCycle}
+      />
+
+      {/* ── Publish Report Popup ── */}
+      <AnimatePresence>
+        {showPublishPopup && (
+          <PublishReportPopup
+            cycles={sortedCycles}
+            allUsers={allUsers}
+            onClose={() => setShowPublishPopup(false)}
+            onConfirm={updateReportVisibility}
+          />
+        )}
+      </AnimatePresence>
+    </main>
   );
 }

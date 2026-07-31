@@ -90,16 +90,16 @@ const getKraType = (kra) =>
 
 const getWeightStatus = (weight) => {
     if (weight >= 75) return { label: "Excellent", color: "bg-emerald-300" };
-    if (weight >= 50) return { label: "Good", color: "bg-blue-300" };
+    if (weight >= 50) return { label: "Good", color: "bg-violet-300" };
     if (weight >= 25) return { label: "Average", color: "bg-amber-300" };
     return { label: "Low", color: "bg-red-300" };
 };
 
 const getPipSummary = (pip) => {
-    if (!pip) return { label: "PIP", tone: "bg-white text-slate-600 border-2 border-slate-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 shadow-sm", dot: "bg-slate-400" };
+    if (!pip) return { label: "PIP", tone: "bg-white text-slate-600 border-2 border-slate-300 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 shadow-sm", dot: "bg-slate-400" };
     if (pip.status === "active") return { label: "Active PIP", tone: "bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-md", dot: "bg-amber-200" };
     if (pip.status === "completed") return { label: "Completed", tone: "bg-white text-emerald-600 border-2 border-emerald-400 hover:bg-emerald-50 shadow-sm", dot: "bg-emerald-500" };
-    if (pip.status === "extended") return { label: "Extended", tone: "bg-white text-blue-600 border-2 border-blue-400 hover:bg-blue-50 shadow-sm", dot: "bg-blue-500" };
+    if (pip.status === "extended") return { label: "Extended", tone: "bg-white text-violet-600 border-2 border-violet-400 hover:bg-violet-50 shadow-sm", dot: "bg-violet-500" };
     if (pip.status === "cancelled") return { label: "Cancelled", tone: "bg-white text-slate-500 border-2 border-slate-300 hover:bg-slate-50 shadow-sm", dot: "bg-slate-400" };
     return { label: pip.status, tone: "bg-white text-slate-500 border-2 border-slate-300 shadow-sm", dot: "bg-slate-400" };
 };
@@ -131,7 +131,7 @@ const buildDownloadCSV = (filteredUsers, formatDateTimeFn) => () => {
 };
 
 // ── Shared spinner ─────────────────────────────────────────────────────────────
-const Spinner = ({ size = "w-8 h-8", color = "border-indigo-200 border-t-indigo-600" }) => (
+const Spinner = ({ size = "w-8 h-8", color = "border-purple-200 border-t-purple-600" }) => (
     <div className={`${size} border-4 ${color} rounded-full animate-spin`} />
 );
 
@@ -165,7 +165,7 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                 <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-slate-700">Goal {index + 1}</p>
                     {totalAttachments > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">
                             📎 {totalAttachments} {totalAttachments === 1 ? "attachment" : "attachments"}
                         </span>
                     )}
@@ -231,8 +231,8 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500">Employee Status:</span>
                         {savedGoal?.progressStatus ? (
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${savedGoal.progressStatus === "met" ? "bg-emerald-100 text-emerald-700" : savedGoal.progressStatus === "on_track" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${savedGoal.progressStatus === "met" ? "bg-emerald-500" : savedGoal.progressStatus === "on_track" ? "bg-blue-500" : "bg-slate-400"}`} />
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${savedGoal.progressStatus === "met" ? "bg-emerald-100 text-emerald-700" : savedGoal.progressStatus === "on_track" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500"}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${savedGoal.progressStatus === "met" ? "bg-emerald-500" : savedGoal.progressStatus === "on_track" ? "bg-violet-500" : "bg-slate-400"}`} />
                                 {PIP_GOAL_STATUS_OPTIONS.find((o) => o.value === savedGoal.progressStatus)?.label || savedGoal.progressStatus}
                             </span>
                         ) : (
@@ -245,14 +245,14 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                                 {totalAttachments} {totalAttachments === 1 ? "Attachment" : "Attachments"}
                             </p>
                             {proofDocs.map((path, fileIdx) => (
-                                <div key={fileIdx} className="flex items-center gap-3 p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-                                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div key={fileIdx} className="flex items-center gap-3 p-2.5 bg-purple-50 border border-purple-200 rounded-lg">
+                                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-semibold text-indigo-700 truncate">{proofFileName(path) || `Attachment ${fileIdx + 1}`}</p>
+                                        <p className="text-xs font-semibold text-purple-700 truncate">{proofFileName(path) || `Attachment ${fileIdx + 1}`}</p>
                                         <p className="text-xs text-slate-400">Employee uploaded proof</p>
                                     </div>
                                     <button
@@ -262,7 +262,7 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                                             const url = await fetchProofUrl(path);
                                             if (url) window.open(url, "_blank", "noopener,noreferrer");
                                         }}
-                                        className="shrink-0 px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition">
+                                        className="shrink-0 px-3 py-1 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition">
                                         View
                                     </button>
                                 </div>
@@ -279,13 +279,13 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
 
 // ── Library KRA Card ──────────────────────────────────────────────────────────
 const LibraryKraCard = memo(({ kra, alreadyAdded, onAdd }) => (
-    <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-200 hover:border-indigo-300 hover:shadow-sm transition">
+    <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-200 hover:border-purple-300 hover:shadow-sm transition">
         <div className="flex-1 pr-3">
             <p className="text-sm font-semibold text-slate-800">{kra.name}</p>
             <p className="text-xs text-slate-400 mt-0.5">{kra.kpis?.length || 0} KPIs</p>
         </div>
         <button onClick={() => onAdd(kra)} disabled={alreadyAdded}
-            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition ${alreadyAdded ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}`}>
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition ${alreadyAdded ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-purple-600 text-white hover:bg-purple-700"}`}>
             {alreadyAdded ? "✓ Added" : "+ Add"}
         </button>
     </div>
@@ -311,7 +311,7 @@ const RoleCell = memo(({ userId, userName, role, isArchived, isSaving, onChangeR
                 onChange={(e) => onChangeRole(userId, userName, e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 title="Change PMS role"
-                className={`appearance-none pl-6 pr-6 py-1 rounded-full border text-xs font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50 disabled:cursor-wait transition ${meta.classes}`}
+                className={`appearance-none pl-6 pr-6 py-1 rounded-full border text-xs font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-wait transition ${meta.classes}`}
             >
                 {PMS_ROLE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -338,17 +338,17 @@ const UserRow = memo(({
     const isArchived = userData.isArchived === true;
 
     return (
-        <tr className={`flex w-full items-center transition-colors ${isArchived ? "bg-slate-50 opacity-70 hover:opacity-90" : isChecked ? "bg-indigo-50" : "hover:bg-slate-50"}`}>
+        <tr className={`flex w-full items-center transition-colors ${isArchived ? "bg-slate-50 opacity-70 hover:opacity-90" : isChecked ? "bg-purple-50" : "hover:bg-slate-50"}`}>
             {filterStatus !== "archived" && pms_role === "hr" && (
                 <td className="px-4 py-4 w-[48px] flex items-center justify-center">
                     <input type="checkbox" checked={isChecked} onChange={() => onToggleSelect(userData.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
+                        className="w-4 h-4 rounded accent-purple-600 cursor-pointer" />
                 </td>
             )}
             <td className={`px-6 py-4 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
                 <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-indigo-500 to-purple-500"}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-purple-500 to-purple-500"}`}>
                         {initials(userData.name)}
                     </div>
                     <div className="min-w-0">
@@ -420,7 +420,7 @@ const UserRow = memo(({
                     ) : (
                         <>
                             <button onClick={() => onView(userData)} title="View KRA Details"
-                                className="w-9 h-9 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition">
+                                className="w-9 h-9 rounded-lg flex items-center justify-center bg-purple-50 text-purple-600 hover:bg-purple-100 transition">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             </button>
                             {canEditKra && userData.hasKra && (
@@ -1016,7 +1016,7 @@ export default function UserKraSearch() {
     // RENDER
     // ─────────────────────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-purple-100 p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* ── Header ── */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 px-5 py-3">
@@ -1024,7 +1024,7 @@ export default function UserKraSearch() {
                         <div className="flex items-center gap-3 min-w-0">
                             <h1 className="text-lg font-bold text-slate-800 shrink-0">User KRA Assignments</h1>
                             {filterStatus !== "archived" && (
-                                <div className={`hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs flex-wrap ${pms_role === "manager" ? "bg-blue-50 border border-blue-200 text-blue-700" : "bg-slate-50 border border-slate-200 text-slate-500"}`}>
+                                <div className={`hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs flex-wrap ${pms_role === "manager" ? "bg-violet-50 border border-violet-200 text-violet-700" : "bg-slate-50 border border-slate-200 text-slate-500"}`}>
                                     <span>Total: <span className="font-bold text-slate-700">{pms_role === "manager" && myReportIds !== null ? myReportIds.length : filteredUsers.length}</span></span>
                                     <span className="text-slate-300">·</span>
                                     <span className="text-emerald-600">KRA: <span className="font-bold">{filteredUsers.filter((u) => u.hasKra).length}</span></span>
@@ -1042,7 +1042,7 @@ export default function UserKraSearch() {
                                 Refresh
                             </button>
                             <button onClick={downloadCSV} disabled={!filteredUsers.length}
-                                className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-1.5">
+                                className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-medium hover:bg-purple-700 transition disabled:opacity-50 flex items-center gap-1.5">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                 Export CSV
                             </button>
@@ -1053,7 +1053,7 @@ export default function UserKraSearch() {
                             <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search users..."
-                                className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+                                className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent" />
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                             {[
@@ -1064,7 +1064,7 @@ export default function UserKraSearch() {
                                 ...(pms_role === "hr" ? [{ value: "archived", label: "Archived" }] : []),
                             ].map((opt) => (
                                 <button key={opt.value} onClick={() => setFilterStatus(opt.value)}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition border ${filterStatus === opt.value ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"}`}>
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition border ${filterStatus === opt.value ? "bg-purple-600 text-white border-purple-600" : "bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-600"}`}>
                                     {opt.label}
                                 </button>
                             ))}
@@ -1084,15 +1084,15 @@ export default function UserKraSearch() {
 
                 {/* Bulk action bar */}
                 {bulkSelected.size > 0 && filterStatus !== "archived" && pms_role === "hr" && (
-                    <div className="flex items-center gap-3 px-5 py-3 bg-indigo-50 border border-indigo-200 rounded-xl flex-wrap">
+                    <div className="flex items-center gap-3 px-5 py-3 bg-purple-50 border border-purple-200 rounded-xl flex-wrap">
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center">
                                 <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                             </div>
-                            <span className="text-sm font-semibold text-indigo-700">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</span>
+                            <span className="text-sm font-semibold text-purple-700">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</span>
                         </div>
-                        <button onClick={openBulkModal} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition flex items-center gap-2">Bulk Action</button>
-                        <button onClick={() => setBulkSelected(new Set())} className="text-sm text-indigo-500 hover:text-indigo-700 underline">Clear selection</button>
+                        <button onClick={openBulkModal} className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition flex items-center gap-2">Bulk Action</button>
+                        <button onClick={() => setBulkSelected(new Set())} className="text-sm text-purple-500 hover:text-purple-700 underline">Clear selection</button>
                     </div>
                 )}
 
@@ -1120,17 +1120,17 @@ export default function UserKraSearch() {
                                         {filterStatus !== "archived" && pms_role === "hr" && (
                                             <th className="px-4 py-3 w-[48px] flex items-center justify-center">
                                                 <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll}
-                                                    className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                                                    className="w-4 h-4 rounded accent-purple-600 cursor-pointer"
                                                     title={allFilteredSelected ? "Deselect all" : "Select all"} />
                                             </th>
                                         )}
                                         <th className={`px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
                                             <button onClick={() => setSortType((s) => s === "name" ? "recent" : "name")}
-                                                className="flex items-center gap-1 hover:text-indigo-600 transition group">
+                                                className="flex items-center gap-1 hover:text-purple-600 transition group">
                                                 User Name
                                                 <span className="flex flex-col gap-0.5 ml-0.5">
-                                                    <svg className={`w-2.5 h-2.5 ${sortType === "name" ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 4l8 8H4z" /></svg>
-                                                    <svg className={`w-2.5 h-2.5 ${sortType === "recent" ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 20l-8-8h16z" /></svg>
+                                                    <svg className={`w-2.5 h-2.5 ${sortType === "name" ? "text-purple-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 4l8 8H4z" /></svg>
+                                                    <svg className={`w-2.5 h-2.5 ${sortType === "recent" ? "text-purple-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 20l-8-8h16z" /></svg>
                                                 </span>
                                             </button>
                                         </th>
@@ -1302,14 +1302,14 @@ export default function UserKraSearch() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
                     <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className={`flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r ${isEditing ? "from-blue-500 to-indigo-600" : "from-indigo-600 to-purple-600"}`}>
+                        <div className={`flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r ${isEditing ? "from-violet-500 to-purple-600" : "from-purple-600 to-purple-600"}`}>
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xl">
                                     {initials(selectedUser?.name)}
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">{selectedUser?.name}</h2>
-                                    <p className={`text-sm ${isEditing ? "text-blue-100" : "text-indigo-200"}`}>
+                                    <p className={`text-sm ${isEditing ? "text-violet-100" : "text-purple-200"}`}>
                                         {isEditing ? "Edit KRA Assignment" : "KRA & KPI Details (View Only)"}
                                     </p>
                                 </div>
@@ -1330,9 +1330,9 @@ export default function UserKraSearch() {
                                         const total = editableKras.reduce((s, k) => s + Number(k.weight || 0), 0);
                                         const over = total > 100;
                                         return (
-                                            <div className={`p-4 rounded-xl border flex items-center justify-between ${over ? "bg-red-50 border-red-200" : total === 100 ? "bg-emerald-50 border-emerald-200" : "bg-indigo-50 border-indigo-200"}`}>
+                                            <div className={`p-4 rounded-xl border flex items-center justify-between ${over ? "bg-red-50 border-red-200" : total === 100 ? "bg-emerald-50 border-emerald-200" : "bg-purple-50 border-purple-200"}`}>
                                                 <span className="text-sm font-semibold text-slate-600">Total KRA Weight</span>
-                                                <span className={`text-xl font-bold ${over ? "text-red-600" : total === 100 ? "text-emerald-600" : "text-indigo-600"}`}>{total}% / 100%</span>
+                                                <span className={`text-xl font-bold ${over ? "text-red-600" : total === 100 ? "text-emerald-600" : "text-purple-600"}`}>{total}% / 100%</span>
                                             </div>
                                         );
                                     })()}
@@ -1357,7 +1357,7 @@ export default function UserKraSearch() {
                                                                 onWheel={(e) => e.target.blur()}
                                                                 onKeyDown={(e) => ["ArrowUp", "ArrowDown"].includes(e.key) && e.preventDefault()}
                                                                 onChange={(e) => updateEditKraWeight(kra.instanceId, e.target.value)}
-                                                                className="w-14 text-center font-bold text-indigo-700 bg-transparent focus:outline-none text-sm" />
+                                                                className="w-14 text-center font-bold text-purple-700 bg-transparent focus:outline-none text-sm" />
                                                             <span className="text-slate-400 text-sm font-bold">%</span>
                                                         </div>
                                                         <button onClick={() => removeEditKra(kra.instanceId)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
@@ -1379,16 +1379,16 @@ export default function UserKraSearch() {
                                                                         <div className="flex items-center gap-1 bg-white rounded-lg border px-2 py-1">
                                                                             <input type="number" value={kpi.weight}
                                                                                 onChange={(e) => updateEditKpiWeight(kra.instanceId, kpiIndex, e.target.value)}
-                                                                                className="w-12 text-center text-sm font-bold text-indigo-700 bg-transparent outline-none" />
+                                                                                className="w-12 text-center text-sm font-bold text-purple-700 bg-transparent outline-none" />
                                                                             <span className="text-xs text-slate-400">%</span>
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex gap-3 mt-3 w-full">
                                                                         <div className="flex flex-col gap-1 flex-1">
-                                                                            <label className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide">Target</label>
+                                                                            <label className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide">Target</label>
                                                                             <input type="text" placeholder="Enter target" value={kpi.target || ""} disabled={!canEditKra}
                                                                                 onChange={(e) => updateEditKpiTarget(kra.instanceId, kpiIndex, e.target.value)}
-                                                                                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${!canEditKra ? "bg-gray-100 text-gray-400 cursor-not-allowed border-slate-200" : "bg-white border-blue-200 text-blue-700"}`} />
+                                                                                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 ${!canEditKra ? "bg-gray-100 text-gray-400 cursor-not-allowed border-slate-200" : "bg-white border-violet-200 text-violet-700"}`} />
                                                                         </div>
                                                                         <div className="flex flex-col gap-1 flex-1">
                                                                             <label className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Actual</label>
@@ -1407,8 +1407,8 @@ export default function UserKraSearch() {
                                     })}
                                     <div>
                                         <button onClick={fetchLibrary} disabled={libraryLoading}
-                                            className="w-full py-3 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-semibold text-sm hover:border-indigo-500 hover:bg-indigo-50 transition flex items-center justify-center gap-2">
-                                            {libraryLoading ? <Spinner size="w-4 h-4" color="border-indigo-400 border-t-transparent" /> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
+                                            className="w-full py-3 border-2 border-dashed border-purple-300 rounded-xl text-purple-600 font-semibold text-sm hover:border-purple-500 hover:bg-purple-50 transition flex items-center justify-center gap-2">
+                                            {libraryLoading ? <Spinner size="w-4 h-4" color="border-purple-400 border-t-transparent" /> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
                                             Add KRA from Library
                                         </button>
                                         {showLibraryPanel && (() => {
@@ -1457,7 +1457,7 @@ export default function UserKraSearch() {
                                             { label: "Total KRAs", value: userKraDetails.kras.length, bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700" },
                                             { label: "Job Specific", value: userKraDetails.kras.filter((k) => getKraType(k) === "job-specific").length, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
                                             { label: "Org", value: userKraDetails.kras.filter((k) => getKraType(k) === "organizational").length, bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
-                                            { label: "Total KPIs", value: userKraDetails.kras.reduce((acc, k) => acc + (k.kpis?.length || 0), 0), bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
+                                            { label: "Total KPIs", value: userKraDetails.kras.reduce((acc, k) => acc + (k.kpis?.length || 0), 0), bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
                                         ].map(({ label, value, bg, border, text }) => (
                                             <div key={label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bg} border ${border}`}>
                                                 <span className={`text-sm font-bold ${text}`}>{value}</span>
@@ -1512,7 +1512,7 @@ export default function UserKraSearch() {
                                                                                 </div>
                                                                                 <div className="flex items-center gap-1.5 mt-1.5">
                                                                                     <span className="text-[9px] text-slate-400">Target</span>
-                                                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">{kpi.target ?? "—"}</span>
+                                                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-100">{kpi.target ?? "—"}</span>
                                                                                     <span className="text-[9px] text-slate-400 ml-1">Actual</span>
                                                                                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">{kpi.actual ?? "—"}</span>
                                                                                 </div>
@@ -1536,7 +1536,7 @@ export default function UserKraSearch() {
                                     <svg className="w-16 h-16 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                     <p className="text-slate-500 mt-4">No KRA assigned to this user</p>
                                     <button onClick={() => { closeModal(); navigate("/employeetemplate"); }}
-                                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
+                                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                         Add KRA
                                     </button>
@@ -1557,7 +1557,7 @@ export default function UserKraSearch() {
                                 ) : (
                                     !detailsLoading && userKraDetails?.kras?.length > 0 && canEditKra && (
                                         <button onClick={() => enterEditMode()}
-                                            className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-2">
+                                            className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition flex items-center gap-2">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                             Edit KRA
                                         </button>
@@ -1575,14 +1575,14 @@ export default function UserKraSearch() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closePipModal} />
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-violet-600 to-purple-600">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg">
                                     {initials(pipUser?.name)}
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">{pipForm.id ? "Manage PIP" : "Start PIP"} — {pipUser?.name}</h2>
-                                    <p className="text-blue-100 text-sm">Performance Improvement Plan</p>
+                                    <p className="text-violet-100 text-sm">Performance Improvement Plan</p>
                                 </div>
                             </div>
                             <button onClick={closePipModal} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
@@ -1668,7 +1668,7 @@ export default function UserKraSearch() {
                             <button form="pip-form" type="submit"
                                 disabled={savingPip || pipSubmitting.current || !isPipDirty}
                                 title={!isPipDirty ? "No changes to save" : ""}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 ${(!isPipDirty || savingPip || pipSubmitting.current) ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
+                                className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 ${(!isPipDirty || savingPip || pipSubmitting.current) ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-violet-600 text-white hover:bg-violet-700"}`}>
                                 {savingPip ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : (pipForm.id ? "Update PIP" : "Create PIP")}
                             </button>
                             <button onClick={closePipModal} className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Cancel</button>

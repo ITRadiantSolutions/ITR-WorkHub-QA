@@ -45,8 +45,12 @@ const projectSchema = new mongoose.Schema(
     teamMembers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
     // Carried over from TimeFlow's project_holidays.py (was embedded on the
-    // project document there too).
+    // project document there too). Extra holiday dates specific to this
+    // project, on top of the company-wide calendar.
     holidays: [{ type: String }],
+    // Company-wide holiday dates this project opts OUT of — e.g. a US
+    // client's project that stays open on an India-only public holiday.
+    excludedHolidays: [{ type: String }],
 
     attachments: [attachmentSchema],
 

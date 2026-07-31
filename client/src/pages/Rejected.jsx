@@ -121,7 +121,7 @@ export default function Rejected() {
           <div className="px-5 pt-5 pb-5 space-y-2">
             <button
               onClick={() => navigate("/")}
-              className="w-full h-11 rounded-2xl bg-slate-900 text-white text-sm font-semibold hover:bg-black transition flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-2xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-800 transition flex items-center justify-center gap-2"
             >
               <Icon.ArrowLeft />
               Back to Login

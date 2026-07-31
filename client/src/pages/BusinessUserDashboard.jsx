@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API } from "../services/api";
 import Icons from "../components/Icons";
-import ThemeToggle from "../components/ThemeToggle";
+import TrackerSidebar from "../components/TrackerSidebar";
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -39,8 +38,7 @@ function getPriorityVariant(p) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function BusinessUserDashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [projects, setProjects] = useState([]);
   const [comments, setComments] = useState({}); // { projectId: [{author,date,text}] }
@@ -92,13 +90,6 @@ export default function BusinessUserDashboard() {
       setError("Failed to post comment");
     } finally {
       setPosting((p) => ({ ...p, [projectId]: false }));
-    }
-  };
-
-  const handleLogout = () => {
-    if (window.confirm("Are you sure you want to logout?")) {
-      logout();
-      navigate("/", { replace: true });
     }
   };
 
@@ -156,71 +147,10 @@ export default function BusinessUserDashboard() {
       style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }}
       className="flex min-h-screen bg-slate-50"
     >
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className="w-56 bg-slate-900 fixed h-screen flex flex-col z-10">
-        <div className="px-5 py-5 border-b border-slate-700/60">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center">
-              <div className="w-3 h-3 bg-slate-900 rounded-sm" />
-            </div>
-            <div>
-              <p className="text-white text-sm font-bold leading-none">
-                {/* WorkSpace */}
-                Business Portal
-              </p>
-              {/* <p className="text-slate-400 text-[10px] mt-0.5">Business Portal</p> */}
-            </div>
-          </div>
-        </div>
-
-        <div className="px-4 py-3 border-b border-slate-700/60">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
-              <span className="text-white text-xs font-bold">
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </span>
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-white text-xs font-semibold truncate">
-                {user?.name}
-              </p>
-              <p className="text-slate-400 text-[10px] truncate">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 px-3 py-3 space-y-0.5">
-          {navItems.map(({ id, label, Ic }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-xs font-medium transition-all ${
-                activeTab === id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
-              }`}
-            >
-              <Ic />
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="p-3 border-t border-slate-700/60">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-xs font-medium text-slate-400 hover:text-white hover:bg-red-600/20 transition-all"
-          >
-            <Icons.Logout />
-            Sign Out
-          </button>
-        </div>
-      </aside>
+      <TrackerSidebar navItems={navItems} activeId={activeTab} onSelect={setActiveTab} />
 
       {/* ── Main ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 ml-56 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col">
         <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between sticky top-0 z-10">
           <div>
             <h1 className="text-base font-bold text-slate-800">
@@ -237,14 +167,11 @@ export default function BusinessUserDashboard() {
               })}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <div className="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5">
+          <div className="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5">
             <Icons.Eye />
             <span className="font-medium text-slate-700">{user?.name}</span>
             <span className="text-slate-300">·</span>
-            <span className="text-indigo-600 font-semibold">Business User</span>
-            </div>
+            <span className="text-blue-600 font-semibold">Business User</span>
           </div>
         </header>
 
@@ -285,7 +212,7 @@ export default function BusinessUserDashboard() {
                 ].map((card, i) => (
                   <div
                     key={i}
-                    className={`rounded-xl p-4 border shadow-sm ${card.dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
+                    className={`rounded-xl p-4 border shadow-sm ${card.dark ? "bg-blue-700 border-blue-800" : "bg-white border-slate-200"}`}
                   >
                     <p
                       className={`text-[11px] font-semibold uppercase tracking-wide mb-2 ${card.dark ? "text-slate-400" : "text-slate-500"}`}
@@ -521,8 +448,8 @@ export default function BusinessUserDashboard() {
                                   className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2.5"
                                 >
                                   <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center">
-                                      <span className="text-[9px] font-bold text-indigo-700">
+                                    <div className="w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center">
+                                      <span className="text-[9px] font-bold text-blue-700">
                                         {c.author?.charAt(0)?.toUpperCase()}
                                       </span>
                                     </div>
@@ -565,7 +492,7 @@ export default function BusinessUserDashboard() {
                                   handleAddComment(project._id);
                                 }
                               }}
-                              className="flex-1 border border-slate-200 bg-white rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none placeholder-slate-400 transition"
+                              className="flex-1 border border-slate-200 bg-white rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none placeholder-slate-400 transition"
                             />
                             <button
                               onClick={() => handleAddComment(project._id)}
@@ -573,7 +500,7 @@ export default function BusinessUserDashboard() {
                                 posting[project._id] ||
                                 !inputs[project._id]?.trim()
                               }
-                              className="self-end flex items-center gap-1.5 bg-slate-900 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-slate-800 disabled:opacity-50 transition shrink-0"
+                              className="self-end flex items-center gap-1.5 bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-800 disabled:opacity-50 transition shrink-0"
                             >
                               {posting[project._id] ? (
                                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

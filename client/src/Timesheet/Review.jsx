@@ -15,7 +15,7 @@ const TABS = [
 ];
 
 const STATUS_STYLES = {
-  submitted: "bg-blue-100 text-blue-700",
+  submitted: "bg-emerald-100 text-emerald-700",
   needs_edit: "bg-amber-100 text-amber-700",
   approved: "bg-emerald-100 text-emerald-700",
   rejected: "bg-red-100 text-red-700",
@@ -26,14 +26,14 @@ const fmtShort = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit"
 const fmtDateTime = (d) => (d ? new Date(d).toISOString().slice(0, 16).replace("T", " ") : "-");
 const hasNsa = (ts) => (ts.rows || []).some((r) => (r.nsa || []).some(Boolean));
 
-function ReasonModal({ action, onCancel, onConfirm }) {
+function ReasonModal({ action, count, onCancel, onConfirm }) {
   const [comment, setComment] = useState("");
   const label = action === "reject" ? "Reject" : "Request Edit";
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-1">{label} timesheet</h3>
+        <h3 className="text-lg font-bold text-slate-900 mb-1">{label} {count > 1 ? `${count} timesheets` : "timesheet"}</h3>
         <p className="text-sm text-slate-500 mb-4">This reason is included in the email sent to the employee.</p>
         <textarea
           value={comment}
@@ -41,7 +41,7 @@ function ReasonModal({ action, onCancel, onConfirm }) {
           rows={4}
           autoFocus
           placeholder="Explain what needs to change..."
-          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
         />
         <div className="flex items-center gap-2 mt-4">
           <button
@@ -67,8 +67,9 @@ export default function Review() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState(new Set());
-  const [modal, setModal] = useState(null); // { id, action }
-  const [busyId, setBusyId] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [modal, setModal] = useState(null); // { ids, action }
+  const [busyIds, setBusyIds] = useState(new Set());
 
   const load = () => {
     setLoading(true);
@@ -95,8 +96,11 @@ export default function Review() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageActionableIds = pageRows.filter((ts) => ts.status === "submitted").map((ts) => ts._id);
+  const allPageSelected = pageActionableIds.length > 0 && pageActionableIds.every((id) => selected.has(id));
 
   useEffect(() => setPage(1), [tab, search]);
+  useEffect(() => setSelected(new Set()), [tab, search, page]);
 
   const toggleExpand = (id) =>
     setExpanded((prev) => {
@@ -106,17 +110,43 @@ export default function Review() {
       return next;
     });
 
-  const runAction = async (id, action, comment) => {
-    setBusyId(id);
+  const toggleSelected = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleSelectAllPage = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) pageActionableIds.forEach((id) => next.delete(id));
+      else pageActionableIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+  const actionVerb = (action) => (action === "approve" ? "approved" : action === "reject" ? "rejected" : "sent back for edits");
+
+  const runAction = async (ids, action, comment) => {
+    setBusyIds(new Set(ids));
     try {
-      await API.post(`/timesheets/${id}/${action}`, comment ? { comment } : {});
-      toast.success(action === "approve" ? "Timesheet approved" : action === "reject" ? "Timesheet rejected" : "Edit requested");
+      if (ids.length === 1) {
+        await API.post(`/timesheets/${ids[0]}/${action}`, comment ? { comment } : {});
+        toast.success(`Timesheet ${actionVerb(action)}`);
+      } else {
+        const res = await API.post("/timesheets/bulk-action", { ids, action, comment });
+        const failed = (res.data.results || []).filter((r) => !r.ok);
+        if (failed.length) toast.error(`${failed.length} of ${ids.length} couldn't be updated (${failed[0].message})`);
+        if (failed.length < ids.length) toast.success(`${ids.length - failed.length} timesheet(s) ${actionVerb(action)}`);
+      }
       setModal(null);
+      setSelected(new Set());
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update timesheet");
+      toast.error(err.response?.data?.message || "Failed to update timesheet(s)");
     } finally {
-      setBusyId(null);
+      setBusyIds(new Set());
     }
   };
 
@@ -130,7 +160,7 @@ export default function Review() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by employee name..."
-            className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+            className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
           />
         </div>
       </div>
@@ -141,7 +171,7 @@ export default function Review() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              tab === t.key ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-100" : "text-slate-600 hover:bg-slate-50"
+              tab === t.key ? "bg-teal-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
             {t.label}
@@ -152,6 +182,37 @@ export default function Review() {
         ))}
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex items-center gap-2 mb-4 bg-teal-50 border border-teal-100 rounded-2xl px-4 py-2.5 flex-wrap">
+          <span className="text-sm font-semibold text-teal-700">{selected.size} selected</span>
+          <div className="flex-1" />
+          <button
+            onClick={() => runAction([...selected], "approve")}
+            disabled={busyIds.size > 0}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
+          >
+            Approve Selected
+          </button>
+          <button
+            onClick={() => setModal({ ids: [...selected], action: "reject" })}
+            disabled={busyIds.size > 0}
+            className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50"
+          >
+            Reject Selected
+          </button>
+          <button
+            onClick={() => setModal({ ids: [...selected], action: "needs_edit" })}
+            disabled={busyIds.size > 0}
+            className="px-3 py-1.5 rounded-lg border-2 border-amber-400 text-amber-600 text-xs font-bold hover:bg-amber-50 disabled:opacity-50"
+          >
+            Request Edit
+          </button>
+          <button onClick={() => setSelected(new Set())} className="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold hover:bg-white">
+            Clear
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="p-12 text-center text-slate-500">Loading...</div>
       ) : !pageRows.length ? (
@@ -161,7 +222,12 @@ export default function Review() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-indigo-50/60 border-b border-slate-100">
+                <tr className="bg-teal-50/60 border-b border-slate-100">
+                  <th className="w-8 px-2">
+                    {pageActionableIds.length > 0 && (
+                      <input type="checkbox" checked={allPageSelected} onChange={toggleSelectAllPage} className="accent-teal-600" />
+                    )}
+                  </th>
                   <th className="w-8" />
                   <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">NSA</th>
                   <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Employee</th>
@@ -181,7 +247,12 @@ export default function Review() {
                     <Fragment key={ts._id}>
                       <tr className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
                         <td className="px-2 py-3 text-center">
-                          <button onClick={() => toggleExpand(ts._id)} className={`text-slate-400 hover:text-indigo-600 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
+                          {actionable && (
+                            <input type="checkbox" checked={selected.has(ts._id)} onChange={() => toggleSelected(ts._id)} className="accent-teal-600" />
+                          )}
+                        </td>
+                        <td className="px-2 py-3 text-center">
+                          <button onClick={() => toggleExpand(ts._id)} className={`text-slate-400 hover:text-teal-600 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
                             <Icons.ChevronRight />
                           </button>
                         </td>
@@ -205,22 +276,22 @@ export default function Review() {
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => runAction(ts._id, "approve")}
-                              disabled={!actionable || busyId === ts._id}
+                              onClick={() => runAction([ts._id], "approve")}
+                              disabled={!actionable || busyIds.has(ts._id)}
                               className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => setModal({ id: ts._id, action: "reject" })}
-                              disabled={!actionable || busyId === ts._id}
+                              onClick={() => setModal({ ids: [ts._id], action: "reject" })}
+                              disabled={!actionable || busyIds.has(ts._id)}
                               className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               Reject
                             </button>
                             <button
-                              onClick={() => setModal({ id: ts._id, action: "needs_edit" })}
-                              disabled={!actionable || busyId === ts._id}
+                              onClick={() => setModal({ ids: [ts._id], action: "needs_edit" })}
+                              disabled={!actionable || busyIds.has(ts._id)}
                               className="px-3 py-1.5 rounded-lg border-2 border-amber-400 text-amber-600 text-xs font-bold hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               Request Edit
@@ -230,7 +301,7 @@ export default function Review() {
                       </tr>
                       {isExpanded && (
                         <tr className="bg-slate-50/60">
-                          <td colSpan={9} className="px-6 py-4">
+                          <td colSpan={10} className="px-6 py-4">
                             <table className="w-full text-xs">
                               <thead>
                                 <tr className="text-slate-500">
@@ -252,7 +323,7 @@ export default function Review() {
                                           {s ? (s / 3600).toFixed(1) : "—"}
                                         </td>
                                       ))}
-                                      <td className="py-2 text-center font-bold text-indigo-700 tabular-nums">{total.toFixed(1)}</td>
+                                      <td className="py-2 text-center font-bold text-teal-700 tabular-nums">{total.toFixed(1)}</td>
                                     </tr>
                                   );
                                 })}
@@ -291,8 +362,9 @@ export default function Review() {
       {modal && (
         <ReasonModal
           action={modal.action}
+          count={modal.ids.length}
           onCancel={() => setModal(null)}
-          onConfirm={(comment) => runAction(modal.id, modal.action, comment)}
+          onConfirm={(comment) => runAction(modal.ids, modal.action, comment)}
         />
       )}
     </main>

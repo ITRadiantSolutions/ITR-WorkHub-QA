@@ -83,7 +83,7 @@ export const handleAzureCallback = async (req, res) => {
   const token = signToken(user, { expiresIn: process.env.JWT_EXPIRES_IN_AZURE || "15d" });
   await logMsLoginStep(email, "jwt_generated", { status: "success" });
   return res.redirect(
-    `${process.env.CLIENT_URL}/auth-success?token=${token}&user=${encodeURIComponent(
+    `${process.env.CLIENT_URL}/hub?token=${token}&user=${encodeURIComponent(
       JSON.stringify({ id: user._id, _id: user._id, name: user.name, email: user.email, role: user.roles.tracker, roles: user.roles }),
     )}`,
   );

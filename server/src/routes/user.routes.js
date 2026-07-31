@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { protect } from "../middleware/authMiddleware.js";
+import { objectIdParam } from "../middleware/validateObjectId.js";
 import {
   listUsers,
   getMe,
@@ -17,6 +18,7 @@ import {
 
 const router = Router();
 router.use(protect);
+router.param("id", objectIdParam);
 
 router.get("/", listUsers);
 router.post("/", createUser);

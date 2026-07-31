@@ -54,7 +54,7 @@ export default function HeaderSwitch({ viewMode, setViewMode, user }) {
               className={`
                 relative z-10 px-6 py-2.5 text-sm font-semibold transition-colors duration-200 rounded-lg
                 ${active
-                  ? "text-blue-700"
+                  ? "text-violet-700"
                   : "text-gray-600 hover:text-gray-800"
                 }
               `}

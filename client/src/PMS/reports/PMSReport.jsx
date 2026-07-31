@@ -613,7 +613,7 @@ export default function PMSReport() {
             className="flex items-center justify-between"
           >
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-2">
                 Performance Reports
               </h1>
               <p className="text-gray-600">
@@ -639,7 +639,7 @@ export default function PMSReport() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search name / email"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 pl-9 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 pl-9 text-sm shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none"
                 />
                 <svg
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
@@ -661,7 +661,7 @@ export default function PMSReport() {
                 onClick={handleExportAll}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-indigo-700"
+                className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-purple-700"
               >
                 <Download size={16} />
                 Export All
@@ -675,14 +675,14 @@ export default function PMSReport() {
               onClick={() => setReportTab("submitted")}
               className={`px-5 py-2 text-sm font-semibold flex items-center gap-2
       ${reportTab === "submitted"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-violet-600 text-white"
                   : "text-gray-600 hover:bg-gray-200"}
     `}
             >
               Submitted
               <span className={`text-xs px-2 py-0.5 rounded-full 
       ${reportTab === "submitted"
-                  ? "bg-white text-blue-600"
+                  ? "bg-white text-violet-600"
                   : "bg-gray-200"}
     `}>
                 {submittedCount}
@@ -693,14 +693,14 @@ export default function PMSReport() {
               onClick={() => setReportTab("reviewed")}
               className={`px-5 py-2 text-sm font-semibold flex items-center gap-2
       ${reportTab === "reviewed"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-violet-600 text-white"
                   : "text-gray-600 hover:bg-gray-200"}
     `}
             >
               Reviewed
               <span className={`text-xs px-2 py-0.5 rounded-full 
       ${reportTab === "reviewed"
-                  ? "bg-white text-blue-600"
+                  ? "bg-white text-violet-600"
                   : "bg-gray-200"}
     `}>
                 {reviewedCount}
@@ -710,14 +710,14 @@ export default function PMSReport() {
               onClick={() => setReportTab("not-submitted")}
               className={`px-5 py-2 text-sm font-semibold flex items-center gap-2
     ${reportTab === "not-submitted"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-violet-600 text-white"
                   : "text-gray-600 hover:bg-gray-200"}
   `}
             >
               Self Review Pending
               <span className={`text-xs px-2 py-0.5 rounded-full 
     ${reportTab === "not-submitted"
-                  ? "bg-white text-blue-600"
+                  ? "bg-white text-violet-600"
                   : "bg-gray-200"}
   `}>
                 {notSubmittedCount}
@@ -795,7 +795,7 @@ export default function PMSReport() {
                   >
                     <div className="flex items-center gap-4 min-w-0 flex-1">
                       <motion.div
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-indigo-200 text-lg font-bold text-blue-700 shadow-lg"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-100 to-purple-200 text-lg font-bold text-violet-700 shadow-lg"
                         transition={{ duration: 0.5 }}
                       >
                         {emp.name?.charAt(0)?.toUpperCase() || "?"}
@@ -828,7 +828,7 @@ export default function PMSReport() {
                     </div>
 
                     <motion.div
-                      className="flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg ml-4"
+                      className="flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-lg ml-4"
                       whileHover={{ gap: 8 }}
                     >
                       <span>View Report</span>

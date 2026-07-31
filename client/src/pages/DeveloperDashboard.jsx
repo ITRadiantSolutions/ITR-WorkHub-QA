@@ -23,7 +23,7 @@ import KeepAliveTab from "../components/KeepAliveTab";
 import RoleGuideFaq from "./RoleGuideFaq";
 import useAdminSidebarTabCounts from "../hooks/useAdminSidebarTabCounts";
 import { adminNotificationAPI } from "../services/adminNotificationApi";
-import ThemeToggle from "../components/ThemeToggle";
+import TrackerSidebar from "../components/TrackerSidebar";
 
 // ── Donut Chart ───────────────────────────────────────────────────────────────
 function DonutChart({ completed, total }) {
@@ -81,34 +81,6 @@ function DonutChart({ completed, total }) {
   );
 }
 
-// ── Bar Chart ─────────────────────────────────────────────────────────────────
-function BarChart({ data }) {
-  const max = Math.max(...data.map((d) => d.value), 1);
-  return (
-    <div className="flex items-end gap-2 h-24">
-      {data.map((d, i) => (
-        <div key={i} className="flex flex-col items-center gap-1 flex-1">
-          <span className="text-xs font-semibold text-slate-700">
-            {d.value}
-          </span>
-          <div
-            className="w-full rounded-t-sm"
-            style={{
-              height: `${(d.value / max) * 72}px`,
-              minHeight: d.value > 0 ? "4px" : "0",
-              backgroundColor: d.color,
-              transition: "height 0.5s ease",
-            }}
-          />
-          <span className="text-[10px] text-slate-500 text-center leading-tight">
-            {d.label}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function TaskStatusPie({ metrics }) {
   const data = [
     { label: "Done", value: metrics.done, color: "#10b981" },
@@ -118,81 +90,171 @@ function TaskStatusPie({ metrics }) {
     { label: "Todo", value: metrics.todo, color: "#cbd5e1" },
   ];
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  const radius = 36;
+  const radius = 40;
   const circumference = 2 * Math.PI * radius;
+  const [hovered, setHovered] = useState(null);
   let consumed = 0;
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative h-28 w-28 shrink-0">
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative h-40 w-40 shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label="Tasks by status">
           <circle cx="50" cy="50" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="12" />
           {data.map((item) => {
             const segment = total ? (item.value / total) * circumference : 0;
             const offset = consumed;
             consumed += segment;
-            return <circle key={item.label} cx="50" cy="50" r={radius} fill="none" stroke={item.color} strokeWidth="12" strokeDasharray={`${segment} ${circumference - segment}`} strokeDashoffset={-offset} className="transition-all duration-700" />;
+            return (
+              <circle
+                key={item.label}
+                cx="50"
+                cy="50"
+                r={radius}
+                fill="none"
+                stroke={item.color}
+                strokeWidth="12"
+                strokeDasharray={`${segment} ${circumference - segment}`}
+                strokeDashoffset={-offset}
+                className="transition-all duration-700 cursor-pointer"
+                style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
+                onMouseEnter={() => setHovered(item)}
+                onMouseLeave={() => setHovered(null)}
+              />
+            );
           })}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold leading-none text-slate-800">{metrics.rate}%</span>
-          <span className="mt-1 text-[8px] font-bold uppercase tracking-widest text-slate-400">Complete</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-lg font-bold leading-none text-slate-800">{hovered.value}</span>
+              <span className="mt-1 max-w-[80px] truncate text-[9px] font-bold uppercase tracking-wide text-slate-400">{hovered.label}</span>
+              <span className="text-[9px] font-semibold text-slate-400">{total ? Math.round((hovered.value / total) * 100) : 0}%</span>
+            </>
+          ) : (
+            <>
+              <span className="text-xl font-bold leading-none text-slate-800">{metrics.rate}%</span>
+              <span className="mt-1 text-[8px] font-bold uppercase tracking-widest text-slate-400">Complete</span>
+            </>
+          )}
         </div>
       </div>
-      <div className="min-w-0 flex-1 space-y-1.5">
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
         {data.map((item) => (
-          <div key={item.label} className="flex items-center gap-2">
+          <span
+            key={item.label}
+            className="flex items-center gap-1.5 cursor-pointer"
+            onMouseEnter={() => setHovered(item)}
+            onMouseLeave={() => setHovered(null)}
+          >
             <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="truncate text-[10px] font-medium text-slate-500">{item.label}</span>
-            <span className="ml-auto text-[11px] font-bold text-slate-700">{item.value}</span>
-            <span className="w-8 text-right text-[9px] text-slate-400">{total ? Math.round((item.value / total) * 100) : 0}%</span>
-          </div>
+            <span className="text-[10px] font-medium text-slate-500">{item.label}</span>
+          </span>
         ))}
       </div>
     </div>
   );
 }
-function ProjectStatusPie({ projects }) {
-  const data = [
-    { label: "Active", value: projects.filter((project) => project.status === "Active").length, color: "#10b981" },
-    { label: "Planning", value: projects.filter((project) => project.status === "Planning").length, color: "#8b5cf6" },
-    { label: "Completed", value: projects.filter((project) => project.status === "Completed").length, color: "#3b82f6" },
-  ];
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  const radius = 36;
-  const circumference = 2 * Math.PI * radius;
-  let consumed = 0;
+// ── Mini corner sparkline for a stat card — bars read better than a line
+// when a week's data is mostly flat/sparse (a flat line looks like a stray
+// dash; flat bars still read as "a little chart").
+function MiniSparkline({ values, color, width = 64, height = 28 }) {
+  if (!values?.length) return <div style={{ width, height }} className="shrink-0" />;
+  const max = Math.max(...values, 1);
+  const barW = width / values.length;
+  const gap = barW * 0.28;
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0">
+      {values.map((v, i) => {
+        const h = Math.max((v / max) * (height - 4), 2); // floor so zero-days still show a nub
+        const x = i * barW + gap / 2;
+        const w = barW - gap;
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={height - h}
+            width={w}
+            height={h}
+            rx={Math.min(w / 2, 1.5)}
+            fill={color}
+            opacity={v > 0 ? 1 : 0.25}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Weekly Activity line chart ──────────────────────────────────────────────
+const WEEK_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+function WeeklyActivityChart({ values }) {
+  const width = 480,
+    height = 160,
+    padL = 26,
+    padR = 10,
+    padT = 16,
+    padB = 22;
+  const plotW = width - padL - padR;
+  const plotH = height - padT - padB;
+  const maxVal = Math.max(...values, 4);
+  const yMax = Math.ceil(maxVal / 4) * 4 || 4;
+  const ticks = [0, yMax / 2, yMax];
+
+  const points = values.map((v, i) => ({
+    x: padL + (values.length > 1 ? (i / (values.length - 1)) * plotW : plotW / 2),
+    y: padT + plotH - (v / yMax) * plotH,
+  }));
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaPath = points.length
+    ? `${path} L ${points[points.length - 1].x} ${padT + plotH} L ${points[0].x} ${padT + plotH} Z`
+    : "";
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative h-28 w-28 shrink-0">
-        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label="Projects by status">
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="12" />
-          {data.map((item) => {
-            const segment = total ? (item.value / total) * circumference : 0;
-            const offset = consumed;
-            consumed += segment;
-            return <circle key={item.label} cx="50" cy="50" r={radius} fill="none" stroke={item.color} strokeWidth="12" strokeDasharray={`${segment} ${circumference - segment}`} strokeDashoffset={-offset} className="transition-all duration-700" />;
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold leading-none text-slate-800">{projects.length}</span>
-          <span className="mt-1 text-[8px] font-bold uppercase tracking-widest text-slate-400">Projects</span>
-        </div>
-      </div>
-      <div className="min-w-0 flex-1 space-y-2.5">
-        {data.map((item) => (
-          <div key={item.label} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-[11px] font-medium text-slate-500">{item.label}</span>
-            <span className="ml-auto text-xs font-bold text-slate-700">{item.value}</span>
-            <span className="w-8 text-right text-[9px] text-slate-400">{total ? Math.round((item.value / total) * 100) : 0}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      {ticks.map((t, i) => {
+        const y = padT + plotH - (t / yMax) * plotH;
+        return (
+          <g key={i}>
+            <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e2e8f0" strokeWidth="1" />
+            <text x={padL - 6} y={y + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{t}</text>
+          </g>
+        );
+      })}
+      {points.length > 0 && <path d={areaPath} fill="rgba(99,102,241,.12)" stroke="none" />}
+      {points.length > 0 && <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />}
+      {points.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r="3.5" fill="#4338ca" />
+          {values[i] > 0 && (
+            <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="9" fontWeight="700" fill="#4338ca">
+              {values[i]}
+            </text>
+          )}
+        </g>
+      ))}
+      {WEEK_DAY_LABELS.map((l, i) => (
+        <text key={l} x={points[i]?.x} y={height - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">
+          {l}
+        </text>
+      ))}
+    </svg>
   );
 }
+
+const timeAgo = (date) => {
+  const d = new Date(date);
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 // ── Mini Progress Bar ─────────────────────────────────────────────────────────
 function ProgressBar({ value, color = "#0f172a" }) {
   return (
@@ -258,7 +320,6 @@ export default function DeveloperDashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dashboardTasksLoading, setDashboardTasksLoading] = useState(true);
-  const [projectsLoading, setProjectsLoading] = useState(true);
   const [tasksLoading, setTasksLoading] = useState(false);
 
   // View modal states
@@ -271,7 +332,6 @@ export default function DeveloperDashboard() {
   const [taskLoading, setTaskLoading] = useState(false);
   const [commentLoading, setCommentLoading] = useState(false);
   const [updatingTask, setUpdatingTask] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [taskSearch, setTaskSearch] = useState("");
   const [sprints, setSprints] = useState([]);
   const [globalQuery, setGlobalQuery] = useState("");
@@ -296,7 +356,7 @@ export default function DeveloperDashboard() {
   const [filterPriority, setFilterPriority] = useState("ALL");
 
   // Pagination for tasks
-  const [taskPageSize] = useState(20);
+  const [taskPageSize, setTaskPageSize] = useState(10);
   const [taskPage, setTaskPage] = useState(1);
 
   // QA assign modal
@@ -530,7 +590,6 @@ export default function DeveloperDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setProjectsLoading(true);
         setDashboardTasksLoading(true);
 
         await Promise.allSettled([
@@ -551,8 +610,7 @@ export default function DeveloperDashboard() {
             .catch(() => {
               setProjects([]);
               setUserProjects([]);
-            })
-            .finally(() => setProjectsLoading(false)),
+            }),
           API.get("/sprints")
             .then((res) => {
               const data = res.data?.data || res.data || [];
@@ -610,10 +668,10 @@ export default function DeveloperDashboard() {
       window.removeEventListener(DATA_MUTATED_EVENT, handleDataMutation);
   }, [user?._id, user?.id]);
 
-  // Reset pagination when filters or search changes
+  // Reset pagination when filters, search, or page size changes
   useEffect(() => {
     setTaskPage(1);
-  }, [taskSearch, filterTaskStatus, filterPriority]);
+  }, [taskSearch, filterTaskStatus, filterPriority, taskPageSize]);
 
   const handleLogout = () => {
     toast.custom(
@@ -668,7 +726,7 @@ export default function DeveloperDashboard() {
                   navigate("/");
                 }, 600);
               }}
-              className="flex-1 h-10 rounded-2xl bg-slate-900 text-white text-sm font-semibold hover:bg-black transition"
+              className="flex-1 h-10 rounded-2xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
             >
               Logout
             </button>
@@ -708,6 +766,104 @@ export default function DeveloperDashboard() {
           )
         : 0,
   };
+
+  // How many of your tasks were touched (created or updated) on each day of
+  // the current week, broken out per status — feeds each stat card's corner
+  // sparkline (the "total" series backs the Total Tasks card specifically).
+  const taskTrendByStatus = useMemo(() => {
+    const day = today.getDay();
+    const weekStart = toDay(today);
+    weekStart.setDate(weekStart.getDate() - ((day + 6) % 7));
+    const bucket = (predicate) => {
+      const counts = Array(7).fill(0);
+      tasks.forEach((t) => {
+        if (!predicate(t)) return;
+        const ts = t.updatedAt || t.createdAt;
+        if (!ts) return;
+        const diffDays = Math.floor((toDay(ts) - weekStart) / 86400000);
+        if (diffDays >= 0 && diffDays < 7) counts[diffDays] += 1;
+      });
+      return counts;
+    };
+    return {
+      total: bucket(() => true),
+      done: bucket((t) => t.status === "DONE"),
+      inProgress: bucket((t) => t.status === "IN_PROGRESS"),
+      onHold: bucket((t) => t.status === "ON_HOLD"),
+      qaTesting: bucket((t) => t.status === "QA_TESTING"),
+      overdue: bucket((t) => isTaskOverdue(t)),
+    };
+  }, [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Weekly Activity chart: how many tasks were actually CREATED each day
+  // this week (createdAt only — not updates), Mon through Sun.
+  const weeklyActivity = useMemo(() => {
+    const day = today.getDay();
+    const weekStart = toDay(today);
+    weekStart.setDate(weekStart.getDate() - ((day + 6) % 7));
+    const counts = Array(7).fill(0);
+    tasks.forEach((t) => {
+      if (!t.createdAt) return;
+      const diffDays = Math.floor((toDay(t.createdAt) - weekStart) / 86400000);
+      if (diffDays >= 0 && diffDays < 7) counts[diffDays] += 1;
+    });
+    return counts;
+  }, [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activeTasks = useMemo(() => tasks.filter((t) => t.status !== "DONE"), [tasks]);
+
+  const recentActivity = useMemo(
+    () =>
+      [...tasks]
+        .filter((t) => t.updatedAt || t.createdAt)
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+        .slice(0, 5)
+        .map((t) => {
+          const isNew = t.createdAt && t.updatedAt && Math.abs(new Date(t.updatedAt) - new Date(t.createdAt)) < 60000;
+          const overdue = isTaskOverdue(t);
+          let label, icon, cls;
+          if (t.status === "DONE") {
+            label = `Task "${t.title}" marked as done`;
+            icon = "CheckCircle";
+            cls = "bg-emerald-50 text-emerald-600";
+          } else if (isNew) {
+            label = `New task "${t.title}" created`;
+            icon = "Plus";
+            cls = "bg-blue-50 text-blue-600";
+          } else if (overdue) {
+            label = `Task "${t.title}" is overdue`;
+            icon = "Alert";
+            cls = "bg-red-50 text-red-600";
+          } else {
+            label = `Task "${t.title}" updated`;
+            icon = "Edit";
+            cls = "bg-amber-50 text-amber-600";
+          }
+          return { id: t._id, label, icon, cls, at: t.updatedAt || t.createdAt };
+        }),
+    [tasks],
+  );
+
+  // "My Tasks" tab: search/status/priority filtering + page-based pagination,
+  // computed once and shared by the table and the pagination bar below it.
+  const filteredMyTasks = useMemo(() => {
+    const q = taskSearch.trim().toLowerCase();
+    return tasks.filter((task) => {
+      if (q) {
+        const title = task.title?.toLowerCase() || "";
+        const project = getProjectName(task.projectId)?.toLowerCase() || "";
+        const description = task.description?.toLowerCase() || "";
+        if (!title.includes(q) && !project.includes(q) && !description.includes(q)) return false;
+      }
+      if (filterTaskStatus !== "ALL" && task.status !== filterTaskStatus) return false;
+      if (filterPriority !== "ALL" && task.priority !== filterPriority) return false;
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, taskSearch, filterTaskStatus, filterPriority]);
+
+  const myTasksPageCount = Math.max(1, Math.ceil(filteredMyTasks.length / taskPageSize));
+  const paginatedMyTasks = filteredMyTasks.slice((taskPage - 1) * taskPageSize, taskPage * taskPageSize);
 
   const globalSearchResults = useMemo(() => {
     const query = globalQuery.trim().toLowerCase();
@@ -806,159 +962,28 @@ export default function DeveloperDashboard() {
     setTaskSearch("");
   };
   const navItems = [
-    { id: "dashboard", label: "Dashboard", Icon: Icons.Dashboard },
-    { id: "projects", label: "My Projects", Icon: Icons.Projects },
+    { id: "dashboard", label: "Dashboard", Ic: Icons.Dashboard },
+    { id: "projects", label: "My Projects", Ic: Icons.Projects },
 
-    { id: "tasks", label: "My Tasks", Icon: Icons.Tasks },
-    { id: "sprints", label: "Sprints", Icon: Icons.Sprints },
-    { id: "reports", label: "Reports", Icon: Icons.Reports },
+    { id: "tasks", label: "My Tasks", Ic: Icons.Tasks },
+    { id: "sprints", label: "Sprints", Ic: Icons.Sprints },
+    { id: "reports", label: "Reports", Ic: Icons.Reports },
 
     // Same Guide & FAQ component used by Admin; role-based via getRoleKeyFromUser
-    { id: "guideFaq", label: "Guide & FAQ", Icon: Icons.Help },
+    { id: "guideFaq", label: "Guide & FAQ", Ic: Icons.Help, tag: "NEW" },
 
-    { id: "settings", label: "Settings", Icon: Icons.Settings },
-  ];
+    { id: "settings", label: "Settings", Ic: Icons.Settings },
+  ].map((item) => ({ ...item, dot: tabCounts[item.id] > 0 }));
 
   return (
     <div
       style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}
       className="flex min-h-screen bg-slate-50"
     >
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside
-        className={`fixed left-0 top-0 h-screen bg-slate-900 border-r border-slate-800 flex flex-col z-50 transition-all duration-300 ${
-          sidebarOpen ? "w-56" : "w-16"
-        }`}
-      >
-        {/* Logo */}
-        <div className="h-16 px-3 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0">
-              <div className="w-4 h-4 rounded-md bg-slate-900" />
-            </div>
-
-            {sidebarOpen && (
-              <div>
-                <p className="text-white text-sm font-bold leading-none">
-                  {/* WorkSpace */}
-                  Developer Portal
-                </p>
-                {/* <p className="text-slate-400 text-[10px] mt-1">
-            Employee Portal
-          </p> */}
-              </div>
-            )}
-          </div>
-
-          {/* Toggle */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition shrink-0"
-          >
-            ☰
-          </button>
-        </div>
-
-        {/* User */}
-        <div className="px-3 py-3 border-b border-slate-800">
-          <div
-            className={`flex items-center ${
-              sidebarOpen ? "gap-3" : "justify-center"
-            }`}
-          >
-            <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
-              <span className="text-white  text-xs font-bold">
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </span>
-            </div>
-
-            {sidebarOpen && (
-              <div className="min-w-0">
-                <p className="text-white text-xs font-semibold truncate">
-                  {user?.name}
-                </p>
-                <p className="text-slate-400 text-[10px] truncate">
-                  {user?.email}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-1">
-          {navItems.map(({ id, label, Icon: NavIcon }) => {
-            const active = activeTab === id;
-
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`w-full rounded-xl transition-all duration-200 ${
-                  sidebarOpen
-                    ? "flex items-center gap-3 px-3 py-2.5 justify-start"
-                    : "flex items-center justify-center py-3"
-                } ${
-                  active
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                }`}
-              >
-                <span className="relative inline-flex shrink-0">
-                  <NavIcon />
-                  {activeTab !== id && tabCounts[id] > 0 && (
-                    <span
-                      className="absolute -right-1.5 -top-1.5 flex h-2.5 w-2.5"
-                      title={`${tabCounts[id]} unread ${label.toLowerCase()} updates`}
-                      aria-label={`${tabCounts[id]} unread ${label.toLowerCase()} updates`}
-                    >
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-70" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-900" />
-                    </span>
-                  )}
-                </span>
-
-                {sidebarOpen && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium">{label}</span>
-
-                    {id === "guideFaq" && (
-                      <span className="px-1.5 py-0.5 relative bottom-2 rounded-full bg-red-500 text-white text-[8px] font-bold uppercase leading-none">
-                        NEW
-                      </span>
-                    )}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Logout */}
-        <div className="border-t border-slate-800 p-2">
-          <button
-            onClick={handleLogout}
-            className={`group w-full rounded-xl border border-slate-700/80 bg-slate-800/70 text-slate-300 shadow-sm transition-all duration-200 hover:border-red-400/40 hover:bg-red-500/10 hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 ${
-              sidebarOpen
-                ? "flex items-center gap-3 px-2.5 py-2"
-                : "flex items-center justify-center p-2"
-            }`}
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-700/70 text-slate-300 transition-colors group-hover:bg-red-500/15 group-hover:text-red-200">
-              <Icons.Logout />
-            </span>
-            {sidebarOpen && (
-              <span className="text-xs font-semibold tracking-wide">Sign Out</span>
-            )}
-          </button>
-        </div>      </aside>
+      <TrackerSidebar navItems={navItems} activeId={activeTab} onSelect={setActiveTab} onLogout={handleLogout} />
 
       {/* ── Main ────────────────────────────────────────────────────────── */}
-      <div
-        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
-          sidebarOpen ? "ml-56" : "ml-16"
-        }`}
-      >
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Header */}
         <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between sticky top-0 z-10">
           <div>
@@ -1068,13 +1093,12 @@ export default function DeveloperDashboard() {
 
           <div className="flex shrink-0 items-center gap-4">
             <NotificationBell />
-            <ThemeToggle />
             <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5">
               <Icons.User />
               <span className="font-medium text-slate-700">{user?.name}</span>
               <span className="text-slate-300">·</span>
               <span className="text-emerald-600 font-semibold">
-                {user?.roles?.join(" / ") || user?.role}
+                {user?.role}
               </span>
             </div>
           </div>
@@ -1085,183 +1109,184 @@ export default function DeveloperDashboard() {
           {/* ── DASHBOARD ──────────────────────────────────────────────── */}
           {activeTab === "dashboard" && (
             <div className="space-y-4 w-full">
-              {/* Metric cards */}
-              <div className="grid grid-cols-4 gap-3">
-                {[
-                  {
-                    label: "Total Tasks",
-                    value: metrics.total,
-                    sub: "assigned to you",
-                    dark: true,
-                    Icon: Icons.Tasks,
-                    iconCls: "bg-white/10 text-white/60",
-                    loading: dashboardTasksLoading,
-                  },
-                  {
-                    label: "Completed",
-                    value: metrics.done,
-                    sub: `${metrics.rate}% completion rate`,
-                    dark: false,
-                    Icon: Icons.Check,
-                    iconCls: "bg-emerald-50 text-emerald-500",
-                    valCls: "text-slate-800",
-                    loading: dashboardTasksLoading,
-                  },
-                  {
-                    label: "In Progress",
-                    value: metrics.inProgress,
-                    sub: "active tasks",
-                    dark: false,
-                    Icon: Icons.Clock,
-                    iconCls: "bg-blue-50 text-blue-500",
-                    valCls: "text-slate-800",
-                    loading: dashboardTasksLoading,
-                  },
-                  {
-                    label: "Overdue",
-                    value: metrics.overdue,
-                    sub: "need attention",
-                    dark: false,
-                    Icon: Icons.Alert,
-                    iconCls: "bg-red-50 text-red-500",
-                    valCls: "text-slate-800",
-                    loading: dashboardTasksLoading,
-                  },
-                ].map((card, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-xl p-4 border shadow-sm transition-shadow hover:shadow-md ${
-                      card.dark
-                        ? "bg-slate-900 border-slate-800"
-                        : "bg-white border-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <p
-                        className={`text-[10.5px] font-semibold uppercase tracking-wider ${
-                          card.dark ? "text-slate-400" : "text-slate-400"
-                        }`}
-                      >
-                        {card.label}
-                      </p>
+              {/* Task stat cards */}
+              {dashboardTasksLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-8 flex items-center justify-center gap-2 text-[11px] font-semibold text-slate-400">
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
+                  Loading tasks...
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+                  {[
+                    {
+                      label: "Total Tasks",
+                      value: metrics.total,
+                      sub: "All assigned tasks",
+                      icon: "Tasks",
+                      bg: "bg-indigo-50",
+                      fg: "text-indigo-600",
+                      spark: "#4338ca",
+                      trend: taskTrendByStatus.total,
+                    },
+                    {
+                      label: "Completed",
+                      value: metrics.done,
+                      sub: `${metrics.rate}% done`,
+                      icon: "Check",
+                      bg: "bg-emerald-50",
+                      fg: "text-emerald-600",
+                      spark: "#059669",
+                      trend: taskTrendByStatus.done,
+                    },
+                    {
+                      label: "In Progress",
+                      value: metrics.inProgress,
+                      sub: "Actively working",
+                      icon: "Clock",
+                      bg: "bg-blue-50",
+                      fg: "text-blue-600",
+                      spark: "#2563eb",
+                      trend: taskTrendByStatus.inProgress,
+                    },
+                    {
+                      label: "On Hold",
+                      value: metrics.onHold,
+                      sub: "On hold",
+                      icon: "OnHold",
+                      bg: "bg-orange-50",
+                      fg: "text-orange-600",
+                      spark: "#f97316",
+                      trend: taskTrendByStatus.onHold,
+                    },
+                    {
+                      label: "QA Testing",
+                      value: metrics.qaTesting,
+                      sub: "In testing",
+                      icon: "QATesting",
+                      bg: "bg-violet-50",
+                      fg: "text-violet-600",
+                      spark: "#7c3aed",
+                      trend: taskTrendByStatus.qaTesting,
+                    },
+                    {
+                      label: "Overdue",
+                      value: metrics.overdue,
+                      sub: "Past due date",
+                      icon: "Alert",
+                      bg: "bg-red-50",
+                      fg: "text-red-600",
+                      spark: "#dc2626",
+                      trend: taskTrendByStatus.overdue,
+                    },
+                  ].map((s) => {
+                    const Icon = Icons[s.icon];
+                    return (
                       <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${card.iconCls}`}
+                        key={s.label}
+                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_4px_16px_rgba(15,23,42,0.06)]"
                       >
-                        <card.Icon />
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${s.bg} ${s.fg}`}>
+                            {Icon && <Icon />}
+                          </span>
+                          <span className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-500">{s.label}</span>
+                        </div>
+                        <div className="flex items-end justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-2xl font-extrabold leading-none tracking-tight text-slate-900">{s.value}</p>
+                            <p className="mt-1.5 truncate text-[11px] text-slate-400">{s.sub}</p>
+                          </div>
+                          <MiniSparkline values={s.trend} color={s.spark} />
+                        </div>
                       </div>
-                    </div>
-                    <p
-                      className={`text-[28px] font-bold leading-none mb-1.5 ${
-                        card.dark ? "text-white" : "text-slate-800"
-                      }`}
-                    >
-                      {card.loading ? (
-                        <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent opacity-60" />
-                      ) : (
-                        card.value
-                      )}
-                    </p>
-                    <p
-                      className={`text-[11px] ${
-                        card.dark ? "text-slate-500" : "text-slate-400"
-                      }`}
-                    >
-                      {card.loading ? "Loading..." : card.sub}
-                    </p>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Task Completion + Weekly Activity */}
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+                  <p className="text-sm font-bold text-slate-700 mb-4">Task Completion</p>
+                  {dashboardTasksLoading ? (
+                    <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />Loading tasks...</div>
+                  ) : (
+                    <TaskStatusPie metrics={metrics} />
+                  )}
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-bold text-slate-700">Weekly Activity</p>
+                    <span className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-500">This Week <Icons.ChevronDown /></span>
                   </div>
-                ))}
+                  {dashboardTasksLoading ? (
+                    <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />Loading tasks...</div>
+                  ) : (
+                    <WeeklyActivityChart values={weeklyActivity} />
+                  )}
+                </div>
               </div>
 
-              {/* Charts row */}
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-                {/* Task completion */}
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-                    <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><Icons.Check /></span><div><p className="text-xs font-bold text-slate-700">Task Completion</p><p className="text-[10px] text-slate-400">Status distribution</p></div></div>
-                    <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{metrics.done}/{metrics.total} done</span>
+              {/* My Active Tasks + Recent Activity */}
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-bold text-slate-700">My Active Tasks</p>
                   </div>
-                  <div className="p-4">
-                    {dashboardTasksLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />Loading tasks...</div> : <TaskStatusPie metrics={metrics} />}
-                  </div>
-                </div>
-
-                {/* Task breakdown */}
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-                    <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><Icons.Tasks /></span><div><p className="text-xs font-bold text-slate-700">Task Breakdown</p><p className="text-[10px] text-slate-400">Workload comparison</p></div></div>
-                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${metrics.overdue ? "border-red-100 bg-red-50 text-red-600" : "border-slate-200 bg-white text-slate-500"}`}>{metrics.overdue} overdue</span>
-                  </div>
-                  <div className="p-4">
-                    {dashboardTasksLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading tasks...</div> : (
-                      <BarChart data={[
-                        { label: "Todo", value: metrics.todo, color: "#cbd5e1" },
-                        { label: "Progress", value: metrics.inProgress, color: "#3b82f6" },
-                        { label: "On Hold", value: metrics.onHold, color: "#f59e0b" },
-                        { label: "QA Test", value: metrics.qaTesting, color: "#8b5cf6" },
-                        { label: "Done", value: metrics.done, color: "#10b981" },
-                      ]} />
-                    )}
-                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-400"><span>{metrics.total} assigned tasks</span><span className="font-semibold text-slate-600">{metrics.rate}% complete</span></div>
-                  </div>
-                </div>
-                {/* Projects summary */}
-                <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Icons.Folder /></span>
-                      <div><p className="text-xs font-bold text-slate-700">Projects</p><p className="text-[10px] text-slate-400">Assigned portfolio</p></div>
+                  {dashboardTasksLoading ? (
+                    <div className="flex items-center justify-center gap-2 py-8 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading tasks...</div>
+                  ) : activeTasks.length === 0 ? (
+                    <div className="py-8 text-center"><p className="text-xs font-semibold text-slate-600">No active tasks</p><p className="mt-1 text-[10px] text-slate-400">Everything's done for now.</p></div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {activeTasks.slice(0, 5).map((task) => {
+                        const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+                        const isOverdue = isTaskOverdue(task);
+                        const projectName = task.projectId?.name || task.project?.name || "No project";
+                        return (
+                          <button key={task._id} onClick={() => handleViewTask(task)} className="grid w-full grid-cols-1 gap-2 py-3 text-left transition hover:bg-slate-50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${task.status === "QA_TESTING" ? "bg-violet-50 text-violet-600" : task.status === "ON_HOLD" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>{task.title?.charAt(0)?.toUpperCase() || "T"}</span>
+                              <div className="min-w-0"><p className="truncate text-xs font-semibold text-slate-700">{task.title}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-400"><span className="truncate">{projectName}</span><span className="h-1 w-1 rounded-full bg-slate-300" /><span className={isOverdue ? "font-semibold text-red-500" : ""}>{dueDate && !Number.isNaN(dueDate.getTime()) ? `${isOverdue ? "Overdue · " : "Due "}${dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No due date"}</span></div></div>
+                            </div>
+                            <div className="flex items-center gap-2 pl-11 sm:pl-0">
+                              <Badge label={task.priority || "Normal"} variant={getPriorityVariant(task.priority)} />
+                              <Badge label={(task.status || "TODO").replaceAll("_", " ")} variant={getStatusVariant(task.status)} />
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600">{projects.length} total</span>
-                  </div>
-                  <div className="p-4">
-                    {projectsLoading ? (
-                      <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />Loading projects...</div>
-                    ) : (
-                      <ProjectStatusPie projects={projects} />
-                    )}
-                  </div>
-                </div>              </div>
-
-              {/* Recent Tasks */}
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><Icons.Tasks /></span>
-                    <div><p className="text-xs font-bold text-slate-700">Recent Tasks</p><p className="text-[10px] text-slate-400">Latest assigned work</p></div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500">{tasks.length} total</span>
-                    <button onClick={() => setActiveTab("tasks")} className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-indigo-600 transition hover:bg-indigo-50">View all →</button>
-                  </div>
+                  )}
+                  <button onClick={() => setActiveTab("tasks")} className="mt-2 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">View all tasks →</button>
                 </div>
 
-                {dashboardTasksLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-8 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading recent tasks...</div>
-                ) : tasks.length === 0 ? (
-                  <div className="py-8 text-center"><p className="text-xs font-semibold text-slate-600">No tasks assigned</p><p className="mt-1 text-[10px] text-slate-400">New tasks will appear here.</p></div>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {tasks.slice(0, 5).map((task) => {
-                      const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-                      const isOverdue = isTaskOverdue(task);
-                      const projectName = task.projectId?.name || task.project?.name || "No project";
-                      return (
-                        <button key={task._id} onClick={() => handleViewTask(task)} className="grid w-full grid-cols-1 gap-2 px-4 py-3 text-left transition hover:bg-slate-50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${task.status === "DONE" ? "bg-emerald-50 text-emerald-600" : task.status === "QA_TESTING" ? "bg-violet-50 text-violet-600" : task.status === "ON_HOLD" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>{task.title?.charAt(0)?.toUpperCase() || "T"}</span>
-                            <div className="min-w-0"><p className="truncate text-xs font-semibold text-slate-700">{task.title}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-400"><span className="truncate">{projectName}</span><span className="h-1 w-1 rounded-full bg-slate-300" /><span className={isOverdue ? "font-semibold text-red-500" : ""}>{dueDate && !Number.isNaN(dueDate.getTime()) ? `${isOverdue ? "Overdue · " : "Due "}${dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No due date"}</span></div></div>
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+                  <p className="text-sm font-bold text-slate-700 mb-3">Recent Activity</p>
+                  {dashboardTasksLoading ? (
+                    <div className="flex items-center justify-center gap-2 py-8 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading activity...</div>
+                  ) : recentActivity.length === 0 ? (
+                    <div className="py-8 text-center"><p className="text-xs font-semibold text-slate-600">No recent activity</p><p className="mt-1 text-[10px] text-slate-400">Task updates will appear here.</p></div>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentActivity.map((item) => {
+                        const Icon = Icons[item.icon];
+                        return (
+                          <div key={item.id} className="flex items-start gap-3">
+                            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${item.cls}`}>{Icon && <Icon />}</span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-slate-700 leading-snug">{item.label}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">By {user?.name || "You"} · {timeAgo(item.at)}</p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 pl-11 sm:pl-0">
-                            <Badge label={task.priority || "Normal"} variant={getPriorityVariant(task.priority)} />
-                            <Badge label={(task.status || "TODO").replaceAll("_", " ")} variant={getStatusVariant(task.status)} />
-                            <span className="text-slate-300">→</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>            </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <button onClick={() => setActiveTab("tasks")} className="mt-4 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">View all activity →</button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ── PROJECTS ───────────────────────────────────────────────── */}
@@ -1293,10 +1318,10 @@ export default function DeveloperDashboard() {
                   <>
                     {/* Create Task Button + Refresh */}
                     {/* Top Header */}
-                    <div className="mb-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div className="mb-3 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
                       {/* Left */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-white">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-700 text-white">
                           <Icons.Tasks />
                         </div>
 
@@ -1311,9 +1336,60 @@ export default function DeveloperDashboard() {
                         </div>
                       </div>
 
+                      {/* Middle: search + filters — fills the gap instead of leaving it empty */}
+                      <div className="flex flex-1 flex-wrap items-center gap-2">
+                        <div className="relative flex-1 min-w-[220px] max-w-sm">
+                          <input
+                            type="text"
+                            placeholder="Search task, project..."
+                            value={taskSearch}
+                            onChange={(e) => setTaskSearch(e.target.value)}
+                            className="h-8 w-full rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:outline-none"
+                          />
+                          <div className="absolute left-2.5 top-2 text-slate-400">
+                            <Icons.Search />
+                          </div>
+                        </div>
+                        <select
+                          value={filterTaskStatus}
+                          onChange={(e) => setFilterTaskStatus(e.target.value)}
+                          className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-700 focus:outline-none"
+                        >
+                          <option value="ALL">All Status</option>
+                          <option value="TODO">Todo</option>
+                          <option value="IN_PROGRESS">Progress</option>
+                          <option value="ON_HOLD">On Hold</option>
+                          <option value="QA_TESTING">QA</option>
+                          <option value="DONE">Done</option>
+                        </select>
+                        <select
+                          value={filterPriority}
+                          onChange={(e) => setFilterPriority(e.target.value)}
+                          className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-700 focus:outline-none"
+                        >
+                          <option value="ALL">All Priority</option>
+                          <option value="Low">Low</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">High</option>
+                        </select>
+                        {(taskSearch || filterTaskStatus !== "ALL" || filterPriority !== "ALL") && (
+                          <button
+                            onClick={() => {
+                              setTaskSearch("");
+                              setFilterTaskStatus("ALL");
+                              setFilterPriority("ALL");
+                            }}
+                            className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-medium text-slate-600 transition hover:bg-slate-100"
+                          >
+                            <Icons.X />
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
                       {/* Right Actions */}
                       {/* <div className="flex items-center gap-1.5"> */}
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                         {/* Refresh */}
                         <button
                           onClick={async () => {
@@ -1370,7 +1446,7 @@ export default function DeveloperDashboard() {
                               setSelectedTask(null);
                               setShowCreateModal(true);
                             }}
-                            className="flex h-8 items-center gap-1 rounded-sm bg-slate-900 px-2.5 text-[11px] font-medium text-white transition hover:bg-slate-800"
+                            className="flex h-8 items-center gap-1 rounded-sm bg-blue-700 px-2.5 text-[11px] font-medium text-white transition hover:bg-blue-800"
                           >
                             <Icons.Plus />
                             Create Task
@@ -1401,7 +1477,7 @@ export default function DeveloperDashboard() {
                             {
                               label: "Total",
                               value: metrics.total,
-                              color: "bg-slate-900 text-white",
+                              color: "bg-indigo-50 text-indigo-700",
                               icon: <Icons.Tasks />,
                             },
                             {
@@ -1454,76 +1530,6 @@ export default function DeveloperDashboard() {
                             </div>
                           ))}
                         </div>
-                        {/* Search + Filters */}
-                        <div className="mb-3 flex flex-col lg:flex-row lg:items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
-                          {/* Search */}
-                          <div className="relative flex-1 min-w-[280px]">
-                            <input
-                              type="text"
-                              placeholder="Search task, project..."
-                              value={taskSearch}
-                              onChange={(e) => setTaskSearch(e.target.value)}
-                              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:outline-none"
-                            />
-
-                            <div className="absolute left-3 top-2.5 text-slate-400">
-                              <Icons.Search />
-                            </div>
-                          </div>
-
-                          {/* Status */}
-                          <select
-                            value={filterTaskStatus}
-                            onChange={(e) =>
-                              setFilterTaskStatus(e.target.value)
-                            }
-                            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none"
-                          >
-                            <option value="ALL">All Status</option>
-
-                            <option value="TODO">Todo</option>
-
-                            <option value="IN_PROGRESS">Progress</option>
-
-                            <option value="ON_HOLD">On Hold</option>
-
-                            <option value="QA_TESTING">QA</option>
-
-                            <option value="DONE">Done</option>
-                          </select>
-
-                          {/* Priority */}
-                          <select
-                            value={filterPriority}
-                            onChange={(e) => setFilterPriority(e.target.value)}
-                            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none"
-                          >
-                            <option value="ALL">All Priority</option>
-
-                            <option value="Low">Low</option>
-
-                            <option value="Medium">Medium</option>
-
-                            <option value="High">High</option>
-                          </select>
-
-                          {/* Clear */}
-                          {(taskSearch ||
-                            filterTaskStatus !== "ALL" ||
-                            filterPriority !== "ALL") && (
-                            <button
-                              onClick={() => {
-                                setTaskSearch("");
-                                setFilterTaskStatus("ALL");
-                                setFilterPriority("ALL");
-                              }}
-                              className="flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
-                            >
-                              <Icons.X />
-                              Clear
-                            </button>
-                          )}
-                        </div>
                         {/* Table */}
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                           <table className="w-full text-xs">
@@ -1551,54 +1557,7 @@ export default function DeveloperDashboard() {
 
                             <tbody className="divide-y divide-slate-50">
                               {(() => {
-                                const filteredTasks = tasks.filter((task) => {
-                                  // Search
-                                  if (taskSearch.trim()) {
-                                    const q = taskSearch.toLowerCase();
-
-                                    const title =
-                                      task.title?.toLowerCase() || "";
-
-                                    const project =
-                                      getProjectName(
-                                        task.projectId,
-                                      )?.toLowerCase() || "";
-
-                                    const description =
-                                      task.description?.toLowerCase() || "";
-
-                                    const matches =
-                                      title.includes(q) ||
-                                      project.includes(q) ||
-                                      description.includes(q);
-
-                                    if (!matches) return false;
-                                  }
-
-                                  // Status
-                                  if (
-                                    filterTaskStatus !== "ALL" &&
-                                    task.status !== filterTaskStatus
-                                  ) {
-                                    return false;
-                                  }
-
-                                  // Priority
-                                  if (
-                                    filterPriority !== "ALL" &&
-                                    task.priority !== filterPriority
-                                  ) {
-                                    return false;
-                                  }
-
-                                  return true;
-                                });
-
-                                const startIdx = (taskPage - 1) * taskPageSize;
-                                const paginatedTasks = filteredTasks.slice(
-                                  0,
-                                  startIdx + taskPageSize,
-                                );
+                                const paginatedTasks = paginatedMyTasks;
 
                                 if (tasksLoading) {
                                   return Array.from({ length: 6 }).map(
@@ -1738,84 +1697,57 @@ export default function DeveloperDashboard() {
                           </table>
                         </div>
 
-                        {/* Pagination Info & Load More Button */}
-                        {(() => {
-                          const filteredTasks = tasks.filter((task) => {
-                            // Search
-                            if (taskSearch.trim()) {
-                              const q = taskSearch.toLowerCase();
+                        {/* Pagination */}
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                          <p className="text-xs text-slate-500">
+                            Showing{" "}
+                            <span className="font-semibold text-slate-700">
+                              {filteredMyTasks.length ? (taskPage - 1) * taskPageSize + 1 : 0}
+                            </span>
+                            –
+                            <span className="font-semibold text-slate-700">
+                              {Math.min(taskPage * taskPageSize, filteredMyTasks.length)}
+                            </span>{" "}
+                            of <span className="font-semibold text-slate-700">{filteredMyTasks.length}</span> tasks
+                          </p>
 
-                              const title = task.title?.toLowerCase() || "";
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                              Per page
+                              <select
+                                value={taskPageSize}
+                                onChange={(e) => setTaskPageSize(Number(e.target.value))}
+                                className="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 focus:outline-none"
+                              >
+                                {[10, 20, 50].map((n) => (
+                                  <option key={n} value={n}>{n}</option>
+                                ))}
+                              </select>
+                            </label>
 
-                              const project =
-                                getProjectName(task.projectId)?.toLowerCase() ||
-                                "";
-
-                              const description =
-                                task.description?.toLowerCase() || "";
-
-                              const matches =
-                                title.includes(q) ||
-                                project.includes(q) ||
-                                description.includes(q);
-
-                              if (!matches) return false;
-                            }
-
-                            // Status
-                            if (
-                              filterTaskStatus !== "ALL" &&
-                              task.status !== filterTaskStatus
-                            ) {
-                              return false;
-                            }
-
-                            // Priority
-                            if (
-                              filterPriority !== "ALL" &&
-                              task.priority !== filterPriority
-                            ) {
-                              return false;
-                            }
-
-                            return true;
-                          });
-
-                          const totalFiltered = filteredTasks.length;
-                          const displayedCount = Math.min(
-                            taskPage * taskPageSize,
-                            totalFiltered,
-                          );
-                          const remaining = totalFiltered - displayedCount;
-
-                          return (
-                            <div className="mt-4 flex items-center justify-between px-4 py-3">
-                              <p className="text-xs text-slate-500">
-                                Showing{" "}
-                                <span className="font-semibold">
-                                  {displayedCount}
-                                </span>{" "}
-                                of{" "}
-                                <span className="font-semibold">
-                                  {totalFiltered}
-                                </span>{" "}
-                                tasks
-                              </p>
-
-                              {remaining > 0 && (
-                                <button
-                                  onClick={() => setTaskPage(taskPage + 1)}
-                                  className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                                >
-                                  Load More{" "}
-                                  <span className="text-[10px] text-slate-500">
-                                    ({remaining} remaining)
-                                  </span>
-                                </button>
-                              )}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => setTaskPage((p) => Math.max(1, p - 1))}
+                                disabled={taskPage === 1}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                aria-label="Previous page"
+                              >
+                                <Icons.Back />
+                              </button>
+                              <span className="px-1 text-[11px] font-semibold text-slate-600">
+                                {taskPage} / {myTasksPageCount}
+                              </span>
+                              <button
+                                onClick={() => setTaskPage((p) => Math.min(myTasksPageCount, p + 1))}
+                                disabled={taskPage === myTasksPageCount}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                aria-label="Next page"
+                              >
+                                <Icons.Arrow />
+                              </button>
                             </div>
-                          );
-                        })()}
+                          </div>
+                        </div>
                       </>
                     )}
                   </>

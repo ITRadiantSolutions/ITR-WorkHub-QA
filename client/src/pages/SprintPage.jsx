@@ -303,7 +303,7 @@ export default function SprintPage({ searchRequest }) {
                 setShowForm(true);
                 setErrors({});
               }}
-              className="h-9 px-4 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-black transition flex items-center gap-1.5"
+              className="h-9 px-4 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -331,9 +331,9 @@ export default function SprintPage({ searchRequest }) {
           {
             label: "Total",
             value: totalSprints,
-            bg: "bg-slate-900",
-            text: "text-white",
-            iconBg: "bg-white/10",
+            bg: "bg-slate-100",
+            text: "text-slate-700",
+            iconBg: "bg-slate-200",
             icon: (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -408,76 +408,47 @@ export default function SprintPage({ searchRequest }) {
               </svg>
             ),
           },
-].map((s, i) => (
+].map((s, i) => {
+  const isSelected = (i === 0 ? filterStatus === "All" : filterStatus === s.label);
+  return (
   <div
     key={i}
     onClick={() => setFilterStatus(i === 0 ? "All" : s.label)}
     className={`
       rounded-xl border cursor-pointer
       px-3 py-2.5 transition-all duration-200
-      ${
-        i === 0
-          ? `${s.bg} ${s.text} border-slate-800`
-          : `${s.bg} border-slate-200 hover:border-slate-300`
-      }
-      ${
-        (i === 0 ? filterStatus === "All" : filterStatus === s.label)
-          ? "ring-1 ring-slate-900 border-slate-900"
-          : ""
-      }
+      ${s.bg} border-slate-200 hover:border-slate-300
+      ${isSelected ? "ring-1 ring-blue-600 border-blue-600" : ""}
     `}
   >
     <div className="flex items-center justify-between">
       <div>
-        <p
-          className={`text-[9px] font-bold uppercase tracking-wider ${
-            i === 0 ? "text-slate-300" : "text-slate-500"
-          }`}
-        >
+        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
           {s.label}
         </p>
 
-        <h3
-          className={`mt-1 text-[22px] font-extrabold leading-none ${
-            i === 0 ? "text-white" : "text-slate-900"
-          }`}
-        >
+        <h3 className="mt-1 text-[22px] font-extrabold leading-none text-slate-900">
           {s.value}
         </h3>
       </div>
 
-      <div
-        className={`
-          h-8 w-8 rounded-lg flex items-center justify-center
-          ${s.iconBg}
-          ${i === 0 ? "text-white" : s.text}
-        `}
-      >
+      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${s.iconBg} ${s.text}`}>
         {s.icon}
       </div>
     </div>
 
     <div className="mt-2 flex items-center justify-between">
-      <span
-        className={`text-[10px] ${
-          i === 0 ? "text-slate-400" : "text-slate-500"
-        }`}
-      >
-        Sprints
-      </span>
+      <span className="text-[10px] text-slate-500">Sprints</span>
 
-      {(i === 0 ? filterStatus === "All" : filterStatus === s.label) && (
-        <span
-          className={`text-[9px] font-semibold ${
-            i === 0 ? "text-white" : "text-slate-700"
-          }`}
-        >
+      {isSelected && (
+        <span className="text-[9px] font-semibold text-slate-700">
           ● Selected
         </span>
       )}
     </div>
   </div>
-))}
+  );
+})}
       </div>
 
       {/* ── Search + Filters ── */}
@@ -800,7 +771,7 @@ export default function SprintPage({ searchRequest }) {
             {/* Modal Header */}
             <div className="px-5 py-4 border-b border-slate-100 shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
@@ -980,7 +951,7 @@ export default function SprintPage({ searchRequest }) {
               <button
                 onClick={createSprint}
                 disabled={submitting}
-                className="h-9 px-5 rounded-lg bg-slate-900 text-white text-[13px] font-semibold hover:bg-black transition flex items-center gap-1.5 disabled:opacity-50"
+                className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 {submitting ? (
                   <>

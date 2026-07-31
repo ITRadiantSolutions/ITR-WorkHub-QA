@@ -78,9 +78,9 @@ export default function Guide() {
   return (
     <div className="w-[90%] max-w-[1100px] mx-auto px-2 py-8">
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50/60 to-purple-50/40">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-100">
+            <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-sm">
               <Icons.Book />
             </div>
             <div>
@@ -91,13 +91,13 @@ export default function Guide() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMode("guides")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${mode === "guides" ? "bg-indigo-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${mode === "guides" ? "bg-teal-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
             >
               <Icons.Book /> Guides
             </button>
             <button
               onClick={() => setMode("faq")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${mode === "faq" ? "bg-indigo-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${mode === "faq" ? "bg-teal-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 bg-white hover:bg-slate-50"}`}
             >
               <Icons.Help /> FAQ
             </button>
@@ -117,17 +117,17 @@ export default function Guide() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search guides and FAQ..."
-              className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+              className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
             />
           </div>
 
           {mode === "guides" ? (
             <div className="space-y-3">
               {filteredSections.map((s, i) => (
-                <div key={s.key} className={`rounded-xl border overflow-hidden transition-colors ${open.has(s.key) ? "border-indigo-200" : "border-slate-200"}`}>
+                <div key={s.key} className={`rounded-xl border overflow-hidden transition-colors ${open.has(s.key) ? "border-teal-200" : "border-slate-200"}`}>
                   <button onClick={() => toggle(s.key)} className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-slate-50 transition">
                     <span className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                      <span className="w-6 h-6 rounded-full bg-teal-50 text-teal-600 text-xs font-bold flex items-center justify-center">{i + 1}</span>
                       <span className="font-semibold text-slate-800">{s.title}</span>
                       <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{s.steps.length} steps</span>
                     </span>
@@ -159,7 +159,7 @@ export default function Guide() {
 
         <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 text-xs text-slate-400">
           <span>Updated with each release · Contact HR for issues</span>
-          <button onClick={() => window.print()} className="text-indigo-600 font-semibold">Export PDF</button>
+          <button onClick={() => window.print()} className="text-teal-600 font-semibold">Export PDF</button>
         </div>
       </div>
     </div>

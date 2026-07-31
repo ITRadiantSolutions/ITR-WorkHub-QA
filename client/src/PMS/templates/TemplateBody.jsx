@@ -633,7 +633,7 @@ export default function TemplateBody({
             !isFullyAssignedByHR && (
               <button
                 onClick={addEmployeeKra}
-                className="px-3 py-1 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-3 py-1 text-xs font-semibold bg-violet-600 text-white rounded-lg hover:bg-violet-700"
               >
                 + Add KRA
                 <span className="ml-1 text-[10px] opacity-80">
@@ -687,14 +687,14 @@ export default function TemplateBody({
               }
               className="w-full flex justify-between items-center px-3 py-2"
             >
-              <span className="font-semibold text-blue-800 wrap-anywhere flex items-center gap-2">
+              <span className="font-semibold text-violet-800 wrap-anywhere flex items-center gap-2">
                 <span className="text-gray-500 font-semibold">{kIndex + 1}.</span>
                 {kra.name} ({kra.weight}%)
 
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold
       ${kra.type === "functional"
-                      ? "bg-blue-100 text-blue-600"
+                      ? "bg-violet-100 text-violet-600"
                       : "bg-purple-100 text-purple-600"
                     }`}
                 >
@@ -716,7 +716,7 @@ export default function TemplateBody({
               {/* KPIs (optional) */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-[10px] font-semibold text-blue-700">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-[10px] font-semibold text-violet-700">
                     KPI
                   </span>
                   <p className="text-sm font-semibold text-gray-700">
@@ -746,7 +746,7 @@ export default function TemplateBody({
                   {(kra.kpis || []).map((kpi, i) => (
                     <div
                       key={i}
-                      className="group flex items-center gap-3 rounded-xl ring-1 ring-slate-200/70 shadow-[0_8px_22px_rgba(15,23,42,0.06)] bg-white/80 px-3 py-2 hover:border-blue-200 hover:shadow-md transition-all"
+                      className="group flex items-center gap-3 rounded-xl ring-1 ring-slate-200/70 shadow-[0_8px_22px_rgba(15,23,42,0.06)] bg-white/80 px-3 py-2 hover:border-violet-200 hover:shadow-md transition-all"
                     >
                       {/* KPI NAME - takes all remaining space */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -759,7 +759,7 @@ export default function TemplateBody({
                       {/* TARGET - fixed width column */}
                       <div className="flex flex-col items-center shrink-0 w-20">
                         <span className="text-[10px] text-gray-400 mb-0.5">Target</span>
-                        <div className="w-full h-7 flex items-center justify-center text-xs font-semibold rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                        <div className="w-full h-7 flex items-center justify-center text-xs font-semibold rounded-md bg-violet-50 text-violet-700 border border-violet-200">
                           {kpi.target ?? "—"}
                         </div>
                       </div>
@@ -954,7 +954,7 @@ export default function TemplateBody({
                       </div>
 
                       {/* WEIGHT - fixed width */}
-                      <span className="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-colors">
+                      <span className="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100 group-hover:bg-violet-600 group-hover:text-white group-hover:border-violet-600 transition-colors">
                         {kpi.weight}%
                       </span>
                     </div>
@@ -965,7 +965,7 @@ export default function TemplateBody({
               {canShowEmployeeSection &&
                 (!isEmployeeKra || isManagerApproved) && (
 
-                  <div className="flex flex-col lg:flex-row gap-8 p-4 mt-2 rounded-lg border border-blue-200 bg-blue-50">
+                  <div className="flex flex-col lg:flex-row gap-8 p-4 mt-2 rounded-lg border border-violet-200 bg-violet-50">
 
                     {/* ================= RESPONSE ================= */}
                     <div className="flex-1">
@@ -992,7 +992,7 @@ export default function TemplateBody({
                         }}
                         className={`
   w-full rounded-lg border px-3 py-2 text-sm resize-none
-  focus:outline-none focus:ring-2 focus:ring-blue-500
+  focus:outline-none focus:ring-2 focus:ring-violet-500
   ${(!canRespond || isFinalSubmitted) ? "bg-gray-100 cursor-not-allowed opacity-60" : "bg-white"}
 `}
                         placeholder={`Write your performance for ${kra.name}`}
@@ -1000,7 +1000,7 @@ export default function TemplateBody({
                     </div>
 
                     {/* ================= RATING ================= */}
-                    <div className="flex flex-col justify-start min-w-[180px] pl-6 border-l border-blue-200">
+                    <div className="flex flex-col justify-start min-w-[180px] pl-6 border-l border-violet-200">
                       <p className="text-xs font-semibold text-gray-600 mb-2">
                         Self Rating <span className="text-red-500">*</span>
                       </p>
@@ -1075,7 +1075,7 @@ export default function TemplateBody({
             disabled={!allHrKrasFilled}
             className={`px-4 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors
               ${allHrKrasFilled
-                ? "bg-blue-600 hover:bg-blue-700"
+                ? "bg-violet-600 hover:bg-violet-700"
                 : "bg-gray-300 cursor-not-allowed"
               }`}
           >
@@ -1125,7 +1125,7 @@ export default function TemplateBody({
                         }
                         className="text-left flex-1"
                       >
-                        <p className="text-sm font-semibold text-blue-800">
+                        <p className="text-sm font-semibold text-violet-800">
                           {kra.name} ({kra.weight}%)
                         </p>
                       </button>
@@ -1137,7 +1137,7 @@ export default function TemplateBody({
                               openSavedKra === index ? null : index
                             )
                           }
-                          className="text-gray-600 mt-2 hover:text-blue-600 transition"
+                          className="text-gray-600 mt-2 hover:text-violet-600 transition"
                         >
                           {openSavedKra === index ? (
                             <ChevronUp size={18} />
@@ -1305,7 +1305,7 @@ export default function TemplateBody({
 
                                 }}
                                 className={`w-full min-h-[45px] border rounded-lg px-2 py-2 text-sm
-    focus:outline-none focus:ring-2 focus:ring-blue-500
+    focus:outline-none focus:ring-2 focus:ring-violet-500
     ${!canRespond
 
                                     ? "bg-gray-100 opacity-60 cursor-not-allowed"
@@ -1453,7 +1453,7 @@ export default function TemplateBody({
                       }}
                       className={`w-full h-10 rounded-lg ring-1 ring-slate-200/70 shadow-[0_6px_18px_rgba(15,23,42,0.05)] pl-6 text-sm focus:outline-none focus:ring-2 ${kraErrors[`${temp.id}-${idx}`]?.name
                         ? "border-red-500 focus:ring-red-500"
-                        : "border-slate-200 focus:ring-blue-500"
+                        : "border-slate-200 focus:ring-violet-500"
                         }`}
                       placeholder="Add KRA Name"
                     />
@@ -1554,7 +1554,7 @@ export default function TemplateBody({
                       }}
                       className={`w-full h-10 rounded-lg ring-1 ring-slate-200/70 shadow-[0_6px_18px_rgba(15,23,42,0.05)] px-3 py-2 text-sm focus:outline-none focus:ring-2 ${kraErrors[`${temp.id}-${idx}`]?.weight
                         ? "border-red-500 focus:ring-red-500"
-                        : "  border-slate-200  focus:ring-blue-500"
+                        : "  border-slate-200  focus:ring-violet-500"
                         }`}
                       placeholder={`KRA Weight (≤ ${remainingEmployeeWeight}%)`}
                     />
@@ -1602,7 +1602,7 @@ export default function TemplateBody({
                       }}
                       className={`text-xs font-medium px-2 py-1 rounded-sm transition ${Math.round(totalKpiWeight) === 100
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-violet-600 text-white hover:bg-violet-700"
                         }`}
                     >
                       + Add KPI
@@ -1667,7 +1667,7 @@ export default function TemplateBody({
     ring-1 ring-slate-200/70 shadow-[0_6px_18px_rgba(15,23,42,0.05)] focus:outline-none
     ${error.title
                                   ? "border-red-500 focus:ring-1 focus:ring-red-500"
-                                  : "border-slate-200 focus:ring-1 focus:ring-blue-500"
+                                  : "border-slate-200 focus:ring-1 focus:ring-violet-500"
                                 }
   `}
                             />
@@ -1769,7 +1769,7 @@ export default function TemplateBody({
       ring-1 ring-slate-200/70 shadow-[0_6px_18px_rgba(15,23,42,0.05)]  text-right focus:outline-none
       ${error.weight
                                   ? "border-red-500 focus:ring-1 focus:ring-red-500"
-                                  : "border-slate-200 focus:ring-1 focus:ring-blue-500"
+                                  : "border-slate-200 focus:ring-1 focus:ring-violet-500"
                                 }
     `}
                             />
@@ -1886,7 +1886,7 @@ export default function TemplateBody({
                   };
                 });
               }}
-              className=" px-2 py-1 text-xs font-semibold bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700"
+              className=" px-2 py-1 text-xs font-semibold bg-violet-600 text-white rounded-lg shadow hover:bg-violet-700"
             >
               ➕ Add KRA{" "}
               <span className="ml-1 opacity-80">

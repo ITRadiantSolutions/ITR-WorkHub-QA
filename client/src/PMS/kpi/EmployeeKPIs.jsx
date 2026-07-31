@@ -330,12 +330,12 @@ export function EmployeeKPIs() {
           {/* Header */}
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-purple-600 bg-clip-text text-transparent">Employee KPIs Studio</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent">Employee KPIs Studio</h1>
               <p className="text-gray-500 mt-1 text-sm">Design, assign, and manage Key Performance Indicators with precision.</p>
             </div>
-            <div className="flex items-center gap-3 bg-indigo-50 px-5 py-3 rounded-2xl border border-indigo-100">
-              <span className="text-sm font-semibold text-indigo-700">Remaining Weight</span>
-              <span className={`text-2xl font-bold ${remainingWeight === 0 ? 'text-emerald-500' : remainingWeight < 0 ? 'text-red-500' : 'text-indigo-600'}`}>
+            <div className="flex items-center gap-3 bg-purple-50 px-5 py-3 rounded-2xl border border-purple-100">
+              <span className="text-sm font-semibold text-purple-700">Remaining Weight</span>
+              <span className={`text-2xl font-bold ${remainingWeight === 0 ? 'text-emerald-500' : remainingWeight < 0 ? 'text-red-500' : 'text-purple-600'}`}>
                 {remainingWeight}%
               </span>
             </div>
@@ -345,7 +345,7 @@ export function EmployeeKPIs() {
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 overflow-x-auto">
             <div className="flex justify-between items-center w-full min-w-[500px] relative px-4">
               <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-gray-100 -translate-y-1/2" />
-              <div className="absolute top-1/2 left-10 right-[50%] h-0.5 bg-indigo-500 -translate-y-1/2 transition-all duration-500" style={{ right: step === 1 ? '100%' : step === 2 ? '50%' : '10%' }} />
+              <div className="absolute top-1/2 left-10 right-[50%] h-0.5 bg-purple-500 -translate-y-1/2 transition-all duration-500" style={{ right: step === 1 ? '100%' : step === 2 ? '50%' : '10%' }} />
 
               {[{ num: 1, label: "Create Template" }, { num: 2, label: "Assign Targets" }, { num: 3, label: "Configure Weights" }].map((s) => {
                 const isActive = step === s.num;
@@ -353,10 +353,10 @@ export function EmployeeKPIs() {
                 return (
                   <div key={s.num} className="relative z-10 flex flex-col items-center gap-2 cursor-pointer group" onClick={() => setStep(s.num)}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm
-                      ${isActive ? 'bg-indigo-600 text-white ring-4 ring-indigo-100 scale-110' : isPast ? 'bg-emerald-500 text-white' : 'bg-white text-gray-400 border-2 border-gray-200 group-hover:border-indigo-300'}`}>
+                      ${isActive ? 'bg-purple-600 text-white ring-4 ring-purple-100 scale-110' : isPast ? 'bg-emerald-500 text-white' : 'bg-white text-gray-400 border-2 border-gray-200 group-hover:border-purple-300'}`}>
                       {isPast ? <CheckCircle2 size={20} /> : s.num}
                     </div>
-                    <span className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-indigo-700' : isPast ? 'text-gray-800' : 'text-gray-400'}`}>
+                    <span className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-purple-700' : isPast ? 'text-gray-800' : 'text-gray-400'}`}>
                       {s.label}
                     </span>
                   </div>
@@ -376,7 +376,7 @@ export function EmployeeKPIs() {
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Template Name</label>
                     <input type="text" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="e.g. Q3 Engineering Core"
-                      className="w-full px-5 py-4 text-sm font-medium text-gray-800 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+                      className="w-full px-5 py-4 text-sm font-medium text-gray-800 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" />
                   </div>
 
                   {/* KRA Type Selector */}
@@ -391,7 +391,7 @@ export function EmployeeKPIs() {
                           setKraType("functional");
                           setKraTypeError(false);
                         }}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === 'functional' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === 'functional' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                         Job Specified
                       </button>
                       <button
@@ -399,7 +399,7 @@ export function EmployeeKPIs() {
                           setKraType("organizational");
                           setKraTypeError(false);
                         }}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === 'organizational' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === 'organizational' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                         Organizational
                       </button>
                     </div>
@@ -416,30 +416,30 @@ export function EmployeeKPIs() {
                 <AnimatePresence>
                   {showLibraryDropdown && step === 1 && viewMode !== "viewAssigned" && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                      <div className="bg-indigo-50/50 rounded-3xl border border-indigo-100 p-6 mt-2 relative">
+                      <div className="bg-purple-50/50 rounded-3xl border border-purple-100 p-6 mt-2 relative">
                         <button onClick={() => setShowLibraryDropdown(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-white rounded-full transition-all">
                           <X size={20} />
                         </button>
                         <div className="flex items-center gap-3 mb-6">
-                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Building2 size={20} /></div>
+                          <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Building2 size={20} /></div>
                           <h4 className="font-bold text-gray-800 capitalize text-lg">{kraType} KRAs</h4>
                         </div>
                         <input type="text" placeholder="Search library..." onChange={(e) => {
                           const v = e.target.value.toLowerCase();
                           setLibraryKras(allLibraryKras.filter((k) => k.type === kraType && k.name.toLowerCase().includes(v)));
-                        }} className="w-full px-5 py-3 mb-6 text-sm rounded-xl bg-white border border-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm" />
+                        }} className="w-full px-5 py-3 mb-6 text-sm rounded-xl bg-white border border-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm" />
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-2 pb-2">
                           {libraryKras.length === 0 ? <p className="col-span-full text-center py-8 text-gray-400">No KRAs found in this category.</p> :
                             libraryKras.map((kra) => {
                               const alreadyAdded = selectedKras.some(k => k.originalId === kra.id);
                               return (
-                                <div key={kra.id} className={`flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 ${alreadyAdded ? 'bg-indigo-600 border-indigo-700 text-white shadow-md' : 'bg-white border-gray-200 hover:border-indigo-300 hover:shadow-md'}`}>
+                                <div key={kra.id} className={`flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 ${alreadyAdded ? 'bg-purple-600 border-purple-700 text-white shadow-md' : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow-md'}`}>
                                   <div>
                                     <p className={`font-semibold text-sm mb-2 line-clamp-2 ${alreadyAdded ? 'text-white' : 'text-gray-800'}`}>{kra.name}</p>
-                                    <span className={`text-xs inline-flex px-2 py-1 rounded-md font-medium ${alreadyAdded ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-600'}`}>{kra.kpis?.length || 0} KPIs</span>
+                                    <span className={`text-xs inline-flex px-2 py-1 rounded-md font-medium ${alreadyAdded ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600'}`}>{kra.kpis?.length || 0} KPIs</span>
                                   </div>
-                                  <button onClick={() => alreadyAdded ? setSelectedKras(prev => prev.filter(k => k.originalId !== kra.id)) : handleSelectKra(kra)} className={`mt-4 py-2 w-full flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors ${alreadyAdded ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}`}>
+                                  <button onClick={() => alreadyAdded ? setSelectedKras(prev => prev.filter(k => k.originalId !== kra.id)) : handleSelectKra(kra)} className={`mt-4 py-2 w-full flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors ${alreadyAdded ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
                                     {alreadyAdded ? <><Minus size={16} /> Remove</> : <><Plus size={16} /> Add to Template</>}
                                   </button>
                                 </div>
@@ -457,11 +457,11 @@ export function EmployeeKPIs() {
                     {functionalCount > 0 && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-500" /> Job Specified KRAs</h4>
-                          <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">{functionalCount} Selected</span>
+                          <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500" /> Job Specified KRAs</h4>
+                          <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">{functionalCount} Selected</span>
                         </div>
                         {selectedKras.filter(k => k.type === "functional").map(kra => (
-                          <div key={kra.instanceId} className="flex justify-between items-center bg-gray-50 border border-gray-200 p-3 rounded-xl hover:border-indigo-300 transition-colors">
+                          <div key={kra.instanceId} className="flex justify-between items-center bg-gray-50 border border-gray-200 p-3 rounded-xl hover:border-purple-300 transition-colors">
                             <span className="text-sm font-medium text-gray-700 truncate pr-4">{kra.name}</span>
                             <button onClick={() => setSelectedKras(prev => prev.filter(k => k.instanceId !== kra.instanceId))} className="text-gray-400 hover:text-red-500 transition-colors"><X size={16} /></button>
                           </div>
@@ -491,15 +491,15 @@ export function EmployeeKPIs() {
             {step === 2 && selectedKras.length > 0 && viewMode === "create" && (
               <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto py-8">
                 <div className="text-center mb-8">
-                  <div className="mx-auto w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4"><Users size={32} /></div>
+                  <div className="mx-auto w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4"><Users size={32} /></div>
                   <h3 className="text-xl font-bold text-gray-800">Assign to Employee or Group</h3>
                   <p className="text-sm text-gray-500 mt-2">Search for the target user or department to assign this KRA template to.</p>
                 </div>
 
                 <div className="relative">
                   <input type="text" placeholder="Search employee or group by name..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setShowAssignDropdown(true); }} onFocus={() => setShowAssignDropdown(true)}
-                    className="w-full pl-12 pr-4 py-4 text-base rounded-2xl bg-white border-2 border-indigo-100 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all shadow-sm" />
-                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" size={20} />
+                    className="w-full pl-12 pr-4 py-4 text-base rounded-2xl bg-white border-2 border-purple-100 focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-50 transition-all shadow-sm" />
+                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400" size={20} />
 
                   <AnimatePresence>
                     {showAssignDropdown && (
@@ -511,7 +511,7 @@ export function EmployeeKPIs() {
   return (
     <div
       key={item.id}
-      className="flex items-center justify-between p-4 hover:bg-indigo-50 border-b border-gray-50 transition-colors"
+      className="flex items-center justify-between p-4 hover:bg-purple-50 border-b border-gray-50 transition-colors"
     >
       <div className="flex items-center gap-3">
 
@@ -530,7 +530,7 @@ export function EmployeeKPIs() {
               }
             });
           }}
-          className="w-4 h-4 accent-indigo-600 cursor-pointer"
+          className="w-4 h-4 accent-purple-600 cursor-pointer"
         />
 
         <UserCircle size={20} className="text-gray-400" />
@@ -543,7 +543,7 @@ export function EmployeeKPIs() {
       <span
         className={`text-xs font-bold px-3 py-1 rounded-full ${
           item.type === "user"
-            ? "bg-blue-100 text-blue-700"
+            ? "bg-violet-100 text-violet-700"
             : "bg-emerald-100 text-emerald-700"
         }`}
       >
@@ -562,7 +562,7 @@ export function EmployeeKPIs() {
                     {selectedAssignees.map((assignee) => (
                       <div
                         key={assignee.id}
-                        className="flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 p-4 rounded-2xl text-white shadow-lg"
+                        className="flex items-center justify-between bg-gradient-to-r from-purple-600 to-purple-600 p-4 rounded-2xl text-white shadow-lg"
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-lg">
@@ -601,7 +601,7 @@ export function EmployeeKPIs() {
                   const isSavedColor = kra.isSaved ? 'emerald' : 'indigo';
 
                   return (
-                    <div key={kra.instanceId} className={`rounded-2xl border bg-white overflow-hidden transition-all duration-300 shadow-sm ${kra.isSaved ? 'border-emerald-200' : 'border-gray-200 hover:border-indigo-300'}`}>
+                    <div key={kra.instanceId} className={`rounded-2xl border bg-white overflow-hidden transition-all duration-300 shadow-sm ${kra.isSaved ? 'border-emerald-200' : 'border-gray-200 hover:border-purple-300'}`}>
 
                       {/* Accordion Header row */}
                       <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
@@ -617,7 +617,7 @@ export function EmployeeKPIs() {
                           <label className="text-xs font-bold text-gray-400 uppercase ml-2">Appraisal Weight</label>
                           <div className="flex items-center gap-1">
                             <input type="number" min="0" max="100" value={kra.weight} onChange={(e) => updateKraWeight(kra.instanceId, e.target.value)}
-                              className="w-16 text-right font-bold text-indigo-700 bg-indigo-50 px-2 py-1 object-center rounded-lg border-none focus:ring-2 focus:ring-indigo-400 outline-none" placeholder="0" />
+                              className="w-16 text-right font-bold text-purple-700 bg-purple-50 px-2 py-1 object-center rounded-lg border-none focus:ring-2 focus:ring-purple-400 outline-none" placeholder="0" />
                             <span className="text-xs font-bold text-gray-400 pr-2">%</span>
                           </div>
                           <button onClick={() => cutKraFromSelection(kra.instanceId)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
@@ -630,7 +630,7 @@ export function EmployeeKPIs() {
                           <h4 className="text-sm font-bold text-gray-700">KPI Distribution</h4>
                           <div className="flex items-center gap-2">
                             <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full transition-all duration-500 ${totalKpiWeight === 100 ? 'bg-emerald-500' : totalKpiWeight > 100 ? 'bg-red-500' : 'bg-indigo-500'}`} style={{ width: `${Math.min(totalKpiWeight, 100)}%` }} />
+                              <div className={`h-full transition-all duration-500 ${totalKpiWeight === 100 ? 'bg-emerald-500' : totalKpiWeight > 100 ? 'bg-red-500' : 'bg-purple-500'}`} style={{ width: `${Math.min(totalKpiWeight, 100)}%` }} />
                             </div>
                             <span className={`text-xs font-bold ${totalKpiWeight === 100 ? 'text-emerald-600' : 'text-red-500'}`}>{totalKpiWeight}% / 100%</span>
                           </div>
@@ -643,7 +643,7 @@ export function EmployeeKPIs() {
                                 <span className="text-sm font-medium text-gray-700">{kpi.name}</span>
                                 <div className="flex items-center gap-2">
                                   <input type="number" min="0" max="100" value={kpi.weight} onChange={(e) => updateKpiWeight(kra.instanceId, kpiIndex, e.target.value)}
-                                    className="w-16 text-right text-sm font-semibold rounded-lg bg-gray-50 border border-gray-200 px-2 py-1 focus:ring-2 focus:ring-indigo-400 outline-none" placeholder="0" />
+                                    className="w-16 text-right text-sm font-semibold rounded-lg bg-gray-50 border border-gray-200 px-2 py-1 focus:ring-2 focus:ring-purple-400 outline-none" placeholder="0" />
                                   <span className="text-xs font-bold text-gray-400">%</span>
                                 </div>
                               </div>
@@ -663,7 +663,7 @@ export function EmployeeKPIs() {
                             return (
                               <button disabled={!canSave && !kra.isSaved} onClick={() => handleSaveKraTemporarily(kra.instanceId)}
                                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${kra.isSaved ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                                  canSave ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                  canSave ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-purple-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                   }`}>
                                 {kra.isSaved ? <><CheckCircle2 size={16} /> Saved</> : 'Save Configuration'}
                               </button>
@@ -708,7 +708,7 @@ export function EmployeeKPIs() {
 
                     setStep(2);
                   }}
-                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all shadow-md shadow-purple-200"
                 >
                   {editingTemplateId ? "Configure Weights" : "Next Step"}
                 </button>
@@ -720,7 +720,7 @@ export function EmployeeKPIs() {
                     if (selectedAssignees.length === 0)
                       return setError("Select at least one employee or group");
                     setStep(3);
-                  }} className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200">Next Step</button>
+                  }} className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all shadow-md shadow-purple-200">Next Step</button>
               )}
 
               {step === 3 && selectedKras.length > 0 && (
@@ -837,11 +837,11 @@ export function EmployeeKPIs() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {savedTemplates.map(template => (
-                  <div key={template.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-indigo-300 hover:shadow-xl transition-all duration-300 flex flex-col">
+                  <div key={template.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col">
                     <div className="flex-1">
                       <h4 className="font-bold text-gray-800 text-lg mb-4">{template.name}</h4>
                       <div className="flex flex-wrap gap-2 mb-6">
-                        <div className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />{template.functionalKras.length} Func</div>
+                        <div className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-500" />{template.functionalKras.length} Func</div>
                         <div className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{template.organizationalKras.length} Org</div>
                       </div>
                     </div>
@@ -855,12 +855,12 @@ export function EmployeeKPIs() {
                         const combined = [...template.functionalKras, ...template.organizationalKras].map(k => ({ ...k, instanceId: crypto.randomUUID(), isSaved: true, kpis: (k.kpis || []).map((kpi, i) => ({ localId: `${Date.now()}-${i}`, name: kpi.name, weight: kpi.weight || "" })) }));
                         setSelectedKras(combined); setTemplateName(template.name); setEditingTemplateId(template.id); setStep(1);
                         window.scrollTo({ top: 0, behavior: "smooth" });
-                      }} className="py-2 text-xs font-bold text-center border border-indigo-200 text-indigo-700 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">Edit</button>
+                      }} className="py-2 text-xs font-bold text-center border border-purple-200 text-purple-700 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors">Edit</button>
                       <button onClick={() => {
                         const cloned = [...template.functionalKras, ...template.organizationalKras].map(k => ({ ...k, instanceId: crypto.randomUUID(), weight: "", isSaved: false, kpis: (k.kpis || []).map((kpi, i) => ({ localId: `${Date.now()}-${i}`, name: kpi.name, weight: "" })) }));
                         setSelectedKras(cloned); setTemplateName(template.name); setStep(2);
                         window.scrollTo({ top: 0, behavior: "smooth" });
-                      }} className="py-2 text-xs font-bold text-center border border-transparent bg-indigo-600 text-white flex items-center justify-center gap-1 rounded-xl hover:bg-indigo-700 transition-colors"><Play size={12} /> Assign</button>
+                      }} className="py-2 text-xs font-bold text-center border border-transparent bg-purple-600 text-white flex items-center justify-center gap-1 rounded-xl hover:bg-purple-700 transition-colors"><Play size={12} /> Assign</button>
                     </div>
                   </div>
                 ))}
@@ -931,7 +931,7 @@ export function EmployeeKPIs() {
                                 <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">{selected.type}</p>
                               </div>
                               <div className="flex gap-2">
-                                <button onClick={() => setViewMode("editAssigned")} className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:text-indigo-600 transition-colors">Edit Config</button>
+                                <button onClick={() => setViewMode("editAssigned")} className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:text-purple-600 transition-colors">Edit Config</button>
                                 <button onClick={() => { setViewMode("create"); setSelectedAssignees([]); setSelectedKras([]); }} className="p-2 text-gray-400 hover:text-red-500 bg-white border border-gray-200 rounded-xl transition-colors"><X size={16} /></button>
                               </div>
                             </div>

@@ -10,6 +10,7 @@ import {
   getTimesheetStatus,
   getNsaReport,
   exportNsaReport,
+  getEmployeeReport,
 } from "../controllers/hrReportController.js";
 
 const router = Router();
@@ -24,5 +25,6 @@ router.get("/project-report/download", downloadProjectReport);
 router.get("/timesheet-status", getTimesheetStatus);
 router.get("/nsa-report", getNsaReport);
 router.get("/nsa-report/export", exportNsaReport);
+router.get("/employee-report", getEmployeeReport);
 
 export default router;

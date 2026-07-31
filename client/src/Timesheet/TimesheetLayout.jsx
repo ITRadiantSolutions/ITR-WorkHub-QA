@@ -10,6 +10,7 @@ const TABS = [
   { to: "/timesheet/history", label: "History", icon: "Clock" },
   { to: "/timesheet/review", label: "Review", icon: "Team", managerOrHr: true },
   { to: "/timesheet/manage", label: "Manage", icon: "Settings", managerOrHr: true },
+  { to: "/timesheet/reports", label: "Reports", icon: "Reports", hrOnly: true },
   { to: "/timesheet/guide", label: "Guide", icon: "Book" },
 ];
 
@@ -22,20 +23,24 @@ export default function TimesheetLayout() {
   const initials = getInitials(user?.name);
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-slate-50 via-indigo-50/40 to-purple-50">
+    <div className="min-h-screen flex bg-[#F5F7FB]">
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 bg-white border-r border-slate-100 flex flex-col sticky top-0 h-screen">
+      <aside className="w-64 shrink-0 bg-white border-r border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col sticky top-0 h-screen">
         <button onClick={() => navigate("/hub")} className="flex items-center gap-2.5 px-5 py-5 shrink-0 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform shrink-0">
+          <div className="w-9 h-9 rounded-[14px] bg-teal-700 flex items-center justify-center text-white shadow-sm group-hover:bg-teal-600 transition-colors shrink-0">
             <Icons.Clock />
           </div>
           <span className="text-lg font-extrabold tracking-tight text-slate-900">
-            Time<span className="text-indigo-600">Flow</span>
+            Time<span className="text-teal-700">Flow</span>
           </span>
         </button>
 
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {TABS.filter((t) => !t.managerOrHr || ["manager", "hr"].includes(user?.roles?.timesheet)).map((t) => {
+          {TABS.filter((t) => {
+            if (t.hrOnly) return user?.roles?.timesheet === "hr";
+            if (t.managerOrHr) return ["manager", "hr"].includes(user?.roles?.timesheet);
+            return true;
+          }).map((t) => {
             const Icon = Icons[t.icon];
             const active =
               location.pathname === t.to ||
@@ -46,7 +51,7 @@ export default function TimesheetLayout() {
                 onClick={() => navigate(t.to)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                   active
-                    ? "bg-indigo-50 text-indigo-600"
+                    ? "bg-gradient-to-r from-teal-700 to-teal-500 text-white shadow-sm"
                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
                 }`}
               >
@@ -62,7 +67,7 @@ export default function TimesheetLayout() {
             onClick={() => navigate("/hub")}
             className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition"
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-md shadow-indigo-200">
+            <div className="w-9 h-9 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
               {initials}
             </div>
             <div className="text-left min-w-0 flex-1">

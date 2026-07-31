@@ -116,9 +116,9 @@ function Donut({ value, total, label, size = 80, stroke = "#00a21d" }) {
 function StatusDonut({ metrics, size = 96 }) {
   const data = [
     { label: "Done", value: metrics.done, color: "#10b981" },
-    { label: "In Progress", value: metrics.inProgress, color: "#3b82f6" },
+    { label: "In Progress", value: metrics.inProgress, color: "#4f46e5" },
     { label: "QA Testing", value: metrics.qa, color: "#8b5cf6" },
-    { label: "On Hold", value: metrics.onHold, color: "#f59e0b" },
+    { label: "On Hold", value: metrics.onHold, color: "#d97706" },
     { label: "Todo", value: metrics.todo, color: "#cbd5e1" },
   ];
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -219,37 +219,27 @@ function VBar({ data, height = 80 }) {
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, Icon, dark, warn, ok }) {
+function StatCard({ label, value, sub, Icon, warn, ok }) {
   return (
-    <div
-      className={`rounded-xl p-4 border shadow-sm ${dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <p
-          className={`text-[10px] font-bold uppercase tracking-widest ${dark ? "text-slate-400" : "text-slate-500"}`}
-        >
+    <div className="rounded-lg p-2.5 border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
           {label}
         </p>
         {Icon && (
           <div
-            className={`w-6 h-6 rounded flex items-center justify-center ${dark ? "bg-slate-700 text-slate-300" : warn ? "bg-red-50 text-red-500" : ok ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}
+            className={`w-5 h-5 rounded flex items-center justify-center ${warn ? "bg-red-50 text-red-500" : ok ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}
           >
             <Icon />
           </div>
         )}
       </div>
       <p
-        className={`text-2xl font-bold ${dark ? "text-white" : warn ? "text-red-600" : ok ? "text-emerald-600" : "text-slate-900"}`}
+        className={`text-lg font-bold leading-tight ${warn ? "text-red-600" : ok ? "text-emerald-600" : "text-slate-900"}`}
       >
         {value}
       </p>
-      {sub && (
-        <p
-          className={`text-[10px] mt-0.5 ${dark ? "text-slate-400" : "text-slate-400"}`}
-        >
-          {sub}
-        </p>
-      )}
+      {sub && <p className="text-[9px] mt-0.5 text-slate-400">{sub}</p>}
     </div>
   );
 }
@@ -304,7 +294,7 @@ function Section({ title, subtitle, icon: Icon, action, children }) {
       <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           {Icon && (
-            <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white">
+            <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
               <Icon />
             </div>
           )}
@@ -522,13 +512,12 @@ function DeveloperReport({
     <div className="space-y-4">
       {/* Stat strip */}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total Tasks"
           value={m.total}
           sub={`${m.rate}% done`}
           Icon={Icons.Tasks}
-          dark
         />
         <StatCard
           label="Completed"
@@ -573,9 +562,9 @@ function DeveloperReport({
             <div className="space-y-2 flex-1">
               {[
                 { label: "Done", val: m.done, color: "#0f172a" },
-                { label: "In Progress", val: m.inProgress, color: "#3b82f6" },
+                { label: "In Progress", val: m.inProgress, color: "#4f46e5" },
                 { label: "QA Testing", val: m.qa, color: "#7c3aed" },
-                { label: "On Hold", val: m.onHold, color: "#f59e0b" },
+                { label: "On Hold", val: m.onHold, color: "#d97706" },
                 { label: "Todo", val: m.todo, color: "#cbd5e1" },
                 { label: "Overdue", val: m.overdue, color: "#ef4444" },
               ].map((d, i) => (
@@ -612,7 +601,7 @@ function DeveloperReport({
               label="In Progress"
               value={m.inProgress}
               total={m.total}
-              color="#3b82f6"
+              color="#4f46e5"
               sub={`${m.total > 0 ? Math.round((m.inProgress / m.total) * 100) : 0}%`}
             />
             <HBar
@@ -626,7 +615,7 @@ function DeveloperReport({
               label="On Hold"
               value={m.onHold}
               total={m.total}
-              color="#f59e0b"
+              color="#d97706"
             />
             <HBar
               label="Todo"
@@ -655,7 +644,7 @@ function DeveloperReport({
             height={120}
             data={[
               { label: "High", value: m.highPri, color: "#dc2626" },
-              { label: "Medium", value: m.medPri, color: "#f59e0b" },
+              { label: "Medium", value: m.medPri, color: "#d97706" },
               { label: "Low", value: m.lowPri, color: "#94a3b8" },
             ]}
           />
@@ -670,7 +659,7 @@ function DeveloperReport({
               label="Medium"
               value={m.medPri}
               total={m.total}
-              color="#f59e0b"
+              color="#d97706"
             />
             <HBar
               label="Low"
@@ -700,7 +689,7 @@ function DeveloperReport({
               {
                 label: "In Progress",
                 v: bugs.filter((b) => b.status === "IN_PROGRESS").length,
-                color: "#3b82f6",
+                color: "#4f46e5",
               },
               {
                 label: "Resolved",
@@ -723,7 +712,7 @@ function DeveloperReport({
             {[
               { label: "Critical", color: "#dc2626", sev: "CRITICAL" },
               { label: "High", color: "#ea580c", sev: "HIGH" },
-              { label: "Medium", color: "#f59e0b", sev: "MEDIUM" },
+              { label: "Medium", color: "#d97706", sev: "MEDIUM" },
               { label: "Low", color: "#22c55e", sev: "LOW" },
             ].map((row) => {
               const cnt = bugs.filter((b) => b.severity === row.sev).length;
@@ -795,7 +784,7 @@ function DeveloperReport({
                   </p>
                   <div className="flex-1 bg-slate-100 rounded-full h-1.5">
                     <div
-                      className="h-1.5 rounded-full bg-slate-900 transition-all duration-700"
+                      className="h-1.5 rounded-full bg-blue-600 transition-all duration-700"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -996,13 +985,12 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
     <div className="space-y-4">
       {/* Stats */}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="My Tasks"
           value={m.total}
           sub={`${m.rate}% done`}
           Icon={Icons.Tasks}
-          dark
         />
         <StatCard
           label="Bugs Reported"
@@ -1055,7 +1043,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
                 label="In Progress"
                 value={m.inProgress}
                 total={m.total}
-                color="#3b82f6"
+                color="#4f46e5"
               />
               <HBar
                 label="QA Testing"
@@ -1067,7 +1055,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
                 label="On Hold"
                 value={m.onHold}
                 total={m.total}
-                color="#f59e0b"
+                color="#d97706"
               />
               <HBar
                 label="Todo"
@@ -1108,7 +1096,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
               label="In Progress"
               value={bugCounts.progress}
               total={bugCounts.total}
-              color="#3b82f6"
+              color="#4f46e5"
             />
             <HBar
               label="Resolved"
@@ -1130,7 +1118,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
             {[
               { label: "Critical", sev: "CRITICAL", color: "#dc2626" },
               { label: "High", sev: "HIGH", color: "#ea580c" },
-              { label: "Medium", sev: "MEDIUM", color: "#f59e0b" },
+              { label: "Medium", sev: "MEDIUM", color: "#d97706" },
               { label: "Low", sev: "LOW", color: "#22c55e" },
             ].map((row) => (
               <HBar
@@ -1172,7 +1160,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
                   </p>
                   <div className="flex-1 bg-slate-100 rounded-full h-1.5">
                     <div
-                      className="h-1.5 rounded-full bg-slate-900 transition-all duration-700"
+                      className="h-1.5 rounded-full bg-blue-600 transition-all duration-700"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -1597,13 +1585,12 @@ function AdminReport({
   return (
     <div className="space-y-4">
       {/* Global overview */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total Tasks"
           value={gm.total}
           sub={`${gm.rate}% done`}
           Icon={Icons.Tasks}
-          dark
         />
         <StatCard
           label="Total Projects"
@@ -1647,7 +1634,7 @@ function AdminReport({
               label="In Progress"
               value={gm.inProgress}
               total={gm.total}
-              color="#3b82f6"
+              color="#4f46e5"
             />
             <HBar
               label="QA Testing"
@@ -1659,7 +1646,7 @@ function AdminReport({
               label="On Hold"
               value={gm.onHold}
               total={gm.total}
-              color="#f59e0b"
+              color="#d97706"
             />
             <HBar
               label="Todo"
@@ -1686,7 +1673,7 @@ function AdminReport({
             height={100}
             data={[
               { label: "High", value: gm.highPri, color: "#dc2626" },
-              { label: "Medium", value: gm.medPri, color: "#f59e0b" },
+              { label: "Medium", value: gm.medPri, color: "#d97706" },
               { label: "Low", value: gm.lowPri, color: "#94a3b8" },
             ]}
           />
@@ -1701,7 +1688,7 @@ function AdminReport({
               label="Medium"
               value={gm.medPri}
               total={gm.total}
-              color="#f59e0b"
+              color="#d97706"
             />
             <HBar
               label="Low"
@@ -1740,7 +1727,7 @@ function AdminReport({
             {[
               { label: "Critical", sev: "CRITICAL", color: "#dc2626" },
               { label: "High", sev: "HIGH", color: "#ea580c" },
-              { label: "Medium", sev: "MEDIUM", color: "#f59e0b" },
+              { label: "Medium", sev: "MEDIUM", color: "#d97706" },
               { label: "Low", sev: "LOW", color: "#22c55e" },
             ].map((row) => (
               <HBar
@@ -1806,7 +1793,7 @@ function AdminReport({
               label: "Employees",
               value: employees.length,
               sub: `${filteredEmps.length} shown`,
-              color: "bg-slate-900 text-white",
+              color: "bg-slate-100 text-slate-700",
             },
             {
               label: "Developers",
@@ -1924,7 +1911,7 @@ function AdminReport({
                   <button
                     key={emp._id}
                     onClick={() => setSelectedEmp(isSelected ? null : emp)}
-                    className={`group flex min-w-0 flex-col rounded-xl border p-3 text-left transition-all ${isSelected ? "border-slate-900 bg-slate-900 text-white shadow-md" : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-sm"}`}
+                    className={`group flex min-w-0 flex-col rounded-xl border p-3 text-left transition-all ${isSelected ? "border-blue-700 bg-blue-700 text-white shadow-md" : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-sm"}`}
                   >
                     <div className="flex w-full items-center gap-2.5">
                       <span
@@ -2017,7 +2004,7 @@ function AdminReport({
             <div className="border border-slate-200 rounded-xl overflow-hidden">
               {/* Header */}
               <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
-                <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                <div className="w-9 h-9 rounded-full bg-blue-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
                   {selectedEmp.name?.charAt(0)?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -2093,7 +2080,7 @@ function AdminReport({
                       label="In Progress"
                       value={empM.inProgress}
                       total={empM.total}
-                      color="#3b82f6"
+                      color="#4f46e5"
                     />
                     <HBar
                       label="QA Testing"
@@ -2105,7 +2092,7 @@ function AdminReport({
                       label="On Hold"
                       value={empM.onHold}
                       total={empM.total}
-                      color="#f59e0b"
+                      color="#d97706"
                     />{" "}
                     <HBar
                       label="Todo"
@@ -2256,7 +2243,7 @@ function AdminReport({
             {
               label: "Total Projects",
               value: allProjects.length,
-              color: "bg-slate-900 text-white",
+              color: "bg-slate-100 text-slate-700",
             },
             {
               label: "Active",
@@ -2354,7 +2341,7 @@ function AdminReport({
                     ? "#10b981"
                     : project.status === "Planning"
                       ? "#8b5cf6"
-                      : "#3b82f6";
+                      : "#4f46e5";
                 return (
                   <article
                     key={project._id}

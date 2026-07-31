@@ -140,7 +140,7 @@ export default function EditTemplate() {
             <span>Back</span>
           </motion.button>
 
-          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
             Edit Template
           </h1>
 
@@ -222,7 +222,7 @@ export default function EditTemplate() {
                           updated[i].name = e.target.value;
                           setTemplate({ ...template, kras: updated });
                         }}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-200"
                       />
                     </div>
 
@@ -243,7 +243,7 @@ export default function EditTemplate() {
                             ? "border-red-500 focus:ring-red-500"
                             : errors.kraTotalSuccess
                               ? "border-green-500 focus:ring-green-500"
-                              : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                              : "border-gray-300 focus:ring-violet-500 focus:border-violet-500"
                           }`}
                       />
                     </div>
@@ -285,7 +285,7 @@ export default function EditTemplate() {
                                   u[i].kpis[j].title = e.target.value;
                                   setTemplate({ ...template, kras: u });
                                 }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-sm"
                               />
                             </div>
 
@@ -308,7 +308,7 @@ export default function EditTemplate() {
                                 }}
                                 className={`w-full px-3 py-2 border rounded-lg text-sm text-right focus:ring-2 transition-all ${errors.kpiTotals[i]
                                     ? "border-red-500 focus:ring-red-500"
-                                    : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                                    : "border-gray-300 focus:ring-violet-500 focus:border-violet-500"
                                   }`}
                               />
                             </div>
@@ -356,7 +356,7 @@ export default function EditTemplate() {
                               });
                               setTemplate({ ...template, kras: updated });
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
+                            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                           >
@@ -394,7 +394,7 @@ export default function EditTemplate() {
 
               <p className="text-sm text-gray-700 mb-2">
                 Remaining KRA Weight:{" "}
-                <span className="font-bold text-blue-600">
+                <span className="font-bold text-violet-600">
                   {100 -
                     template.kras.reduce(
                       (s, k) => s + Number(k.weight || 0),
@@ -436,7 +436,7 @@ export default function EditTemplate() {
                   ) <=
                   0
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg"
+                  : "bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700 hover:shadow-lg"
                 }
               `}
               whileHover={
