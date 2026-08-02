@@ -11,11 +11,21 @@ import {
 
 const emitTaskChanged = (payload) => getIO()?.emit("task:changed", { occurredAt: Date.now(), ...payload });
 
+const TASK_STATUSES = new Set(["TODO", "IN_PROGRESS", "ON_HOLD", "QA_TESTING", "DONE"]);
+
+// ADMIN/PM see every task; everyone else only their own assignments/creations.
+const canAccessTask = (user, task) => {
+  const role = user.roles.tracker;
+  if (role === "ADMIN" || role === "PM") return true;
+  const isAssignee = task.assignees.some((a) => (a._id || a).equals(user._id));
+  const isCreator = task.createdBy && (task.createdBy._id || task.createdBy).equals(user._id);
+  return Boolean(isAssignee || isCreator);
+};
+
+// RBAC-scoped: ADMIN sees everything, everyone else is scoped to projects
+// they lead/created/are a team member of, or tasks they're directly assigned.
 export const listTasks = async (req, res) => {
-  const filter = {};
-  if (req.query.projectId) filter.projectId = req.query.projectId;
-  if (req.query.status) filter.status = req.query.status;
-  if (req.query.priority) filter.priority = req.query.priority;
+  const filter = await buildAccessibleTaskFilter(req);
   if (req.query.assignee) filter.assignees = req.query.assignee;
 
   const tasks = await Task.find(filter)
@@ -31,6 +41,9 @@ export const getTask = async (req, res) => {
     .populate("createdBy", "name email")
     .populate("comments.user", "name email");
   if (!task) return res.status(404).json({ message: "Task not found" });
+  if (!canAccessTask(req.user, task)) {
+    return res.status(403).json({ message: "Access denied: this is not your task, and you are not an admin or PM" });
+  }
   res.json(task);
 };
 
@@ -68,6 +81,9 @@ export const updateTask = async (req, res) => {
   const { title, description, priority, dueDate, assignees } = req.body;
   const task = await Task.findById(req.params.id);
   if (!task) return res.status(404).json({ message: "Task not found" });
+  if (!canAccessTask(req.user, task)) {
+    return res.status(403).json({ message: "Access denied: this is not your task, and you are not an admin or PM" });
+  }
 
   if (title !== undefined) task.title = title;
   if (description !== undefined) task.description = description;
@@ -96,8 +112,14 @@ export const updateTask = async (req, res) => {
 
 export const changeTaskStatus = async (req, res) => {
   const { status } = req.body;
+  if (!TASK_STATUSES.has(status)) {
+    return res.status(400).json({ message: `Invalid status. Must be one of: ${[...TASK_STATUSES].join(", ")}` });
+  }
   const task = await Task.findById(req.params.id);
   if (!task) return res.status(404).json({ message: "Task not found" });
+  if (!canAccessTask(req.user, task)) {
+    return res.status(403).json({ message: "Access denied: this is not your task, and you are not an admin or PM" });
+  }
 
   task.status = status;
   if (status === "DONE") {
@@ -123,7 +145,9 @@ export const changeTaskStatus = async (req, res) => {
 
 export const addTaskComment = async (req, res) => {
   const { text } = req.body;
-  if (!text) return res.status(400).json({ message: "text is required" });
+  if (!text || text.trim().length < 3) {
+    return res.status(400).json({ message: "Comment must be at least 3 characters" });
+  }
 
   const task = await Task.findById(req.params.id);
   if (!task) return res.status(404).json({ message: "Task not found" });
@@ -145,8 +169,16 @@ export const addTaskComment = async (req, res) => {
 };
 
 export const deleteTask = async (req, res) => {
-  const task = await Task.findByIdAndDelete(req.params.id);
+  const task = await Task.findById(req.params.id);
   if (!task) return res.status(404).json({ message: "Task not found" });
+
+  const role = req.user.roles.tracker;
+  const isCreator = task.createdBy && task.createdBy.equals(req.user._id);
+  if (role !== "ADMIN" && role !== "PM" && !isCreator) {
+    return res.status(403).json({ message: "Access denied: Only ADMIN, PM or creator can delete" });
+  }
+
+  await task.deleteOne();
   emitTaskChanged({ action: "delete", taskId: task._id, projectId: task.projectId });
   res.status(204).send();
 };

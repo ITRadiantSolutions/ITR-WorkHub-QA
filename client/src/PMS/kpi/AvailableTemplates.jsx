@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, Trash2, Search, RefreshCw, FileText } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { confirmDialog } from "../../components/ConfirmDialog";
 import getAuthAxios from "../../utils/authAxios";
 import { ArrowLeft } from "lucide-react";
 
@@ -73,30 +74,26 @@ export default function AvailableTemplatesPage() {
   );
 
   const handleDelete = async (id) => {
-    const confirm = await Swal.fire({
+    const confirmed = await confirmDialog({
       title: "Delete Template?",
       text: "This cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      confirmButtonText: "Delete",
+      confirmText: "Delete",
+      danger: true,
     });
 
-    if (!confirm.isConfirmed) return;
+    if (!confirmed) return;
 
     try {
       const api = await getAuthAxios();
       const handleDelete = async (template) => {
-        const confirm = await Swal.fire({
+        const confirmed = await confirmDialog({
           title: "Delete Template?",
           text: "All templates with this name will be deleted.",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#dc2626",
-          confirmButtonText: "Delete",
+          confirmText: "Delete",
+          danger: true,
         });
 
-        if (!confirm.isConfirmed) return;
+        if (!confirmed) return;
 
         try {
           const api = await getAuthAxios();
@@ -113,30 +110,20 @@ export default function AvailableTemplatesPage() {
             )
           );
 
-          Swal.fire({
-            icon: "success",
-            title: "Deleted",
-            timer: 1000,
-            showConfirmButton: false,
-          });
+          toast.success("Deleted");
 
           fetchTemplates();
 
         } catch (err) {
           console.error(err);
-          Swal.fire("Delete failed", "", "error");
+          toast.error("Delete failed");
         }
       };
-      Swal.fire({
-        icon: "success",
-        title: "Deleted",
-        timer: 1000,
-        showConfirmButton: false,
-      });
+      toast.success("Deleted");
       fetchTemplates();
     } catch (err) {
       console.error("Delete error:", err);
-      Swal.fire("Delete failed", "Could not delete the template.", "error");
+      toast.error("Could not delete the template.");
     }
   };
 

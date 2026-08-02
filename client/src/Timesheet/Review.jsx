@@ -25,10 +25,43 @@ const STATUS_STYLES = {
 const fmtShort = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 const fmtDateTime = (d) => (d ? new Date(d).toISOString().slice(0, 16).replace("T", " ") : "-");
 const hasNsa = (ts) => (ts.rows || []).some((r) => (r.nsa || []).some(Boolean));
+// The employee's own note(s) for the week — one per project row that has one
+// — as opposed to managerComment, which is a *previous reviewer's* note.
+const employeeComment = (ts) =>
+  (ts.rows || [])
+    .map((r) => r.comment?.trim())
+    .filter(Boolean)
+    .join("; ");
 
 function ReasonModal({ action, count, onCancel, onConfirm }) {
   const [comment, setComment] = useState("");
+  const [step, setStep] = useState("write"); // "write" -> "confirm"
   const label = action === "reject" ? "Reject" : "Request Edit";
+
+  if (step === "confirm") {
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-1">Confirm {label.toLowerCase()}</h3>
+          <p className="text-sm text-slate-500 mb-3">
+            This will {action === "reject" ? "reject" : "send back for edits"} {count > 1 ? `${count} timesheets` : "this timesheet"} and email the employee this reason:
+          </p>
+          <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 whitespace-pre-wrap mb-4">{comment}</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onConfirm(comment)}
+              className={`px-4 py-2 rounded-xl text-white text-sm font-bold ${action === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-amber-500 hover:bg-amber-600"}`}
+            >
+              Confirm {label}
+            </button>
+            <button onClick={() => setStep("write")} className="px-4 py-2 rounded-xl text-slate-500 text-sm font-semibold hover:bg-slate-50">
+              Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
@@ -45,11 +78,32 @@ function ReasonModal({ action, count, onCancel, onConfirm }) {
         />
         <div className="flex items-center gap-2 mt-4">
           <button
-            onClick={() => comment.trim() && onConfirm(comment.trim())}
+            onClick={() => comment.trim() && setStep("confirm")}
             disabled={!comment.trim()}
             className={`px-4 py-2 rounded-xl text-white text-sm font-bold disabled:opacity-50 ${action === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-amber-500 hover:bg-amber-600"}`}
           >
-            Confirm {label}
+            Continue
+          </button>
+          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-slate-500 text-sm font-semibold hover:bg-slate-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({ count, onCancel, onConfirm }) {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Approve {count > 1 ? `${count} timesheets` : "timesheet"}?</h3>
+        <p className="text-sm text-slate-500 mb-4">
+          This will mark {count > 1 ? "these timesheets" : "this timesheet"} as approved and notify the employee. This can't be undone from here.
+        </p>
+        <div className="flex items-center gap-2">
+          <button onClick={onConfirm} className="px-4 py-2 rounded-xl text-white text-sm font-bold bg-emerald-600 hover:bg-emerald-700">
+            Confirm Approve
           </button>
           <button onClick={onCancel} className="px-4 py-2 rounded-xl text-slate-500 text-sm font-semibold hover:bg-slate-50">
             Cancel
@@ -80,6 +134,12 @@ export default function Review() {
   };
 
   useEffect(load, []);
+
+  // Poll for newly-submitted timesheets so they show up without a manual refresh.
+  useEffect(() => {
+    const interval = setInterval(load, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const counts = TABS.reduce((acc, t) => {
     acc[t.key] = t.key === "all" ? timesheets.length : timesheets.filter((ts) => ts.status === t.key).length;
@@ -187,7 +247,7 @@ export default function Review() {
           <span className="text-sm font-semibold text-teal-700">{selected.size} selected</span>
           <div className="flex-1" />
           <button
-            onClick={() => runAction([...selected], "approve")}
+            onClick={() => setModal({ ids: [...selected], action: "approve" })}
             disabled={busyIds.size > 0}
             className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
           >
@@ -270,13 +330,13 @@ export default function Review() {
                           </span>
                         </td>
                         <td className="px-3 py-3 text-slate-500 text-xs">{fmtDateTime(ts.submittedAt)}</td>
-                        <td className="px-3 py-3 text-slate-500 text-xs max-w-[160px] truncate" title={ts.managerComment}>
-                          {ts.managerComment || "-"}
+                        <td className="px-3 py-3 text-slate-500 text-xs max-w-[160px] truncate" title={employeeComment(ts)}>
+                          {employeeComment(ts) || "-"}
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => runAction([ts._id], "approve")}
+                              onClick={() => setModal({ ids: [ts._id], action: "approve" })}
                               disabled={!actionable || busyIds.has(ts._id)}
                               className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
@@ -329,6 +389,12 @@ export default function Review() {
                                 })}
                               </tbody>
                             </table>
+                            {ts.managerComment && (
+                              <p className="mt-3 text-xs text-slate-500">
+                                <span className="font-bold uppercase tracking-wide text-slate-400">Previous reviewer note: </span>
+                                {ts.managerComment}
+                              </p>
+                            )}
                           </td>
                         </tr>
                       )}
@@ -359,7 +425,14 @@ export default function Review() {
         </div>
       )}
 
-      {modal && (
+      {modal && modal.action === "approve" && (
+        <ConfirmModal
+          count={modal.ids.length}
+          onCancel={() => setModal(null)}
+          onConfirm={() => runAction(modal.ids, "approve")}
+        />
+      )}
+      {modal && modal.action !== "approve" && (
         <ReasonModal
           action={modal.action}
           count={modal.ids.length}

@@ -4,7 +4,7 @@ import axios from "axios";
 
 const tokenCache = { token: null, expiresAt: 0 };
 
-async function getAccessToken() {
+export async function getGraphAccessToken() {
   if (tokenCache.token && Date.now() < tokenCache.expiresAt - 60_000) {
     return tokenCache.token;
   }
@@ -27,7 +27,7 @@ async function getAccessToken() {
 }
 
 export async function sendMail(toEmail, subject, body, { html = true } = {}) {
-  const accessToken = await getAccessToken();
+  const accessToken = await getGraphAccessToken();
   const url = `https://graph.microsoft.com/v1.0/users/${process.env.SENDER_EMAIL}/sendMail`;
 
   await axios.post(

@@ -116,6 +116,8 @@ export default function Login() {
       } else if (errorData.status === "Rejected") {
         toast.error("Account rejected. Contact administrator.", { duration: 5000 });
         navigate("/rejected");
+      } else if (errorData.status === "Deactivated") {
+        setError("You are no longer part of this organisation. Please contact HR to restore your access.");
       } else {
         setError(errorData.message || "Invalid email or password.");
       }

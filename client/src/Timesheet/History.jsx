@@ -91,6 +91,7 @@ export default function History() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((ts) => {
             const style = STATUS_STYLES[ts.status] || STATUS_STYLES.draft;
+            const canEdit = ts.status === "needs_edit" || ts.status === "rejected";
             return (
               <div key={ts._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -107,10 +108,13 @@ export default function History() {
                   Action by: {ts.managerActionBy?.name || "—"}
                 </p>
                 <button
-                  onClick={() => navigate(`/timesheet/new/${ts._id}`)}
+                  onClick={() => {
+                    if (canEdit) toast.info("You can now edit this week's timesheet and save your changes.");
+                    navigate(`/timesheet/new/${ts._id}`);
+                  }}
                   className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition"
                 >
-                  View <Icons.ChevronRight />
+                  {canEdit ? <>Edit <Icons.Edit /></> : <>View <Icons.ChevronRight /></>}
                 </button>
               </div>
             );

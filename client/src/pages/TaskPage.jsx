@@ -257,7 +257,6 @@ function StatusSelect({ value, onChange, task, user }) {
     </div>
   );
 }
-/* eslint-disable-next-line no-unused-vars */
 function SearchableProjectSelect({ projects, value, onChange }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -375,20 +374,9 @@ function SearchableProjectSelect({ projects, value, onChange }) {
     </div>
   );
 }
-function getStatusVariant(s) {
-  return (
-    {
-      DONE: "done",
-      IN_PROGRESS: "progress",
-      TODO: "todo",
-      QA_TESTING: "qa",
-    }[s] || "default"
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function TasksPage({ onTaskUpdated }) {
+export default function TasksPage() {
   const { user } = useAuth();
   const skippedInitialFilterFetch = useRef(false);
   const [projects, setProjects] = useState([]);
@@ -560,7 +548,6 @@ export default function TasksPage({ onTaskUpdated }) {
     };
 
     fetchProjectData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.projectId, formData.dueDate, showForm]);
 
   useEffect(() => {
@@ -986,7 +973,6 @@ export default function TasksPage({ onTaskUpdated }) {
     // QA Flow
     if (newStatus === "QA_TESTING") {
       setQaAssignTask(task);
-      setSelectedQa("");
       setShowQaAssignModal(true);
       return;
     }
@@ -1066,9 +1052,6 @@ export default function TasksPage({ onTaskUpdated }) {
   const currentUserId = user?._id || user?.id;
 
   // Include current user (Admin/PM) in assignee list if they are creating a personal task
-  const qaUsers = allUsers.filter(
-    (u) => u.role === "QA" || u.role === "TESTER",
-  );
   const currentUserAssignee = currentUserId
     ? {
         _id: currentUserId,
@@ -1411,7 +1394,6 @@ export default function TasksPage({ onTaskUpdated }) {
     : baseTasks.filter((t) => isCreatedInRange(t.createdAt));
   const [showQaAssignModal, setShowQaAssignModal] = useState(false);
   const [qaAssignTask, setQaAssignTask] = useState(null);
-  const [selectedQa, setSelectedQa] = useState("");
   const [counts, setCounts] = useState({
     total: 0,
     todo: 0,
@@ -2325,28 +2307,28 @@ export default function TasksPage({ onTaskUpdated }) {
               <table className="w-full table-fixed">
                 <thead>
                   <tr>
-                    <th className="w-[18%] px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[18%] px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Task
                     </th>
-                    <th className="w-[14%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[14%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Project
                     </th>
-                    <th className="w-[14%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[14%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Assignee
                     </th>
-                    <th className="w-[10%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[10%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Priority
                     </th>
-                    <th className="w-[10%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[10%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Created
                     </th>
-                    <th className="w-[10%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[10%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Due
                     </th>
-                    <th className="w-[14%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[14%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Status
                     </th>
-                    <th className="w-[10%] px-2 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <th className="w-[10%] px-2 py-2 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                       Actions
                     </th>
                   </tr>
@@ -2359,10 +2341,10 @@ export default function TasksPage({ onTaskUpdated }) {
                 {Array.from({ length: 8 }).map((_, idx) => (
                   <tr key={idx} className="cursor-default">
                     {/* TASK */}
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2">
                       <div className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full mt-1 shrink-0 bg-slate-200" />
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1.5">
                           <div className="h-3.5 w-36 bg-slate-200 rounded-md" />
                           <div className="h-2.5 w-24 bg-slate-200 rounded-md" />
                         </div>
@@ -2370,16 +2352,16 @@ export default function TasksPage({ onTaskUpdated }) {
                     </td>
 
                     {/* PROJECT */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       <div className="h-3 w-24 bg-slate-200 rounded-md" />
-                      <div className="h-2.5 mt-2 w-16 bg-slate-200 rounded-md" />
+                      <div className="h-2.5 mt-1.5 w-16 bg-slate-200 rounded-md" />
                     </td>
 
                     {/* ASSIGNEE */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full bg-slate-200" />
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1.5">
                           <div className="h-3 w-24 bg-slate-200 rounded-md" />
                           <div className="h-2.5 w-16 bg-slate-200 rounded-md" />
                         </div>
@@ -2387,28 +2369,28 @@ export default function TasksPage({ onTaskUpdated }) {
                     </td>
 
                     {/* PRIORITY */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       <div className="h-6 w-20 rounded-full bg-slate-200" />
                     </td>
 
                     {/* CREATED */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       <div className="h-3 w-20 bg-slate-200 rounded-md" />
                     </td>
 
                     {/* DUE */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       <div className="h-3 w-20 bg-slate-200 rounded-md" />
-                      <div className="h-2.5 mt-2 w-14 bg-slate-200 rounded-md" />
+                      <div className="h-2.5 mt-1.5 w-14 bg-slate-200 rounded-md" />
                     </td>
 
                     {/* STATUS */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       <div className="h-9 w-28 rounded-xl bg-slate-200" />
                     </td>
 
                     {/* ACTIONS */}
-                    <td className="px-2 py-3 text-center">
+                    <td className="px-2 py-2 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-7 h-7 rounded-md bg-slate-200" />
                         <div className="w-7 h-7 rounded-md bg-slate-200" />
@@ -2487,28 +2469,28 @@ export default function TasksPage({ onTaskUpdated }) {
           <table className="w-full table-fixed">
             <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
-                <th className="w-[18%] px-3 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[18%] px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Task
                 </th>
-                <th className="w-[14%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[14%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Project
                 </th>
-                <th className="w-[14%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[14%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Assignee
                 </th>
-                <th className="w-[10%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[10%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Priority
                 </th>
-                <th className="w-[10%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[10%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Created
                 </th>
-                <th className="w-[10%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[10%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Due
                 </th>
-                <th className="w-[14%] px-2 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[14%] px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Status
                 </th>
-                <th className="w-[10%] px-2 py-2.5 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <th className="w-[10%] px-2 py-2 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Actions
                 </th>
               </tr>
@@ -2532,7 +2514,7 @@ export default function TasksPage({ onTaskUpdated }) {
                     className="hover:bg-slate-50/70 transition-colors cursor-pointer"
                   >
                     {/* TASK */}
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2">
                       <div className="flex items-start gap-2">
                         <div
                           className={`w-2 h-2 rounded-full mt-1 shrink-0 ${
@@ -2552,14 +2534,14 @@ export default function TasksPage({ onTaskUpdated }) {
                     </td>
 
                     {/* PROJECT */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       <p className="text-[10px] font-semibold text-slate-600 truncate">
                         {getProjectName(task.projectId || task.project)}
                       </p>
                     </td>
 
                     {/* ASSIGNEE */}
-                    <td className="px-2 py-3">
+                    <td className="px-2 py-2">
                       {task.assignees?.length > 0 ? (
                         <div className="flex items-center gap-2">
                           <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-semibold text-slate-700 shrink-0">
@@ -2586,7 +2568,7 @@ export default function TasksPage({ onTaskUpdated }) {
                     </td>
 
                     {/* PRIORITY */}
-                    <td className="px-2 py-3 text-[10px] whitespace-nowrap">
+                    <td className="px-2 py-2 text-[10px] whitespace-nowrap">
                       <Badge
                         label={task.priority}
                         variant={getPriorityVariant(task.priority)}
@@ -2594,7 +2576,7 @@ export default function TasksPage({ onTaskUpdated }) {
                     </td>
 
                     {/* CREATED */}
-                    <td className="px-2 py-3 text-[10px] text-slate-500 whitespace-nowrap">
+                    <td className="px-2 py-2 text-[10px] text-slate-500 whitespace-nowrap">
                       {task.createdAt
                         ? new Date(task.createdAt).toLocaleDateString("en-US", {
                             month: "short",
@@ -2605,7 +2587,7 @@ export default function TasksPage({ onTaskUpdated }) {
                     </td>
 
                     {/* DUE */}
-                    <td className="px-2 py-3 whitespace-nowrap">
+                    <td className="px-2 py-2 whitespace-nowrap">
                       <p
                         className={`text-[10px] ${
                           isOverdue
@@ -2626,7 +2608,7 @@ export default function TasksPage({ onTaskUpdated }) {
 
                     {/* STATUS */}
                     <td
-                      className="px-2 py-3"
+                      className="px-2 py-2"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="scale-[0.9] origin-left">
@@ -2650,7 +2632,7 @@ export default function TasksPage({ onTaskUpdated }) {
 
                     {/* ACTIONS */}
                     <td
-                      className="px-2 py-3 text-center"
+                      className="px-2 py-2 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-center gap-1">
@@ -3307,7 +3289,6 @@ export default function TasksPage({ onTaskUpdated }) {
         onClose={() => {
           setShowQaAssignModal(false);
           setQaAssignTask(null);
-          setSelectedQa("");
         }}
         task={qaAssignTask}
         onAssigned={(updatedTask) => {
@@ -3321,7 +3302,6 @@ export default function TasksPage({ onTaskUpdated }) {
 
           setShowQaAssignModal(false);
           setQaAssignTask(null);
-          setSelectedQa("");
 
           toast.success("Task moved to QA Testing");
         }}

@@ -162,7 +162,20 @@ const canView = (timesheet, user) =>
   user.roles.timesheet === "hr";
 
 export const listMyTimesheets = async (req, res) => {
-  const timesheets = await Timesheet.find({ userId: req.user._id })
+  let userId = req.user._id;
+
+  // A manager/HR user viewing one specific direct report's dashboard.
+  if (req.query.userId && ["manager", "hr"].includes(req.user.roles.timesheet)) {
+    if (req.user.roles.timesheet === "manager") {
+      const target = await User.findById(req.query.userId).select("managerId");
+      if (!target || String(target.managerId) !== String(req.user._id)) {
+        return res.status(403).json({ message: "You can only view your own direct reports" });
+      }
+    }
+    userId = req.query.userId;
+  }
+
+  const timesheets = await Timesheet.find({ userId })
     .populate("rows.projectId", "name")
     .populate("managerActionBy", "name")
     .sort({ weekStart: -1 });
@@ -263,6 +276,7 @@ export const submitTimesheet = async (req, res) => {
   }
 
   const resubmitted = ["rejected", "needs_edit"].includes(timesheet.status);
+  const resubmitComment = (req.body.resubmitComment || "").trim().slice(0, 1000);
   timesheet.status = "submitted";
   timesheet.submittedAt = new Date();
   timesheet.managerId = managerId;
@@ -270,7 +284,9 @@ export const submitTimesheet = async (req, res) => {
     action: "submitted",
     by: req.user._id,
     at: timesheet.submittedAt,
-    comment: resubmitted ? "Resubmitted after " + (timesheet.history.at(-1)?.action || "edit") : "",
+    comment: resubmitted
+      ? resubmitComment || "Resubmitted after " + (timesheet.history.at(-1)?.action || "edit")
+      : "",
   });
   await timesheet.save();
   res.json(timesheet);

@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Icons from "../components/Icons";
-import { NsaReportSection } from "./HrDashboardSections";
 
 const RANGE_OPTIONS = [
   { value: "this_week", label: "This Week" },
@@ -163,7 +162,7 @@ function HoursLineChart({ series, totalHours }) {
           return (
             <g key={i}>
               <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e2e8f0" strokeWidth="1" />
-              <text x={padL - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#94a3b8" className="tabular-nums">
+              <text x={padL - 8} y={y + 3} textAnchor="end" fontSize="11" fill="#94a3b8" className="tabular-nums">
                 {t}
               </text>
             </g>
@@ -183,7 +182,7 @@ function HoursLineChart({ series, totalHours }) {
           </g>
         ))}
         {series.map((s, i) => (
-          <text key={i} x={points[i]?.x} y={height - 4} textAnchor="middle" fontSize="10" fill="#94a3b8">
+          <text key={i} x={points[i]?.x} y={height - 4} textAnchor="middle" fontSize="11" fill="#94a3b8">
             {s.name}
           </text>
         ))}
@@ -233,10 +232,30 @@ export default function Dashboard() {
   const [statusCounts, setStatusCounts] = useState({});
   const [loading, setLoading] = useState(true);
 
+  const isManagerOrHr = ["manager", "hr"].includes(user?.roles?.timesheet);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [viewUser, setViewUser] = useState(null); // null = viewing your own dashboard
+  const [employeeQuery, setEmployeeQuery] = useState("");
+
+  useEffect(() => {
+    if (!isManagerOrHr) return;
+    API.get(user.roles.timesheet === "hr" ? "/users" : "/users/my-reports")
+      .then((res) => setTeamMembers((res.data || []).filter((u) => !u.archived?.timesheet)))
+      .catch(() => toast.error("Failed to load team list"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManagerOrHr]);
+
+  const matchingEmployees = useMemo(() => {
+    const q = employeeQuery.trim().toLowerCase();
+    if (!q) return [];
+    return teamMembers.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)).slice(0, 8);
+  }, [teamMembers, employeeQuery]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([API.get("/entries", { params: { range } }), API.get("/timesheets")])
+    const params = { range, ...(viewUser ? { userId: viewUser._id } : {}) };
+    Promise.all([API.get("/entries", { params }), API.get("/timesheets", { params: viewUser ? { userId: viewUser._id } : {} })])
       .then(([eRes, tRes]) => {
         if (cancelled) return;
         setEntries(eRes.data || []);
@@ -250,7 +269,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [range]);
+  }, [range, viewUser]);
 
   const { donutSegments, lineSeries, totalHours } = useMemo(() => {
     const byProject = new Map();
@@ -307,7 +326,35 @@ export default function Dashboard() {
     };
   }, [timesheets]);
 
-  const isHr = user?.roles?.timesheet === "hr";
+  // ── Team Timesheet Status (manager/HR only) — a per-week submission grid ──
+  const [statusRange, setStatusRange] = useState("this_month");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusGrid, setStatusGrid] = useState({ weeks: [], rows: [] });
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [expandedStatusRow, setExpandedStatusRow] = useState(null);
+
+  useEffect(() => {
+    if (!isManagerOrHr) return;
+    let cancelled = false;
+    setStatusLoading(true);
+    API.get("/hr/timesheet-status", { params: { range: statusRange, status: statusFilter } })
+      .then((res) => !cancelled && setStatusGrid(res.data || { weeks: [], rows: [] }))
+      .catch(() => toast.error("Failed to load team timesheet status"))
+      .finally(() => !cancelled && setStatusLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [isManagerOrHr, statusRange, statusFilter]);
+
+  const STATUS_DOT = {
+    approved: "bg-emerald-500",
+    submitted: "bg-orange-400",
+    needs_edit: "bg-amber-500",
+    rejected: "bg-red-500",
+    draft: "bg-slate-300",
+    not_submitted: "bg-slate-200",
+  };
+
   const firstName = user?.name?.split(" ")[0] || "there";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -319,24 +366,65 @@ export default function Dashboard() {
           <h1 className="text-xl font-extrabold text-slate-900">
             {greeting}, {firstName} 👋
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">Here's what's happening with your time tracking</p>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {viewUser ? (
+              <>
+                Viewing <span className="font-semibold text-slate-700">{viewUser.name}</span>'s time tracking —{" "}
+                <button onClick={() => setViewUser(null)} className="font-semibold text-teal-600 hover:text-teal-700 underline">
+                  back to mine
+                </button>
+              </>
+            ) : (
+              "Here's what's happening with your time tracking"
+            )}
+          </p>
         </div>
-        <div className="relative">
-          <select
-            value={range}
-            onChange={(e) => setRange(e.target.value)}
-            className="appearance-none rounded-[14px] border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm font-semibold text-slate-700 shadow-sm cursor-pointer"
-          >
-            {RANGE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <Icons.Calendar />
-          </span>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <Icons.ChevronDown />
-          </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isManagerOrHr && (
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></span>
+              <input
+                value={employeeQuery}
+                onChange={(e) => setEmployeeQuery(e.target.value)}
+                placeholder="View an employee's dashboard..."
+                className="rounded-[14px] border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-sm shadow-sm w-64"
+              />
+              {matchingEmployees.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
+                  {matchingEmployees.map((u) => (
+                    <button
+                      key={u._id}
+                      onClick={() => {
+                        setViewUser(u);
+                        setEmployeeQuery("");
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-teal-50 flex flex-col"
+                    >
+                      <span className="font-semibold text-slate-800">{u.name}</span>
+                      <span className="text-xs text-slate-400">{u.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="relative">
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value)}
+              className="appearance-none rounded-[14px] border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm font-semibold text-slate-700 shadow-sm cursor-pointer"
+            >
+              {RANGE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <Icons.Calendar />
+            </span>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <Icons.ChevronDown />
+            </span>
+          </div>
         </div>
       </div>
 
@@ -405,7 +493,7 @@ export default function Dashboard() {
                   <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
                     <Icons.Layers />
                   </div>
-                  <h3 className="font-bold text-slate-900">Activity Distribution</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">Activity Distribution</h3>
                 </div>
                 <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500">
                   By Project <Icons.ChevronDown />
@@ -432,7 +520,7 @@ export default function Dashboard() {
                   <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
                     <Icons.TrendUp />
                   </div>
-                  <h3 className="font-bold text-slate-900">Hours Logged</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">Hours Logged</h3>
                 </div>
                 <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500">
                   By Day <Icons.ChevronDown />
@@ -444,82 +532,187 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {isHr ? (
-            <div className="space-y-4">
-              <NsaReportSection />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className={`${CARD} p-4`}>
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
-                    <Icons.Clock />
-                  </div>
-                  <h3 className="font-bold text-slate-900">Recent Activity</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className={`${CARD} p-4`}>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
+                  <Icons.Clock />
                 </div>
-                {recentActivity.length ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {recentActivity.map((ts) => (
-                      <RecentActivityItem key={ts._id} ts={ts} />
+                <h3 className="font-bold text-slate-900">Recent Activity</h3>
+              </div>
+              {recentActivity.length ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {recentActivity.map((ts) => (
+                    <RecentActivityItem key={ts._id} ts={ts} />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-teal-50/60 rounded-xl p-6 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-white text-teal-300 flex items-center justify-center mx-auto mb-2 shadow-sm">
+                    <Icons.Reports />
+                  </div>
+                  <p className="font-bold text-slate-700">No recent activity</p>
+                  <p className="text-sm text-slate-400 mt-1">Your timesheet activities will appear here.</p>
+                </div>
+              )}
+            </div>
+
+            <div className={`${CARD} p-4`}>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
+                  <Icons.Zap />
+                </div>
+                <h3 className="font-bold text-slate-900">Quick Actions</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => navigate("/timesheet/new")}
+                  className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-violet-200 hover:bg-violet-50 transition text-left"
+                >
+                  <div className="w-9 h-9 rounded-[14px] bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                    <Icons.Plus />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800">New Timesheet</p>
+                    <p className="text-xs text-slate-400">Log your hours</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => navigate("/timesheet/new")}
+                  className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left"
+                >
+                  <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Icons.Calendar />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800">View Timesheet</p>
+                    <p className="text-xs text-slate-400">Manage entries</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => navigate("/timesheet/history")}
+                  className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left sm:col-span-2"
+                >
+                  <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Icons.Reports />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800">View History</p>
+                    <p className="text-xs text-slate-400">Past records</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {isManagerOrHr && !viewUser && (
+            <div className={`${CARD} p-4 mt-4`}>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
+                    <Icons.Users />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Team Timesheet Status</h3>
+                    <p className="text-xs text-slate-400">Submission status per week for {user.roles.timesheet === "hr" ? "everyone" : "your direct reports"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="needs_edit">Needs Edit</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="not_submitted">Not submitted</option>
+                  </select>
+                  <select
+                    value={statusRange}
+                    onChange={(e) => setStatusRange(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
+                  >
+                    {RANGE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
-                  </div>
-                ) : (
-                  <div className="bg-teal-50/60 rounded-xl p-6 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-white text-teal-300 flex items-center justify-center mx-auto mb-2 shadow-sm">
-                      <Icons.Reports />
-                    </div>
-                    <p className="font-bold text-slate-700">No recent activity</p>
-                    <p className="text-sm text-slate-400 mt-1">Your timesheet activities will appear here.</p>
-                  </div>
-                )}
+                  </select>
+                </div>
               </div>
 
-              <div className={`${CARD} p-4`}>
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
-                    <Icons.Zap />
-                  </div>
-                  <h3 className="font-bold text-slate-900">Quick Actions</h3>
+              {statusLoading ? (
+                <div className="py-8 text-center text-slate-400 text-sm">Loading...</div>
+              ) : !statusGrid.rows.length ? (
+                <div className="py-8 text-center text-slate-400 text-sm">No matching employees for this filter.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr>
+                        <th className="text-left py-1.5 pr-3 font-bold uppercase tracking-wide text-slate-400">Employee</th>
+                        {statusGrid.weeks.map((w) => (
+                          <th key={w.weekStart} className="py-1.5 px-1.5 font-bold uppercase tracking-wide text-slate-400 text-center whitespace-nowrap">
+                            {new Date(w.weekStart).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {statusGrid.rows.map((row) => {
+                        const weekEntries = Object.entries(row.weeks);
+                        const missing = weekEntries.filter(([, w]) => w.status === "not_submitted");
+                        const isExpanded = expandedStatusRow === row.userId;
+                        return (
+                          <Fragment key={row.userId}>
+                            <tr className="border-t border-slate-50">
+                              <td className="py-2 pr-3">
+                                <button
+                                  onClick={() => setExpandedStatusRow(isExpanded ? null : row.userId)}
+                                  className="font-semibold text-slate-700 hover:text-teal-700 text-left"
+                                >
+                                  {row.userName}
+                                  {missing.length > 0 && (
+                                    <span className="ml-1.5 text-[10px] font-bold text-red-500">({missing.length} missing)</span>
+                                  )}
+                                </button>
+                              </td>
+                              {weekEntries.map(([weekStart, w]) => (
+                                <td key={weekStart} className="py-2 px-1.5 text-center">
+                                  <span
+                                    className={`inline-block w-2.5 h-2.5 rounded-full ${STATUS_DOT[w.status] || "bg-slate-200"}`}
+                                    title={`${weekStart}: ${w.status.replace("_", " ")} (${w.total.toFixed(1)}h)`}
+                                  />
+                                </td>
+                              ))}
+                            </tr>
+                            {isExpanded && (
+                              <tr key={`${row.userId}-detail`} className="bg-slate-50/60">
+                                <td colSpan={weekEntries.length + 1} className="px-3 py-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    {weekEntries.map(([weekStart, w]) => (
+                                      <span
+                                        key={weekStart}
+                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                          w.status === "not_submitted" ? "bg-red-50 text-red-600" : "bg-white border border-slate-200 text-slate-600"
+                                        }`}
+                                      >
+                                        <span className={`w-2 h-2 rounded-full ${STATUS_DOT[w.status] || "bg-slate-200"}`} />
+                                        {new Date(weekStart).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} — {w.status.replace("_", " ")}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    onClick={() => navigate("/timesheet/new")}
-                    className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-violet-200 hover:bg-violet-50 transition text-left"
-                  >
-                    <div className="w-9 h-9 rounded-[14px] bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
-                      <Icons.Plus />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800">New Timesheet</p>
-                      <p className="text-xs text-slate-400">Log your hours</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => navigate("/timesheet/new")}
-                    className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left"
-                  >
-                    <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <Icons.Calendar />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800">View Timesheet</p>
-                      <p className="text-xs text-slate-400">Manage entries</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => navigate("/timesheet/history")}
-                    className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left sm:col-span-2"
-                  >
-                    <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <Icons.Reports />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800">View History</p>
-                      <p className="text-xs text-slate-400">Past records</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </>

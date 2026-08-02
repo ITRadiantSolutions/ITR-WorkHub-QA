@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { submitUserIssue, getUserIssuesForAdmin } from "../services/api";
+import React, { useMemo, useState } from "react";
+import { submitUserIssue } from "../services/api";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { getRoleKeyFromUser } from "../data/roleSettingsConfig";
@@ -212,18 +212,11 @@ function EmptyState({ title, subtitle }) {
 
 // ── Issue Modal ───────────────────────────────────────────────────────────────
 function IssueModal({ user, onClose, accent }) {
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
   const [issueTitle, setIssueTitle] = useState("");
   const [issueDesc, setIssueDesc] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
-  const [submittedIssuesCount, setSubmittedIssuesCount] = useState(0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -250,24 +243,6 @@ function IssueModal({ user, onClose, accent }) {
       setSubmitting(false);
     }
   };
-  useEffect(() => {
-    if (user?.role?.toUpperCase() !== "ADMIN") return;
-
-    const loadIssueCount = async () => {
-      try {
-        const res = await getUserIssuesForAdmin();
-
-        const issues = res?.data?.data || res?.data || [];
-
-        setSubmittedIssuesCount(Array.isArray(issues) ? issues.length : 0);
-      } catch (err) {
-        console.error("Failed to load issue count:", err);
-      }
-    };
-
-    loadIssueCount();
-  }, [user]);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div

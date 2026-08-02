@@ -257,7 +257,7 @@ const handleClearAll = () => {
             } else {
               toast.error("Failed to clear notifications");
             }
-          } catch (error) {
+          } catch {
             toast.error("Failed to clear notifications");
           }
         },

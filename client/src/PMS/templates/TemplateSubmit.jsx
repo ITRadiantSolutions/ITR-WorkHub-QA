@@ -1,7 +1,7 @@
 ﻿import { motion } from "framer-motion";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 
 const authHeaders = () => ({
   "Content-Type": "application/json",
@@ -252,29 +252,17 @@ export default function TemplateSubmit({
               disabled={!canSubmitSelfReview}
               onClick={async () => {
                 if (hasUnsavedKras) {     // ← ADD (check first)
-                  Swal.fire(
-                    "Unsaved Changes",
-                    "Please click Save on each KRA before submitting your self review.",
-                    "warning"
-                  );
+                  toast.warning("Please click Save on each KRA before submitting your self review.");
                   return;
                 }
 
                 if (hasIncompleteSelfReview) {
-                  Swal.fire(
-                    "Incomplete Self Review",
-                    "Please fill response and rating for all KRAs before submitting.",
-                    "warning"
-                  );
+                  toast.warning("Please fill response and rating for all KRAs before submitting.");
                   return;
                 }
 
                 if (hasIncompleteActuals) {
-                  Swal.fire(
-                    "Incomplete Actuals",
-                    "Please fill the actual value for all KPIs that have a target set.",
-                    "warning"
-                  );
+                  toast.warning("Please fill the actual value for all KPIs that have a target set.");
                   return;
                 }
 
@@ -315,26 +303,22 @@ export default function TemplateSubmit({
               disabled={!canSendForApproval}
               onClick={async () => {
                 if (isLocked) {
-                  Swal.fire("Locked", "Submission is locked", "warning");
+                  toast.warning("Submission is locked");
                   return;
                 }
 
                 if (!hasAssignedManager) {
-                  Swal.fire(
-                    "No Manager Assigned",
-                    "You don't have a manager assigned. Please contact HR to assign a manager before submitting.",
-                    "warning"
-                  );
+                  toast.warning("You don't have a manager assigned. Please contact HR to assign a manager before submitting.");
                   return;
                 }
 
                 if (!selectedManager) {
-                  Swal.fire("Manager required", "Please select reporting manager", "warning");
+                  toast.warning("Please select reporting manager");
                   return;
                 }
 
                 if (errors.length > 0) {
-                  Swal.fire("Validation errors", "Please fix validation errors", "warning");
+                  toast.warning("Please fix validation errors");
                   return;
                 }
 

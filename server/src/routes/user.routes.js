@@ -14,6 +14,7 @@ import {
   setManager,
   bulkAssignManager,
   setShift,
+  syncUsersFromAzureGroups,
 } from "../controllers/userController.js";
 
 const router = Router();
@@ -32,5 +33,6 @@ router.patch("/:id/archive", setArchived);
 router.patch("/:id/manager", setManager);
 router.patch("/:id/shift", setShift);
 router.post("/bulk-assign-manager", bulkAssignManager);
+router.post("/sync", syncUsersFromAzureGroups);
 
 export default router;

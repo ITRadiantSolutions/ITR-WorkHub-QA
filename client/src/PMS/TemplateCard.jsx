@@ -14,7 +14,7 @@ import TemplateBody from "./templates/TemplateBody";
 import TemplateSubmit from "./templates/TemplateSubmit";
 import getAuthAxios from "../utils/authAxios";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { isPMS_HR } from "../utils/pmsrolecheck";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -262,10 +262,10 @@ export default function TemplateCard({
       await loadPip();
       setGoalUpdates({});
       setSelectedPipManager("");
-      Swal.fire("Success", "PIP submitted successfully", "success");
+      toast.success("PIP submitted successfully");
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to submit PIP update", "error");
+      toast.error("Failed to submit PIP update");
     } finally {
       setSubmittingPip(false);
     }

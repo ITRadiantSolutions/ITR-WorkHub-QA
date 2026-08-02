@@ -30,3 +30,14 @@ export const protect = async (req, res, next) => {
   req.user = user;
   next();
 };
+
+// Some routers (timesheet, PMS, tracker) are module-specific, and a user can
+// be archived from one module while remaining active elsewhere — `protect`
+// only checks the account-wide flag, so routers that live entirely inside
+// one module opt into this too, scoped to that module's archived.<module> flag.
+export const requireModuleAccess = (module) => (req, res, next) => {
+  if (req.user?.archived?.[module]) {
+    return res.status(403).json({ message: "Account is deactivated for this module" });
+  }
+  next();
+};

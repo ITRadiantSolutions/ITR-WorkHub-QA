@@ -10,6 +10,16 @@ const requirePmsHrOrManager = (req, res) => {
   return true;
 };
 
+// Building the master template catalog is HR-curated content — unlike
+// assigning a template to people (Manager, HR), only HR may create it.
+const requirePmsHr = (req, res) => {
+  if (req.user.roles.pms !== "hr") {
+    res.status(403).json({ message: "PMS HR access required" });
+    return false;
+  }
+  return true;
+};
+
 const kraJson = (k) => ({
   id: k._id.toString(),
   name: k.name,
@@ -43,7 +53,7 @@ const toEntries = (kras = [], type) =>
   }));
 
 export const createMasterTemplate = async (req, res) => {
-  if (!requirePmsHrOrManager(req, res)) return;
+  if (!requirePmsHr(req, res)) return;
   const { name, functionalKras, organizationalKras } = req.body;
   if (!name) return res.status(400).json({ message: "name is required" });
 
@@ -57,7 +67,7 @@ export const createMasterTemplate = async (req, res) => {
 };
 
 export const updateMasterTemplate = async (req, res) => {
-  if (!requirePmsHrOrManager(req, res)) return;
+  if (!requirePmsHr(req, res)) return;
   const { name, functionalKras, organizationalKras } = req.body;
 
   const doc = await KraDefinition.findOne({ _id: req.params.id, scope: "master_template" });
@@ -72,7 +82,7 @@ export const updateMasterTemplate = async (req, res) => {
 };
 
 export const deleteMasterTemplate = async (req, res) => {
-  if (!requirePmsHrOrManager(req, res)) return;
+  if (!requirePmsHr(req, res)) return;
   const doc = await KraDefinition.findOneAndDelete({ _id: req.params.id, scope: "master_template" });
   if (!doc) return res.status(404).json({ message: "Template not found" });
   res.status(204).send();
@@ -82,6 +92,7 @@ export const deleteMasterTemplate = async (req, res) => {
 // current cycle" — we simplify to "every active user" since cycle-scoped
 // assignment tracking isn't precise enough yet to filter further.
 export const listUnassignedAssignees = async (req, res) => {
+  if (!requirePmsHrOrManager(req, res)) return;
   const users = await User.find({ "archived.pms": false }).select("name roles");
   res.json(users.map((u) => ({ id: u._id, name: u.name, type: "user" })));
 };
@@ -145,6 +156,10 @@ export const updateKpiTemplateForUser = async (req, res) => {
 export const getAssignmentByAssignee = async (req, res) => {
   const { assignedToId } = req.query;
   if (!assignedToId) return res.status(400).json({ message: "assignedToId is required" });
+  const isSelf = assignedToId === req.user._id.toString();
+  if (!isSelf && !["hr", "manager"].includes(req.user.roles.pms)) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
 
   const assignment = await findAssignmentForUser(assignedToId);
   if (!assignment) return res.json(null);

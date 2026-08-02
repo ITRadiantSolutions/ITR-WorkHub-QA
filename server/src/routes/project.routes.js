@@ -13,6 +13,7 @@ import {
   updateTeamMembers,
   addTeamMember,
   removeTeamMember,
+  bulkAddTeamMembers,
   addHoliday,
   removeHoliday,
   addExcludedHoliday,
@@ -43,8 +44,9 @@ router.get("/:id", getProject);
 router.put("/:id", allowRoles("tracker", "ADMIN", "PM"), updateProject);
 router.delete("/:id", allowRoles("tracker", "ADMIN", "PM"), deleteProject);
 
-router.post("/:id/team", allowRoles("tracker", "ADMIN", "PM"), addTeamMember);
-router.delete("/:id/team/:userId", allowRoles("tracker", "ADMIN", "PM"), removeTeamMember);
+router.post("/team/bulk-add", bulkAddTeamMembers);
+router.post("/:id/team", addTeamMember);
+router.delete("/:id/team/:userId", removeTeamMember);
 
 router.post("/:id/holidays", allowRoles("tracker", "ADMIN", "PM"), addHoliday);
 router.delete("/:id/holidays/:date", allowRoles("tracker", "ADMIN", "PM"), removeHoliday);

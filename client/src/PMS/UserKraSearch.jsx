@@ -4,7 +4,8 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import getAuthAxios from "../utils/authAxios";
 import { useAuth } from "../context/AuthContext";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { confirmDialog } from "../components/ConfirmDialog";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -653,30 +654,27 @@ export default function UserKraSearch() {
 
     // ── Archive ───────────────────────────────────────────────────────────────
     const handleArchive = useCallback(async (userId, userName, restore = false) => {
-        const result = await Swal.fire({
+        const confirmed = await confirmDialog({
             title: restore ? "Restore User?" : "Archive User?",
-            html: restore
-                ? `<b>${userName}</b> will regain full access to the PMS.`
-                : `<b>${userName}</b> will lose access to the entire PMS.<br/>They won't appear anywhere and cannot log in.`,
-            icon: restore ? "question" : "warning",
-            showCancelButton: true,
-            confirmButtonColor: restore ? "#16a34a" : "#ea580c",
-            cancelButtonColor: "#64748b",
-            confirmButtonText: restore ? "Yes, Restore" : "Yes, Archive",
+            text: restore
+                ? `${userName} will regain full access to the PMS.`
+                : `${userName} will lose access to the entire PMS. They won't appear anywhere and cannot log in.`,
+            confirmText: restore ? "Yes, Restore" : "Yes, Archive",
+            danger: !restore,
         });
-        if (!result.isConfirmed) return;
+        if (!confirmed) return;
         try {
             const api = await getAuthAxios();
             await api.patch(`/pms/users/${userId}/archive`, { is_archived: !restore });
             if (restore) {
                 setArchivedUsers((prev) => prev.filter((u) => u.id !== userId));
-                Swal.fire("Restored!", `${userName} has been restored.`, "success");
+                toast.success(`${userName} has been restored.`);
             } else {
                 setAllUsers((prev) => prev.filter((u) => u.id !== userId));
-                Swal.fire("Archived!", `${userName} has been archived.`, "success");
+                toast.success(`${userName} has been archived.`);
             }
         } catch {
-            Swal.fire("Error", `Failed to ${restore ? "restore" : "archive"} user.`, "error");
+            toast.error(`Failed to ${restore ? "restore" : "archive"} user.`);
         }
     }, []);
 
@@ -686,16 +684,12 @@ export default function UserKraSearch() {
         if (!target || target.pms_role === newRole) return;
 
         const meta = PMS_ROLE_META[newRole] || PMS_ROLE_META.employee;
-        const result = await Swal.fire({
+        const confirmed = await confirmDialog({
             title: "Change PMS Role?",
-            html: `Set <b>${userName}</b>'s role to <b>${meta.label}</b>?`,
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#4f46e5",
-            cancelButtonColor: "#64748b",
-            confirmButtonText: "Yes, Change",
+            text: `Set ${userName}'s role to ${meta.label}?`,
+            confirmText: "Yes, Change",
         });
-        if (!result.isConfirmed) return;
+        if (!confirmed) return;
 
         const prevRole = target.pms_role;
         setSavingRoleId(userId);

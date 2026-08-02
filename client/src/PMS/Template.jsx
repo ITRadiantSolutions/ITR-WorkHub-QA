@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { confirmDialog } from "../components/ConfirmDialog";
 import getAuthAxios from "../utils/authAxios";
 import {
   FileText,
@@ -132,22 +133,21 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
 
   // Delete Funcational and Org
   const handleDeleteLibraryKra = async (kraId) => {
-    const confirm = await Swal.fire({
+    const confirmed = await confirmDialog({
       title: "Delete KRA?",
       text: "This will permanently delete this KRA and its KPIs.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
+      confirmText: "Delete",
+      danger: true,
     });
 
-    if (!confirm.isConfirmed) return;
+    if (!confirmed) return;
     // ḍelete
     try {
       const api = await getAuthAxios();
       await api.delete(`/kra-library/${kraId}`);
 
       loadKras(); // reload list
-      Swal.fire("Deleted", "KRA deleted successfully", "success");
+      toast.success("KRA deleted successfully");
     } catch (err) {
       console.error(err);
 
@@ -155,12 +155,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
         err.response?.data?.detail ||
         "Cannot delete. This KRA is already used in a template.";
 
-      Swal.fire({
-        icon: "error",
-        title: "Cannot Delete",
-        text: message,
-        confirmButtonColor: "#4f46e5",
-      });
+      toast.error(message);
     }
   };
   // edit
@@ -184,7 +179,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
     return Math.max(0, 100 - getTotalKraWeight(temp));
   };
   // if (getRemainingKraWeight(temp) <= 0) {
-  //   Swal.fire("No remaining weight", "You already reached 100%", "warning");
+  //   toast.warning("You already reached 100%");
   //   return;
   // }
   const isManager = (u) => isPMS_Manager(u);
@@ -415,22 +410,20 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
   }, [loggedInUser, templates]);
 
   const handleDeleteTemplate = async (templateId) => {
-    const result = await Swal.fire({
+    const confirmed = await confirmDialog({
       title: "Are you sure?",
       text: "This template will be permanently deleted!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
+      confirmText: "Delete",
+      danger: true,
     });
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
     try {
       const api = await getAuthAxios();
       await api.delete(`/templates/${templateId}`);
 
       await loadTemplates();
     } catch (err) {
-      Swal.fire("Error 🚨", "Failed to delete template!", "error");
+      toast.error("Failed to delete template!");
     }
   };
 
@@ -451,10 +444,10 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
       await loadTemplates();
       setSelectedTemplates([]);
       setErrorMessage("");
-      Swal.fire("Success", "Templates assigned successfully!", "success");
+      toast.success("Templates assigned successfully!");
     } catch (err) {
       setErrorMessage("Something went wrong!");
-      Swal.fire("Error", "Failed to assign templates", "error");
+      toast.error("Failed to assign templates");
     }
   };
 
@@ -466,11 +459,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
       const getResponseKey = (kraId) => `${temp.id}::${employeeId}::${kraId}`;
 
       if (hasIncompleteExtraKra(temp.id)) {
-        Swal.fire(
-          "Incomplete KRA",
-          "Please complete and save all custom KRAs before submitting.",
-          "warning",
-        );
+        toast.warning("Please complete and save all custom KRAs before submitting.");
         return;
       }
 
@@ -497,7 +486,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
         kras: krasPayload,
       });
 
-      Swal.fire("Success", "Data sent to Manager", "success");
+      toast.success("Data sent to Manager");
 
       setSubmittedTemplates((prev) => ({
         ...prev,
@@ -509,18 +498,14 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
       console.error("KRA SUBMIT ERROR ❌", err);
       const detail = err.response?.data?.detail;
       if (detail === "Template already submitted") {
-        Swal.fire(
-          "Already Submitted ⚠️",
-          "This template was already submitted.",
-          "info",
-        );
+        toast.info("This template was already submitted.");
         setSubmittedTemplates((prev) => ({
           ...prev,
           [temp.id]: true,
         }));
         return;
       }
-      Swal.fire("Submission failed", detail || "Something went wrong", "error");
+      toast.error(detail || "Something went wrong");
     }
   };
 
@@ -530,11 +515,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
       const employeeId = loggedInUser._id || loggedInUser.id;
 
       if (!selectedManager) {
-        Swal.fire(
-          "Manager Required",
-          "Please select a reporting manager",
-          "warning",
-        );
+        toast.warning("Please select a reporting manager");
         return;
       }
 
@@ -554,11 +535,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
         : rawStatus;
 
       if (status !== "manager_approved") {
-        Swal.fire(
-          "Approval Required",
-          "Manager/HR approval is required before submitting self review for employee KRAs.",
-          "warning",
-        );
+        toast.warning("Manager/HR approval is required before submitting self review for employee KRAs.");
         return;
       }
 
@@ -600,7 +577,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
         kras: krasPayload,
       });
 
-      Swal.fire("Submitted", "Self review submitted to Manager/HR", "success");
+      toast.success("Self review submitted to Manager/HR");
       setSubmittedTemplates((prev) => ({
         ...prev,
         [temp.id]: { status: "final_employee_submitted" },
@@ -609,7 +586,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
       console.error("SELF REVIEW SUBMIT ERROR ❌", err);
       const detail =
         err.response?.data?.detail || err.message || "Something went wrong";
-      Swal.fire("Submission failed", detail, "error");
+      toast.error(detail);
     }
   };
 
@@ -741,110 +718,76 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
   const displayedOrg = showAllOrg ? filteredOrg : filteredOrg.slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Enhanced Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
-        >
-          <div className="flex items-center justify-between">
+    <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8 space-y-5">
+      {/* Header */}
+      <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               {templateView === "my" && (
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                <h1 className="text-2xl font-extrabold text-slate-900">
                   My KRA & KPI's
                 </h1>
               )}
               {(isPMS_HR(loggedInUser) || isPMS_Manager(loggedInUser)) &&
                 templateView === "employees" && (
-                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                    Define KRA & KPI's
-                  </h1>
+                  <>
+                    <h1 className="text-2xl font-extrabold text-slate-900">
+                      Define KRA & KPI's
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      Create and manage Key Result Areas and their Key Performance Indicators
+                    </p>
+                  </>
                 )}
             </div>
+
             {templateView === "employees" && (
-              <button
-                onClick={() => navigate("/kra-builder")}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg text-sm font-semibold shadow hover:shadow-lg"
-              >
-                <Plus size={16} />
-                Create KRA
-              </button>
-            )}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <button
+                  onClick={() => navigate("/kra-builder")}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold shadow-sm transition"
+                >
+                  <Plus size={16} />
+                  Create KRA
+                </button>
 
-            {["hr", "manager"].includes(loggedInUser?.roles?.pms?.toLowerCase()) &&
-              templateView === "employees" && (
-                <div className="flex items-center gap-3">
-                  {/* Assign by Individual (NOW SAME STYLE) */}
-                  <motion.button
-                    onClick={() => navigate("/assign-individual")}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-5 py-2.5
-      rounded-xl font-semibold text-white
-      bg-gradient-to-r from-purple-600 via-violet-600 to-purple-600
-      shadow-lg hover:shadow-2xl transition-all duration-300"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span className="text-sm tracking-wide">Assign to Individual</span>
-                  </motion.button>
-
-                  <div ref={dropdownRef} className="relative">
-                    {/* Main Button */}
-                    <motion.button
-                      onClick={() => setShowTemplateDropdown((prev) => !prev)}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-3 px-3 py-2
-      rounded-2xl font-semibold text-white
-      bg-gradient-to-br from-purple-600 via-violet-600 to-purple-600
-      shadow-xl hover:shadow-2xl transition-all duration-300"
+                {["hr", "manager"].includes(loggedInUser?.roles?.pms?.toLowerCase()) && (
+                  <>
+                    <button
+                      onClick={() => navigate("/assign-individual")}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 bg-white text-violet-700 text-sm font-bold hover:bg-violet-50 transition"
                     >
-                      <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md shadow-inner">
-                        <Plus className="w-3 h-3 text-white" />
-                      </div>
+                      <Users className="w-4 h-4" />
+                      Assign to Individual
+                    </button>
 
-                      <span className="tracking-wide">Assign by Template</span>
-                    </motion.button>
+                    <div ref={dropdownRef} className="relative">
+                      <button
+                        onClick={() => setShowTemplateDropdown((prev) => !prev)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 bg-white text-violet-700 text-sm font-bold hover:bg-violet-50 transition"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Assign by Template
+                      </button>
 
-                    {/* Dropdown */}
-                    <AnimatePresence>
+                      {/* Dropdown */}
                       {showTemplateDropdown && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute right-0 mt-2 w-60
-          bg-white rounded-2xl shadow-2xl
-          border border-gray-100 p-2  z-50"
-                        >
-                          <div className="space-y-2">
+                        <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-lg border border-slate-100 p-2 z-50">
+                          <div className="space-y-1">
                             {/* Create Template */}
                             <button
                               onClick={() => {
                                 setShowTemplateDropdown(false);
                                 navigate("/create_template");
                               }}
-                              className="flex items-center gap-4 w-full px-4 py-3 
-              rounded-xl hover:bg-purple-50 transition-all"
+                              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all text-left"
                             >
-                              <div
-                                className="p-2 rounded-xl 
-              bg-gradient-to-br from-purple-500 to-purple-600
-              text-white shadow-md"
-                              >
-                                <Plus size={12} />
+                              <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                                <Plus size={14} />
                               </div>
-
-                              <div className="text-left">
-                                <p className="text-xs font-bold text-gray-800">
-                                  Create Template
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  Build new KRA template
-                                </p>
+                              <div>
+                                <p className="text-xs font-bold text-slate-800">Create Template</p>
+                                <p className="text-xs text-slate-400">Build new KRA template</p>
                               </div>
                             </button>
 
@@ -854,33 +797,24 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                 setShowTemplateDropdown(false);
                                 navigate("/available_template");
                               }}
-                              className="flex items-center gap-4 w-full px-4 py-3 
-              rounded-xl hover:bg-violet-50 transition-all"
+                              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all text-left"
                             >
-                              <div
-                                className="p-2 rounded-xl 
-              bg-gradient-to-br from-violet-500 to-purple-600
-              text-white shadow-md"
-                              >
-                                <LayoutTemplateIcon size={12} />
+                              <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                                <LayoutTemplateIcon size={14} />
                               </div>
-
-                              <div className="text-left">
-                                <p className="text-xs font-bold text-gray-800">
-                                  Available Templates
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  View Created Templates
-                                </p>
+                              <div>
+                                <p className="text-xs font-bold text-slate-800">Available Templates</p>
+                                <p className="text-xs text-slate-400">View created templates</p>
                               </div>
                             </button>
                           </div>
-                        </motion.div>
+                        </div>
                       )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Template Header Switch */}
@@ -894,8 +828,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
               }}
             />
           )}
-        </motion.div>
-
+      </div>
 
         {/* ================= TWO KRA SECTIONS ================= */}
 
@@ -904,18 +837,21 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
             <div className="space-y-5 ">
               {/* FUNCTIONAL */}
 
-              <div className="bg-white rounded-xl p-4 shadow border border-gray-300">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 {/* header */}
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
                   {/* LEFT SIDE */}
-                  <div className="flex items-center gap-3">
-                    <h2 className="font-semibold text-base bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-                      Job Specified KRA
-                    </h2>
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <h2 className="font-bold text-base text-slate-900">
+                        Job Specified KRA
+                      </h2>
 
-                    <span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">
-                      {filteredFunctional.length}
-                    </span>
+                      <span className="text-xs font-semibold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">
+                        {filteredFunctional.length}
+                      </span>
+                    </div>
+                    <span className="block w-8 h-0.5 rounded-full bg-violet-600 mt-1.5" />
                   </div>
 
                   {/* RIGHT SIDE */}
@@ -923,34 +859,21 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                     <div className="relative w-72">
                       <Search
                         size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 pointer-events-none"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                       />
 
                       <input
-                        placeholder="Search Job Specified  KRA..."
+                        placeholder="Search Job Specified KRA..."
                         value={functionalSearch}
                         onChange={(e) => setFunctionalSearch(e.target.value)}
-                        className="
-      w-full
-      pl-9 pr-8 py-2
-      text-sm
-      rounded-xl
-      border border-purple-200
-      bg-white
-      shadow-sm
-      focus:outline-none
-      focus:ring-2 focus:ring-violet-500/40
-      focus:border-violet-400
-      transition-colors duration-150
-      placeholder:text-gray-400
-    "
+                        className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-colors duration-150 placeholder:text-slate-400"
                       />
 
                       {functionalSearch && (
                         <button
                           type="button"
                           onClick={() => setFunctionalSearch("")}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-purple-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                         >
                           ✕
                         </button>
@@ -958,8 +881,6 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                     </div>
                   </div>
                 </div>
-
-                {/* search */}
 
                 {/* list */}
                 {/* <div className="max-h-72 overflow-y-auto space-y-2 pr-1"> */}
@@ -990,70 +911,44 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                           className="px-4 py-3 cursor-pointer flex justify-between items-center group"
                         >
                           {/* LEFT */}
-                          <div className="flex flex-col">
-                            <div className="flex flex-col gap-1">
-                              {/* Title Row */}
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold text-gray-800 group-hover:text-violet-600 transition">
-                                  {index + 1} • {kra.name}
-                                </p>
-                              </div>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-6 h-6 shrink-0 rounded-full bg-violet-700 text-white text-xs font-bold flex items-center justify-center">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-800 group-hover:text-violet-700 transition truncate">
+                                {kra.name}
+                              </p>
 
                               {/* Audit Row */}
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
                                 {isUpdated ? (
                                   <>
-                                    <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium">
-                                      Updated
-                                    </span>
-
-                                    <span>
-                                      {new Date(
-                                        kra.updatedAt,
-                                      ).toLocaleDateString()}
-                                    </span>
-
-                                    <span className="text-gray-300">•</span>
-
-                                    <span className="font-medium text-gray-600">
-                                      {kra.updatedBy || "Unknown"}
-                                    </span>
+                                    <span>Updated {new Date(kra.updatedAt).toLocaleDateString()}</span>
+                                    <span>•</span>
+                                    <span>{kra.updatedBy || "Unknown"}</span>
                                   </>
                                 ) : kra.createdAt ? (
                                   <>
-                                    <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 font-medium">
-                                      Created
-                                    </span>
-
-                                    <span>
-                                      {new Date(
-                                        kra.createdAt,
-                                      ).toLocaleDateString()}
-                                    </span>
-
-                                    <span className="text-gray-300">•</span>
-
-                                    <span className="font-medium text-gray-600">
-                                      {kra.createdBy || "Unknown"}
-                                    </span>
+                                    <span>Created {new Date(kra.createdAt).toLocaleDateString()}</span>
+                                    <span>•</span>
+                                    <span>{kra.createdBy || "Unknown"}</span>
                                   </>
                                 ) : (
-                                  <span className="italic text-gray-400">
-                                    No audit info
-                                  </span>
+                                  <span className="italic">No audit info</span>
                                 )}
                               </div>
                             </div>
                           </div>
 
                           {/* RIGHT */}
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 shrink-0">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditLibraryKra(kra);
                               }}
-                              className="p-1.5 rounded-md hover:bg-violet-100 transition"
+                              className="p-1.5 rounded-md hover:bg-violet-50 transition"
                               title="Edit KRA"
                             >
                               <Pencil size={16} className="text-violet-600" />
@@ -1064,14 +959,14 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                 e.stopPropagation();
                                 handleDeleteLibraryKra(kra.id);
                               }}
-                              className="p-1.5 rounded-md hover:bg-red-100 transition"
+                              className="p-1.5 rounded-md hover:bg-red-50 transition"
                               title="Delete KRA"
                             >
                               <Trash2 size={16} className="text-red-600" />
                             </button>
 
                             {/* KPI COUNT BADGE */}
-                            <span className="text-xs bg-violet-100 text-violet-600 px-2 py-1 rounded-full font-medium">
+                            <span className="text-xs bg-violet-50 text-violet-700 px-2 py-1 rounded-full font-semibold">
                               {kra.kpis?.length || 0} KPI
                             </span>
 
@@ -1079,7 +974,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                             <motion.div
                               animate={{ rotate: isOpen ? 180 : 0 }}
                               transition={{ duration: 0.25 }}
-                              className="text-gray-400"
+                              className="text-slate-400"
                             >
                               ▼
                             </motion.div>
@@ -1095,7 +990,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
                               transition={{ duration: 0.35, ease: "easeInOut" }}
-                              className="px-6 pb-4 pt-2 bg-gradient-to-b from-gray-50 to-white border-t border-slate-200/60"
+                              className="px-6 pb-4 pt-2 bg-slate-50/60 border-t border-slate-100"
                             >
                               {kra.kpis?.length > 0 ? (
                                 <div className="space-y-2">
@@ -1197,79 +1092,51 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                   <motion.div
                     layout
                     transition={{ duration: 0.3 }}
-                    className="bg-white rounded-xl p-4 shadow border border-gray-300"
+                    className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5"
                   >
                     {/* header */}
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
                       {/* LEFT */}
-                      <div className="flex items-center gap-3">
-                        <h2 className="font-semibold text-base bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent">
-                          Organizational KRA
-                        </h2>
+                      <div>
+                        <div className="flex items-center gap-2.5">
+                          <h2 className="font-bold text-base text-slate-900">
+                            Organizational KRA
+                          </h2>
 
-                        <span className="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
-                          {filteredOrg.length}
-                        </span>
-
-                        {/* {!orgSearch && filteredOrg.length > 5 && (
-      <button
-        onClick={() => setShowAllOrg(prev => !prev)}
-        className="text-xs text-purple-600 hover:text-purple-800 font-medium"
-      >
-        {showAllOrg ? "▲ Less" : "▼ More"}
-      </button>
-    )} */}
+                          <span className="text-xs font-semibold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">
+                            {filteredOrg.length}
+                          </span>
+                        </div>
+                        <span className="block w-8 h-0.5 rounded-full bg-violet-600 mt-1.5" />
                       </div>
 
                       {/* RIGHT */}
                       <div className="flex items-center gap-3">
-                        <div className="relative w-82">
+                        <div className="relative w-72">
                           <Search
                             size={16}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 pointer-events-none"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                           />
 
                           <input
                             placeholder="Search organizational KRA..."
                             value={orgSearch}
                             onChange={(e) => setOrgSearch(e.target.value)}
-                            className="
-      w-full
-      pl-9 pr-8 py-2
-      text-sm
-      rounded-xl
-      border border-purple-200
-      bg-white
-      shadow-sm
-      focus:outline-none
-      focus:ring-2 focus:ring-purple-500/40
-      focus:border-purple-400
-      transition-colors duration-150
-      placeholder:text-gray-400
-    "
+                            className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-colors duration-150 placeholder:text-slate-400"
                           />
 
                           {orgSearch && (
                             <button
                               type="button"
                               onClick={() => setOrgSearch("")}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-purple-600"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                             >
                               ✕
                             </button>
                           )}
                         </div>
-
-                        {/* <button
-      onClick={() => navigate("/kra-builder?type=organizational")}
-      className="py-1 px-3 bg-purple-200 hover:bg-purple-400 rounded-sm text-purple-700 text-xs font-semibold"
-    >
-      + Add
-    </button> */}
                       </div>
                     </div>
-
-                    {/* search */}
 
                     {/* list */}
                     <div className="max-h-[380px] overflow-y-auto space-y-2 pr-2 custom-scroll">
@@ -1287,7 +1154,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                             layout
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="rounded-xl border border-purple-200/60 bg-white shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                            className="rounded-xl border border-slate-200/70 bg-white shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
                           >
                             {/* HEADER */}
                             <div
@@ -1297,68 +1164,44 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                               className="px-4 py-3 cursor-pointer flex justify-between items-center group"
                             >
                               {/* LEFT */}
-                              <div className="flex flex-col gap-1">
-                                {/* Title Row */}
-                                <div className="flex items-center">
-                                  <p className="font-semibold text-gray-800 group-hover:text-purple-600 transition">
-                                    {index + 1} • {kra.name}
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="w-6 h-6 shrink-0 rounded-full bg-violet-700 text-white text-xs font-bold flex items-center justify-center">
+                                  {index + 1}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-slate-800 group-hover:text-violet-700 transition truncate">
+                                    {kra.name}
                                   </p>
-                                </div>
 
-                                {/* Audit Row */}
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                  {isEdited ? (
-                                    <>
-                                      <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium">
-                                        Updated
-                                      </span>
-
-                                      <span>
-                                        {new Date(
-                                          kra.updatedAt,
-                                        ).toLocaleDateString()}
-                                      </span>
-
-                                      <span className="text-gray-300">•</span>
-
-                                      <span className="font-medium text-gray-600">
-                                        {kra.updatedBy || "Unknown"}
-                                      </span>
-                                    </>
-                                  ) : kra.createdAt ? (
-                                    <>
-                                      <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 font-medium">
-                                        Created
-                                      </span>
-
-                                      <span>
-                                        {new Date(
-                                          kra.createdAt,
-                                        ).toLocaleDateString()}
-                                      </span>
-
-                                      <span className="text-gray-300">•</span>
-
-                                      <span className="font-medium text-gray-600">
-                                        {kra.createdBy || "Unknown"}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="italic text-gray-400">
-                                      No audit info
-                                    </span>
-                                  )}
+                                  {/* Audit Row */}
+                                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                                    {isEdited ? (
+                                      <>
+                                        <span>Updated {new Date(kra.updatedAt).toLocaleDateString()}</span>
+                                        <span>•</span>
+                                        <span>{kra.updatedBy || "Unknown"}</span>
+                                      </>
+                                    ) : kra.createdAt ? (
+                                      <>
+                                        <span>Created {new Date(kra.createdAt).toLocaleDateString()}</span>
+                                        <span>•</span>
+                                        <span>{kra.createdBy || "Unknown"}</span>
+                                      </>
+                                    ) : (
+                                      <span className="italic">No audit info</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
                               {/* RIGHT */}
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 shrink-0">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleEditLibraryKra(kra);
                                   }}
-                                  className="p-1.5 rounded-md hover:bg-violet-100 transition"
+                                  className="p-1.5 rounded-md hover:bg-violet-50 transition"
                                   title="Edit KRA"
                                 >
                                   <Pencil size={16} className="text-violet-600" />
@@ -1369,14 +1212,14 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                     e.stopPropagation();
                                     handleDeleteLibraryKra(kra.id);
                                   }}
-                                  className="p-1.5 rounded-md hover:bg-red-100 transition"
+                                  className="p-1.5 rounded-md hover:bg-red-50 transition"
                                   title="Delete KRA"
                                 >
                                   <Trash2 size={16} className="text-red-600" />
                                 </button>
 
                                 {/* KPI COUNT BADGE */}
-                                <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-medium">
+                                <span className="text-xs bg-violet-50 text-violet-700 px-2 py-1 rounded-full font-semibold">
                                   {kra.kpis?.length || 0} KPI
                                 </span>
 
@@ -1384,7 +1227,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                 <motion.div
                                   animate={{ rotate: isOpen ? 180 : 0 }}
                                   transition={{ duration: 0.25 }}
-                                  className="text-purple-400"
+                                  className="text-slate-400"
                                 >
                                   ▼
                                 </motion.div>
@@ -1403,7 +1246,7 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                     duration: 0.35,
                                     ease: "easeInOut",
                                   }}
-                                  className="px-6 pb-4 pt-2 bg-gradient-to-b from-purple-50 to-white border-t border-purple-200/50"
+                                  className="px-6 pb-4 pt-2 bg-slate-50/60 border-t border-slate-100"
                                 >
                                   {kra.kpis?.length > 0 ? (
                                     <div className="space-y-2">
@@ -1413,9 +1256,9 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                                           initial={{ opacity: 0, x: -10 }}
                                           animate={{ opacity: 1, x: 0 }}
                                           transition={{ duration: 0.25 }}
-                                          className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-2 rounded-lg border border-purple-200 hover:bg-purple-50 transition"
+                                          className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-2 rounded-lg border border-slate-200 hover:bg-violet-50 transition"
                                         >
-                                          <div className="w-2 h-2 rounded-full bg-purple-500" />
+                                          <div className="w-2 h-2 rounded-full bg-violet-600" />
                                           {kpi.name}
                                         </motion.div>
                                       ))}
@@ -1435,25 +1278,14 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
                         <div className="flex justify-center pt-4">
                           <button
                             onClick={() => setShowAllOrg((prev) => !prev)}
-                            className="
-        group
-        flex items-center gap-2
-        px-4 py-2
-        rounded-full
-        bg-violet-50
-        text-purple-600
-        text-sm font-medium
-        border border-violet-100
-        hover:bg-violet-100
-        transition-colors duration-200
-      "
+                            className="group flex items-center gap-2 px-4 py-2 rounded-full bg-violet-50 text-violet-700 text-sm font-medium border border-violet-100 hover:bg-violet-100 transition-colors duration-200"
                           >
                             <span>{showAllOrg ? "Show Less" : "Load More"}</span>
 
                             <motion.span
                               animate={{ rotate: showAllOrg ? 180 : 0 }}
                               transition={{ duration: 0.25 }}
-                              className="text-purple-500"
+                              className="text-violet-600"
                             >
                               ▼
                             </motion.span>
@@ -1605,7 +1437,6 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
               </motion.button>
             </motion.div>
           )}
-      </div>
-    </div>
+    </main>
   );
 }

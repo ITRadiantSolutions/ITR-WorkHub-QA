@@ -246,7 +246,7 @@ export default function BugReportPage({ searchRequest }) {
           res?.data?.bugs ||
           (Array.isArray(res?.data) ? res.data : []);
         if (!cancelled) setBugs(Array.isArray(data) ? data : []);
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setError("Failed to load bug reports");
           setBugs([]);
@@ -276,7 +276,7 @@ export default function BugReportPage({ searchRequest }) {
               ? data.map((t) => ({ ...t, status: String(t.status || "") }))
               : [],
           );
-      } catch (e) {
+      } catch {
         if (!cancelled) setTasks([]);
       } finally {
         if (!cancelled) setTaskLoading(false);
@@ -318,7 +318,7 @@ export default function BugReportPage({ searchRequest }) {
         res?.data?.bugs ||
         (Array.isArray(res?.data) ? res.data : []);
       setBugs(Array.isArray(data) ? data : []);
-    } catch (e) {
+    } catch {
       toast.error("Failed to refresh");
     } finally {
       setLoading(false);
@@ -352,7 +352,7 @@ export default function BugReportPage({ searchRequest }) {
       setBugs((prev) => prev.filter((b) => b._id !== bugId));
       toast.success("Bug deleted");
       handleCloseBugModal();
-    } catch (e) {
+    } catch {
       toast.error("Failed to delete bug");
     }
   };

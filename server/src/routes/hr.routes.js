@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../middleware/authMiddleware.js";
 import {
   getReport,
   exportReport,
@@ -15,6 +15,7 @@ import {
 
 const router = Router();
 router.use(protect);
+router.use(requireModuleAccess("timesheet"));
 
 router.get("/report", getReport);
 router.get("/report/export", exportReport);

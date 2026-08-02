@@ -6,10 +6,6 @@ import { API } from "../services/api";
 import Icons from "../components/Icons";
 import { BugDetailModal } from "../components/BugComponents";
 import * as XLSX from "xlsx";
-async function getXLSX() {
-  const mod = await import("xlsx");
-  return mod.default || mod;
-}
 
 function SkeletonReports() {
   return (
@@ -314,7 +310,6 @@ function Section({ title, subtitle, icon: Icon, action, children }) {
 
 // ── Compute metrics from tasks ────────────────────────────────────────────────
 function computeTaskMetrics(tasks = []) {
-  const now = new Date(new Date().toDateString());
   const total = tasks.length;
   const done = tasks.filter((t) => t.status === "DONE").length;
   const inProgress = tasks.filter((t) => t.status === "IN_PROGRESS").length;
@@ -352,7 +347,6 @@ function DeveloperReport({
   projects = [],
   bugs = [],
   currentUser,
-  employeeReportRequest,
 }) {
   const m = computeTaskMetrics(tasks);
   const [sortBy, setSortBy] = useState("name");
@@ -549,12 +543,14 @@ function DeveloperReport({
           Export My Tasks
         </button>
       </div>
-      {/* Charts row */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Completion donut */}
+      {/* Task overview + Project overview, side by side — was 3 separate
+          charts (Completion Rate / By Status / By Priority) showing mostly
+          the same status counts twice; now one card, next to Project Overview
+          instead of stacked full-width below it. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
         <Section
-          title="Completion Rate"
-          subtitle="Overall task progress"
+          title="Task Overview"
+          subtitle="Status & priority breakdown"
           icon={Icons.BarChart}
         >
           <div className="flex items-center gap-4">
@@ -581,74 +577,11 @@ function DeveloperReport({
               ))}
             </div>
           </div>
-        </Section>
 
-        {/* Status bars */}
-        <Section
-          title="By Status"
-          subtitle="Distribution across statuses"
-          icon={Icons.Tasks}
-        >
-          <div className="space-y-3">
-            <HBar
-              label="Done"
-              value={m.done}
-              total={m.total}
-              color="#0f172a"
-              sub={`${m.total > 0 ? Math.round((m.done / m.total) * 100) : 0}%`}
-            />
-            <HBar
-              label="In Progress"
-              value={m.inProgress}
-              total={m.total}
-              color="#4f46e5"
-              sub={`${m.total > 0 ? Math.round((m.inProgress / m.total) * 100) : 0}%`}
-            />
-            <HBar
-              label="QA Testing"
-              value={m.qa}
-              total={m.total}
-              color="#7c3aed"
-              sub={`${m.total > 0 ? Math.round((m.qa / m.total) * 100) : 0}%`}
-            />
-            <HBar
-              label="On Hold"
-              value={m.onHold}
-              total={m.total}
-              color="#d97706"
-            />
-            <HBar
-              label="Todo"
-              value={m.todo}
-              total={m.total}
-              color="#94a3b8"
-              sub={`${m.total > 0 ? Math.round((m.todo / m.total) * 100) : 0}%`}
-            />
-            <HBar
-              label="Overdue"
-              value={m.overdue}
-              total={m.total}
-              color="#ef4444"
-              sub={`${m.total > 0 ? Math.round((m.overdue / m.total) * 100) : 0}%`}
-            />
-          </div>
-        </Section>
-
-        {/* Priority bars */}
-        <Section
-          title="By Priority"
-          subtitle="Task urgency breakdown"
-          icon={Icons.Alert}
-        >
-          <VBar
-            height={120}
-            data={[
-              { label: "High", value: m.highPri, color: "#dc2626" },
-              { label: "Medium", value: m.medPri, color: "#d97706" },
-              { label: "Low", value: m.lowPri, color: "#94a3b8" },
-            ]}
-          />
-          <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+              By Priority
+            </p>
             <HBar
               label="High"
               value={m.highPri}
@@ -668,6 +601,82 @@ function DeveloperReport({
               color="#94a3b8"
             />
           </div>
+        </Section>
+
+        {/* Project overview */}
+        <Section
+          title="Project Overview"
+          subtitle="Progress per project"
+          icon={Icons.Folder}
+          action={
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-slate-200 bg-white px-2.5 py-1.5 pr-7 rounded-lg text-[11px] text-slate-600 font-semibold focus:outline-none appearance-none"
+              >
+                <option value="name">Sort: Name</option>
+                <option value="status">Sort: Status</option>
+                <option value="priority">Sort: Priority</option>
+              </select>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <Icons.ChevronDown />
+              </div>
+            </div>
+          }
+        >
+          {projects.length === 0 ? (
+            <p className="text-xs text-slate-400">No projects assigned.</p>
+          ) : (
+            <div className="space-y-3">
+              {sortedProjects.map((p) => {
+                const pt = tasks.filter(
+                  (t) =>
+                    (typeof t.projectId === "object"
+                      ? t.projectId?._id
+                      : t.projectId) === p._id,
+                );
+                const done = pt.filter((t) => t.status === "DONE").length;
+                const pct =
+                  pt.length > 0 ? Math.round((done / pt.length) * 100) : 0;
+                return (
+                  <div key={p._id} className="flex items-center gap-3 flex-wrap">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{
+                        backgroundColor:
+                          p.status === "Active"
+                            ? "#059669"
+                            : p.status === "Planning"
+                              ? "#7c3aed"
+                              : "#94a3b8",
+                      }}
+                    />
+                    <p className="text-xs font-medium text-slate-700 w-28 truncate">
+                      {p.name}
+                    </p>
+                    <div className="flex-1 min-w-[60px] bg-slate-100 rounded-full h-1.5">
+                      <div
+                        className="h-1.5 rounded-full bg-blue-600 transition-all duration-700"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-600 w-8 text-right">
+                      {pct}%
+                    </span>
+                    <span className="text-[10px] text-slate-400 w-12">
+                      {done}/{pt.length} tasks
+                    </span>
+                    <Badge label={p.status} variant={statusVariant(p.status)} />
+                    <Badge
+                      label={p.priority}
+                      variant={priorityVariant(p.priority)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Section>
       </div>
 
@@ -729,82 +738,6 @@ function DeveloperReport({
           </div>
         </Section>
       )}
-
-      {/* Project overview */}
-      <Section
-        title="Project Overview"
-        subtitle="Progress per project"
-        icon={Icons.Folder}
-        action={
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="border border-slate-200 bg-white px-2.5 py-1.5 pr-7 rounded-lg text-[11px] text-slate-600 font-semibold focus:outline-none appearance-none"
-            >
-              <option value="name">Sort: Name</option>
-              <option value="status">Sort: Status</option>
-              <option value="priority">Sort: Priority</option>
-            </select>
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <Icons.ChevronDown />
-            </div>
-          </div>
-        }
-      >
-        {projects.length === 0 ? (
-          <p className="text-xs text-slate-400">No projects assigned.</p>
-        ) : (
-          <div className="space-y-3">
-            {sortedProjects.map((p) => {
-              const pt = tasks.filter(
-                (t) =>
-                  (typeof t.projectId === "object"
-                    ? t.projectId?._id
-                    : t.projectId) === p._id,
-              );
-              const done = pt.filter((t) => t.status === "DONE").length;
-              const pct =
-                pt.length > 0 ? Math.round((done / pt.length) * 100) : 0;
-              return (
-                <div key={p._id} className="flex items-center gap-4">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{
-                      backgroundColor:
-                        p.status === "Active"
-                          ? "#059669"
-                          : p.status === "Planning"
-                            ? "#7c3aed"
-                            : "#94a3b8",
-                    }}
-                  />
-                  <p className="text-xs font-medium text-slate-700 w-36 truncate">
-                    {p.name}
-                  </p>
-                  <div className="flex-1 bg-slate-100 rounded-full h-1.5">
-                    <div
-                      className="h-1.5 rounded-full bg-blue-600 transition-all duration-700"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-600 w-8 text-right">
-                    {pct}%
-                  </span>
-                  <span className="text-[10px] text-slate-400 w-12">
-                    {done}/{pt.length} tasks
-                  </span>
-                  <Badge label={p.status} variant={statusVariant(p.status)} />
-                  <Badge
-                    label={p.priority}
-                    variant={priorityVariant(p.priority)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Section>
     </div>
   );
 }
@@ -855,9 +788,6 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
   };
 
   const exportQAReportExcel = () => {
-    // eslint-disable-next-line no-undef
-    void 0;
-
     const summaryRows = [
       {
         "My Tasks": m.total,
@@ -900,13 +830,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
 
           Assignees:
             task.assignees?.length > 0
-              ? task.assignees
-                  .map((a) =>
-                    typeof a === "object"
-                      ? a.name || a.email
-                      : users.find((u) => u._id === a)?.name || a,
-                  )
-                  .join(", ")
+              ? task.assignees.map((a) => a.name || a.email).join(", ")
               : "Unassigned",
 
           Created: formatDate(task.createdAt),
@@ -1575,12 +1499,6 @@ function AdminReport({
         .slice(0, 10)}.xlsx`,
     );
   };
-
-  // Filter tasks for project filter
-  const filteredTasks =
-    filterStatus === "ALL"
-      ? allTasks
-      : allTasks.filter((t) => t.status === filterStatus);
 
   return (
     <div className="space-y-4">

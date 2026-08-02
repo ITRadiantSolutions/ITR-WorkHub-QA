@@ -7,7 +7,19 @@ export const getProofUrl = async (req, res) => {
   res.json({ url: createReadUrl(blobName) });
 };
 
+const requirePmsHrOrManager = (req, res) => {
+  if (!["hr", "manager"].includes(req.user.roles.pms)) {
+    res.status(403).json({ message: "PMS HR/Manager access required" });
+    return false;
+  }
+  return true;
+};
+
 export const listEmployeePips = async (req, res) => {
+  const isSelf = req.params.employeeId === req.user._id.toString();
+  if (!isSelf && !["hr", "manager"].includes(req.user.roles.pms)) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
   const pips = await Pip.find({ employeeId: req.params.employeeId }).sort({ createdAt: -1 });
   res.json(pips.map((p) => ({ ...p.toObject(), id: p._id })));
 };
@@ -15,16 +27,9 @@ export const listEmployeePips = async (req, res) => {
 // UserKraSearch.jsx's "all PIPs" list, keyed by `employee_id` (snake_case,
 // matching the old system's field naming).
 export const listAllPips = async (req, res) => {
+  if (!requirePmsHrOrManager(req, res)) return;
   const pips = await Pip.find({}).sort({ createdAt: -1 });
   res.json(pips.map((p) => ({ ...p.toObject(), id: p._id, employee_id: p.employeeId })));
-};
-
-const requirePmsHrOrManager = (req, res) => {
-  if (!["hr", "manager"].includes(req.user.roles.pms)) {
-    res.status(403).json({ message: "PMS HR/Manager access required" });
-    return false;
-  }
-  return true;
 };
 
 export const createPip = async (req, res) => {
@@ -62,10 +67,15 @@ export const updatePipLegacy = async (req, res) => {
   if (reviewNotes !== undefined) pip.reviewNotes = reviewNotes;
   if (goals !== undefined) pip.goals = goals;
   pip.updatedBy = req.user._id;
+  // Manager/HR reviewing the PIP re-opens the employee's ability to submit
+  // another goal-progress update.
+  pip.employeeSubmitted = false;
 
   await pip.save();
   res.json({ ...pip.toObject(), id: pip._id });
 };
+
+const ALLOWED_PROOF_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 
 // multipart/form-data: managerEmail, goalUpdates (JSON string), and files
 // named proof_{goalIndex}_{fileIndex}.
@@ -73,12 +83,20 @@ export const employeeUpdatePip = async (req, res) => {
   const pip = await Pip.findById(req.params.id);
   if (!pip) return res.status(404).json({ message: "PIP not found" });
   if (!pip.employeeId.equals(req.user._id)) return res.status(403).json({ message: "Forbidden" });
+  if (pip.employeeSubmitted) {
+    return res.status(409).json({ message: "Update already submitted — waiting on manager review" });
+  }
 
   let goalUpdates = [];
   try {
     goalUpdates = JSON.parse(req.body.goalUpdates || "[]");
   } catch {
     return res.status(400).json({ message: "Invalid goalUpdates payload" });
+  }
+
+  const invalidFile = (req.files || []).find((f) => !ALLOWED_PROOF_MIME_TYPES.includes(f.mimetype));
+  if (invalidFile) {
+    return res.status(400).json({ message: `Unsupported file type: ${invalidFile.mimetype}. Only PDF, JPEG, and PNG are allowed.` });
   }
 
   for (const update of goalUpdates) {

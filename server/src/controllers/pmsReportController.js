@@ -50,7 +50,22 @@ export const getEmployeeReport = async (req, res) => {
   }
   const submissions = await Submission.find({ employeeId: req.params.employeeId }).populate(
     "cycleId",
-    "name start end",
+    "name start end reportVisibility",
   );
-  res.json(submissions);
+  // A non-HR caller viewing their own report is still gated by each cycle's
+  // HR-controlled reportVisibility (none/all/selected) — HR sees everything.
+  const visible =
+    req.user.roles.pms === "hr"
+      ? submissions
+      : submissions.filter((s) => {
+          const mode = s.cycleId?.reportVisibility?.mode;
+          if (mode === "all") return true;
+          if (mode === "selected") {
+            return (s.cycleId?.reportVisibility?.visibleTo || []).some(
+              (id) => id.toString() === req.params.employeeId,
+            );
+          }
+          return false;
+        });
+  res.json(visible);
 };

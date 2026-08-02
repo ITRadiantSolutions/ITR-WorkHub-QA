@@ -1,9 +1,10 @@
 import KraAssignment from "../models/KraAssignment.js";
 import UsersGroup from "../models/UsersGroup.js";
+import User from "../models/User.js";
 
-const requirePmsHr = (req, res) => {
-  if (req.user.roles.pms !== "hr") {
-    res.status(403).json({ message: "PMS HR access required" });
+const requirePmsHrOrManager = (req, res) => {
+  if (!["hr", "manager"].includes(req.user.roles.pms)) {
+    res.status(403).json({ message: "PMS Manager or HR access required" });
     return false;
   }
   return true;
@@ -12,8 +13,20 @@ const requirePmsHr = (req, res) => {
 export const listAssignments = async (req, res) => {
   const filter = {};
   if (req.query.cycleId) filter.cycleId = req.query.cycleId;
-  if (req.query.userId) filter.assignedTo = req.query.userId;
-  else if (req.user.roles.pms !== "hr") filter.assignedTo = req.user._id;
+
+  if (req.user.roles.pms === "hr") {
+    if (req.query.userId) filter.assignedTo = req.query.userId;
+  } else if (req.user.roles.pms === "manager" && req.query.userId) {
+    // A manager may only look up their own assignments or a direct report's
+    // — the userId query param must never be trusted blindly (IDOR).
+    const isSelf = req.query.userId === req.user._id.toString();
+    const target = isSelf ? null : await User.findById(req.query.userId).select("managerId");
+    const isOwnReport = target?.managerId?.toString() === req.user._id.toString();
+    if (!isSelf && !isOwnReport) return res.status(403).json({ message: "Forbidden" });
+    filter.assignedTo = req.query.userId;
+  } else {
+    filter.assignedTo = req.user._id;
+  }
 
   res.json(await KraAssignment.find(filter).populate("assignedTo", "name email"));
 };
@@ -34,7 +47,7 @@ export const getAssignment = async (req, res) => {
 };
 
 export const assignToUser = async (req, res) => {
-  if (!requirePmsHr(req, res)) return;
+  if (!requirePmsHrOrManager(req, res)) return;
   const { cycleId, templateId, userId, kras } = req.body;
   if (!cycleId || !userId) return res.status(400).json({ message: "cycleId and userId are required" });
 
@@ -52,7 +65,7 @@ export const assignToUser = async (req, res) => {
 // becomes one KraAssignment document per member, not a single shared doc —
 // group membership itself is not preserved relationally on the assignment.
 export const assignToGroup = async (req, res) => {
-  if (!requirePmsHr(req, res)) return;
+  if (!requirePmsHrOrManager(req, res)) return;
   const { cycleId, templateId, groupId, kras } = req.body;
   if (!cycleId || !groupId) return res.status(400).json({ message: "cycleId and groupId are required" });
 
@@ -72,7 +85,7 @@ export const assignToGroup = async (req, res) => {
 };
 
 export const updateAssignment = async (req, res) => {
-  if (!requirePmsHr(req, res)) return;
+  if (!requirePmsHrOrManager(req, res)) return;
   const { kras, status } = req.body;
   const assignment = await KraAssignment.findById(req.params.id);
   if (!assignment) return res.status(404).json({ message: "Assignment not found" });
@@ -85,7 +98,7 @@ export const updateAssignment = async (req, res) => {
 };
 
 export const deleteAssignment = async (req, res) => {
-  if (!requirePmsHr(req, res)) return;
+  if (!requirePmsHrOrManager(req, res)) return;
   const assignment = await KraAssignment.findByIdAndDelete(req.params.id);
   if (!assignment) return res.status(404).json({ message: "Assignment not found" });
   res.status(204).send();

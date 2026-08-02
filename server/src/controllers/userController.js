@@ -1,7 +1,9 @@
+import axios from "axios";
 import User from "../models/User.js";
 import { notifyUsers } from "../utils/notify.js";
 import { getIO } from "../realtime/socket.js";
 import { toPublicUser } from "../utils/publicUser.js";
+import { getGraphAccessToken } from "../utils/graphMailer.js";
 
 const MODULE_ROLE_ENUM = {
   timesheet: ["employee", "manager", "hr"],
@@ -17,11 +19,20 @@ const isAdminOrHr = (user) =>
 
 // List all users — used for assignee/team dropdowns across the tracker UI,
 // not scoped to a manager's direct reports (see getMyReports for that).
+// Optional ?archived=true|false scoped to ?module=timesheet|pms|account (default
+// "account") lets HR screens show just their active roster or just the
+// archived-from-this-module list, without changing the default unfiltered call.
 export const listUsers = async (req, res) => {
   const canViewAll = isAdminOrHr(req.user) || ["PM", "DEVELOPER", "QA"].includes(req.user.roles.tracker);
   if (!canViewAll) return res.status(403).json({ message: "Insufficient permissions to view users" });
 
-  res.json(await User.find({}).select("-password"));
+  const filter = {};
+  if (req.query.archived === "true" || req.query.archived === "false") {
+    const module = ["timesheet", "pms", "account"].includes(req.query.module) ? req.query.module : "account";
+    filter[`archived.${module}`] = req.query.archived === "true";
+  }
+
+  res.json(await User.find(filter).select("-password"));
 };
 
 export const getMe = async (req, res) => {
@@ -193,12 +204,83 @@ export const archivePmsUserLegacy = async (req, res) => {
   res.json(user);
 };
 
+// Shift assignment is one notch broader than the rest of this file's
+// Admin/HR-only actions — a timesheet manager can assign shifts for their
+// own team too (matches Manage.jsx's Assign Shifts UI, which is shown to
+// managers, not just HR).
+const canAssignShift = (user) => isAdminOrHr(user) || user.roles.timesheet === "manager";
+
 export const setShift = async (req, res) => {
-  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
+  if (!canAssignShift(req.user)) return res.status(403).json({ message: "Manager or Admin/HR access required" });
   const { shift } = req.body;
   const user = await User.findByIdAndUpdate(req.params.id, { $set: { shift } }, { new: true }).select(
     "-password",
   );
   if (!user) return res.status(404).json({ message: "User not found" });
   res.json(user);
+};
+
+// Bulk-provision users from one or more Azure AD group memberships — ported
+// from routes.py's /users/sync. Configure AZURE_SYNC_GROUP_IDS as a
+// comma-separated list of AAD group object IDs; each group's members are
+// fetched via Graph (app-only auth, same credentials graphMailer.js already
+// uses) and any member without a matching local account is created with
+// default employee roles. Existing accounts are left untouched.
+export const syncUsersFromAzureGroups = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
+
+  const groupIds = (process.env.AZURE_SYNC_GROUP_IDS || "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (!groupIds.length) {
+    return res.status(400).json({
+      message: "No Azure AD groups configured for sync — set AZURE_SYNC_GROUP_IDS (comma-separated group object IDs) on the server.",
+    });
+  }
+
+  const accessToken = await getGraphAccessToken();
+  const seenEmails = new Set();
+  const synced = [];
+  let newAdded = 0;
+
+  for (const groupId of groupIds) {
+    let members = [];
+    try {
+      const { data } = await axios.get(
+        `https://graph.microsoft.com/v1.0/groups/${groupId}/members?$select=displayName,mail,userPrincipalName`,
+        { headers: { Authorization: `Bearer ${accessToken}` }, timeout: 15_000 },
+      );
+      members = data.value || [];
+    } catch (err) {
+      console.error(`syncUsersFromAzureGroups: failed to fetch group ${groupId}`, err.response?.data || err.message);
+      continue; // one bad group shouldn't abort the whole sync
+    }
+
+    for (const member of members) {
+      const email = (member.mail || member.userPrincipalName || "").toLowerCase();
+      const name = member.displayName || email;
+      if (!email || seenEmails.has(email)) continue;
+      seenEmails.add(email);
+
+      const existing = await User.findOne({ email }).select("-password");
+      if (existing) {
+        synced.push(existing);
+        continue;
+      }
+
+      const created = await User.create({
+        name,
+        email,
+        authProvider: "azure",
+        roles: { timesheet: "employee", pms: "employee", tracker: "BUSINESS_USER" },
+        approvalStatus: "Approved",
+        approvedAt: new Date(),
+      });
+      synced.push(created);
+      newAdded += 1;
+    }
+  }
+
+  res.json({ message: `Group sync complete. New users: ${newAdded}`, totalUsers: synced.length, newAdded, users: synced });
 };

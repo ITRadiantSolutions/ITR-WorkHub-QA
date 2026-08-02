@@ -58,6 +58,9 @@ export const updatePip = async (req, res) => {
   if (targetEndDate !== undefined) pip.targetEndDate = targetEndDate;
   if (goals !== undefined) pip.goals = goals;
   pip.updatedBy = req.user._id;
+  // Manager/HR reviewing the PIP re-opens the employee's ability to submit
+  // another goal-progress update.
+  pip.employeeSubmitted = false;
 
   await pip.save();
   res.json(pip);
@@ -67,6 +70,9 @@ export const employeeSubmitPip = async (req, res) => {
   const pip = await Pip.findById(req.params.id);
   if (!pip) return res.status(404).json({ message: "PIP not found" });
   if (!pip.employeeId.equals(req.user._id)) return res.status(403).json({ message: "Forbidden" });
+  if (pip.employeeSubmitted) {
+    return res.status(409).json({ message: "Update already submitted — waiting on manager review" });
+  }
 
   pip.employeeSubmitted = true;
   pip.goals = req.body.goals || pip.goals;

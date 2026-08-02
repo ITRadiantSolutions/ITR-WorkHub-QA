@@ -74,3 +74,12 @@ export const login = async (req, res) => {
 export const me = async (req, res) => {
   return res.json({ user: toPublicUser(req.user) });
 };
+
+// Reissues a fresh token for the caller's still-valid session, extending it
+// another full expiry window — sits behind `protect`, so it naturally
+// re-checks approval/archived status on every renewal rather than trusting
+// whatever was true when the original token was issued.
+export const refresh = async (req, res) => {
+  const token = signToken(req.user);
+  return res.json({ token, user: toPublicUser(req.user) });
+};

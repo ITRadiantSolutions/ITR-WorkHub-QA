@@ -173,6 +173,7 @@ const DECORS = { flowtrack: FlowTrackDecor, timesheet: TimesheetDecor, pms: PmsD
 export default function Hub() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const visibleTiles = TILES.filter((tile) => !user?.archived?.[tile.key]);
 
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col">
@@ -223,7 +224,7 @@ export default function Hub() {
         <p className="text-sm text-slate-600 mb-6 text-center">Select a workspace to continue your work</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-5xl">
-          {TILES.map((tile) => {
+          {visibleTiles.map((tile) => {
             const Icon = Icons[tile.icon];
             const a = ACCENTS[tile.accent];
             const Decor = DECORS[tile.decor];

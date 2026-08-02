@@ -38,9 +38,11 @@ const newRow = () => ({ projectId: "", task: "", hours: Array(7).fill(""), nsa: 
 
 const MAX_HOURS_PER_DAY = 8;
 const MAX_HOURS_PER_WEEK = 40;
-// Only non-negative numbers with at most one decimal point — rejects "-",
-// letters, and anything else while the user is still typing.
-const isValidHourInput = (value) => value === "" || /^\d*\.?\d*$/.test(value);
+const TIMER_STORAGE_KEY = "timesheet_timer_v1";
+// A single leading digit (0-9, the daily cap is 8 anyway) plus at most 2
+// decimal places — rejects "-", letters, multi-digit whole hours like
+// "22", and anything past 2 decimals while the user is still typing.
+const isValidHourInput = (value) => value === "" || /^\d?(\.\d{0,2})?$/.test(value);
 
 export default function TimesheetEntry() {
   const { id } = useParams();
@@ -64,14 +66,37 @@ export default function TimesheetEntry() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef(null);
   const [managerTouched, setManagerTouched] = useState(false);
+  const [resubmitReason, setResubmitReason] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  const draftKey = (tsId) => `timesheet_edit_draft_${tsId}`;
+  const clearDraft = () => {
+    if (current?._id) localStorage.removeItem(draftKey(current._id));
+    setDraftRestored(false);
+  };
+  const discardDraft = () => {
+    clearDraft();
+    window.location.reload();
+  };
 
   const weekEnd = addDays(weekStart, 6);
   const today = new Date();
   const atCurrentWeek = fmtISODate(weekStart) === fmtISODate(startOfWeek(today));
 
   useEffect(() => {
+    if (!user?._id) return;
     API.get("/projects")
-      .then((res) => setProjects(res.data || []))
+      .then((res) => {
+        // The shared /projects endpoint returns every project for FlowTrack
+        // admins/PMs/HR-or-manager roles (it's built for project management
+        // screens). For the timesheet dropdown we only ever want projects
+        // this person is actually allocated to via teamMembers, regardless
+        // of what their other-module roles unlock.
+        const allocated = (res.data || []).filter((p) =>
+          (p.teamMembers || []).some((tm) => (tm?._id || tm) === user._id),
+        );
+        setProjects(allocated);
+      })
       .catch(() => toast.error("Failed to load projects"));
     API.get("/users/managers")
       .then((res) => setManagers(res.data || []))
@@ -79,7 +104,7 @@ export default function TimesheetEntry() {
     API.get("/company-holidays")
       .then((res) => setCompanyHolidays((res.data || []).map((h) => h.date)))
       .catch(() => toast.error("Failed to load the company holiday calendar"));
-  }, []);
+  }, [user?._id]);
 
   // Default to the employee's own manager, once we know who that is.
   useEffect(() => {
@@ -135,24 +160,46 @@ export default function TimesheetEntry() {
     setLoading(false);
   }, [id, weekStart, myTimesheets]);
 
-  // Populate the editable rows whenever the loaded timesheet changes
+  // Populate the editable rows whenever the loaded timesheet changes. For a
+  // needs_edit/rejected week (a resubmission), prefer a locally auto-saved
+  // draft over the server copy if one exists and differs — protects
+  // in-progress edits from a crashed tab or accidental navigation.
   useEffect(() => {
-    if (current) {
-      setRows(
-        (current.rows || []).length
-          ? current.rows.map((r) => ({
-              projectId: r.projectId?._id || r.projectId || "",
-              task: r.task || "",
-              hours: (r.secs || Array(7).fill(0)).map((s) => (s ? (s / 3600).toString() : "")),
-              nsa: r.nsa || Array(7).fill(false),
-              comment: r.comment || "",
-            }))
-          : [newRow()],
-      );
-    } else {
+    if (!current) {
       setRows([newRow()]);
+      return;
     }
-  }, [current]);
+    const serverRows = (current.rows || []).length
+      ? current.rows.map((r) => ({
+          projectId: r.projectId?._id || r.projectId || "",
+          task: r.task || "",
+          hours: (r.secs || Array(7).fill(0)).map((s) => (s ? (s / 3600).toString() : "")),
+          nsa: r.nsa || Array(7).fill(false),
+          comment: r.comment || "",
+        }))
+      : [newRow()];
+
+    if (id && ["needs_edit", "rejected"].includes(current.status)) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(draftKey(current._id)) || "null");
+        if (saved && JSON.stringify(saved.rows) !== JSON.stringify(serverRows)) {
+          setRows(saved.rows);
+          setResubmitReason(saved.resubmitReason || "");
+          setDraftRestored(true);
+          return;
+        }
+      } catch {
+        // ignore corrupt/unparseable local storage
+      }
+    }
+    setRows(serverRows);
+  }, [current, id]);
+
+  // Auto-save the in-progress resubmission so a crashed tab doesn't lose edits.
+  useEffect(() => {
+    if (!id || !current || !["needs_edit", "rejected"].includes(current.status)) return;
+    localStorage.setItem(draftKey(current._id), JSON.stringify({ rows, resubmitReason, savedAt: Date.now() }));
+  }, [rows, resubmitReason, id, current]);
 
   // In id-mode (viewing a specific week from History), only editable once we've
   // actually confirmed that week's status — never fall back to "editable" just
@@ -193,11 +240,28 @@ export default function TimesheetEntry() {
     );
   const updateHour = (i, dayIdx, value) => {
     if (!isValidHourInput(value)) return; // rejects negative numbers and non-numeric input
-    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, hours: r.hours.map((h, d) => (d === dayIdx ? value : h)) } : r)));
+    setRows((prev) =>
+      prev.map((r, idx) => {
+        if (idx !== i) return r;
+        const hasHours = (parseFloat(value) || 0) > 0;
+        return {
+          ...r,
+          hours: r.hours.map((h, d) => (d === dayIdx ? value : h)),
+          // NSA only makes sense on a day that actually has logged hours —
+          // clearing the hours field clears any NSA flag left over for it.
+          nsa: hasHours ? r.nsa : r.nsa.map((n, d) => (d === dayIdx ? false : n)),
+        };
+      }),
+    );
   };
   const updateNsa = (i, dayIdx, checked) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, nsa: r.nsa.map((n, d) => (d === dayIdx ? checked : n)) } : r)));
-  const removeRow = (i) => setRows((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
+  const removeRow = (i) => {
+    const row = rows[i];
+    const hasData = row.hours.some((h) => (parseFloat(h) || 0) > 0) || row.comment.trim();
+    if (hasData && !window.confirm("This row has logged hours. Remove it anyway? This action cannot be undone.")) return;
+    setRows((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
+  };
   const addRow = () => setRows((prev) => [...prev, newRow()]);
 
   // Weekends and holidays (company-wide or project-declared) are never editable, regardless of timesheet status.
@@ -215,6 +279,14 @@ export default function TimesheetEntry() {
     .filter((d) => d.total > MAX_HOURS_PER_DAY);
 
   const totalError = rows.some((r) => r.projectId) && grandTotal === 0 ? "Please enter time in at least one cell before saving." : "";
+
+  // Every weekday that isn't a company holiday needs at least some logged
+  // time before the week can be submitted — a partially-filled week can
+  // still be saved as a draft, just not sent for approval.
+  const missingWeekdays = DAY_LABELS.map((label, d) => ({ label, d }))
+    .filter(({ d }) => d < 5 && !companyHolidays.includes(fmtISODate(addDays(weekStart, d))))
+    .filter(({ d }) => dayTotals[d] === 0)
+    .map(({ label }) => label);
   const capMessages = [];
   if (overCapDays.length) {
     capMessages.push(
@@ -240,7 +312,7 @@ export default function TimesheetEntry() {
       })),
   });
 
-  const handleSave = async () => {
+  const handleSave = async (silent = false) => {
     setManagerTouched(true);
     if (!rows.some((r) => r.projectId)) {
       toast.error("Select a project on at least one row");
@@ -253,7 +325,7 @@ export default function TimesheetEntry() {
     setSaving(true);
     try {
       const res = await API.post("/timesheets/save", buildPayload());
-      toast.success("Timesheet saved");
+      if (!silent) toast.success("Timesheet saved");
       setCurrent(res.data);
       setMyTimesheets((prev) => {
         const others = prev.filter((t) => t._id !== res.data._id);
@@ -271,14 +343,19 @@ export default function TimesheetEntry() {
   const handleSubmit = async () => {
     setManagerTouched(true);
     if (!managerId) return toast.error("Select a manager before submitting");
+    if (missingWeekdays.length) {
+      return toast.error(`Log time for ${missingWeekdays.join(", ")} before submitting — save as a draft if you need to finish later.`);
+    }
     if (submitting) return; // guards the whole save+submit round trip, not just the save half
     setSubmitting(true);
     try {
-      const saved = await handleSave();
+      const saved = await handleSave(true);
       if (!saved) return;
-      const res = await API.post(`/timesheets/${saved._id}/submit`, { managerId });
+      const res = await API.post(`/timesheets/${saved._id}/submit`, { managerId, resubmitComment: resubmitReason });
       toast.success("Submitted for approval");
       setCurrent(res.data);
+      setResubmitReason("");
+      clearDraft();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit");
     } finally {
@@ -287,11 +364,17 @@ export default function TimesheetEntry() {
   };
 
   // ── Timer ──────────────────────────────────────────────────────────────
+  // Pausing commits only the *new* elapsed time (timerSeconds - committedSeconds)
+  // to today's hours cell, then keeps the clock's value on screen so resuming
+  // continues counting up instead of restarting from 00:00:00.
+  const [committedSeconds, setCommittedSeconds] = useState(0);
+
   const toggleTimer = () => {
     if (timerRunning) {
       clearInterval(timerRef.current);
       setTimerRunning(false);
-      if (timerSeconds > 0 && timerProject) {
+      const delta = timerSeconds - committedSeconds;
+      if (delta > 0 && timerProject) {
         const todayIdx = DAY_LABELS.findIndex((_, i) => isSameDay(addDays(weekStart, i), today));
         if (todayIdx >= 0) {
           setRows((prev) => {
@@ -299,21 +382,25 @@ export default function TimesheetEntry() {
             const next = prev.map((r) => {
               if (r.projectId !== timerProject) return r;
               found = true;
-              const hrs = (parseFloat(r.hours[todayIdx]) || 0) + timerSeconds / 3600;
+              const hrs = (parseFloat(r.hours[todayIdx]) || 0) + delta / 3600;
               return { ...r, hours: r.hours.map((h, d) => (d === todayIdx ? hrs.toFixed(2) : h)) };
             });
             if (found) return next;
             const row = { ...newRow(), projectId: timerProject };
-            row.hours[todayIdx] = (timerSeconds / 3600).toFixed(2);
+            row.hours[todayIdx] = (delta / 3600).toFixed(2);
             return [...prev.filter((r) => r.projectId), row];
           });
-          toast.success(`Added ${fmtHHMMSS(timerSeconds)} to today`);
+          toast.success(`Added ${fmtHHMMSS(delta)} to today`);
         }
+        setCommittedSeconds(timerSeconds);
       }
-      setTimerSeconds(0);
       return;
     }
     if (!timerProject) return toast.error("Select a project to start the timer");
+    if (!atCurrentWeek) return toast.error("The timer only works for the current week");
+    if (holidaysForProject(timerProject).includes(fmtISODate(today))) {
+      return toast.error("Today is a holiday for this project — the timer can't be started");
+    }
     setTimerRunning(true);
     timerRef.current = setInterval(() => setTimerSeconds((s) => s + 1), 1000);
   };
@@ -322,12 +409,73 @@ export default function TimesheetEntry() {
     clearInterval(timerRef.current);
     setTimerRunning(false);
     setTimerSeconds(0);
+    setCommittedSeconds(0);
+    localStorage.removeItem(TIMER_STORAGE_KEY);
   };
+
+  // Hard-stop at the daily cap so a forgotten timer can't silently run past it.
+  useEffect(() => {
+    if (timerRunning && timerSeconds >= MAX_HOURS_PER_DAY * 3600) {
+      toast.warning(`Timer stopped automatically at the ${MAX_HOURS_PER_DAY}-hour daily limit.`);
+      toggleTimer();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerSeconds]);
+
+  // Restore an in-progress timer for the current week on mount (survives a
+  // reload/navigation) — anything logged for a different week is discarded.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(TIMER_STORAGE_KEY) || "null");
+      if (!saved || saved.weekStartISO !== fmtISODate(startOfWeek(new Date()))) return;
+      setTimerProject(saved.timerProject || "");
+      setCommittedSeconds(saved.committedSeconds || 0);
+      if (saved.timerRunning && saved.persistedAt) {
+        const elapsedSincePersist = Math.max(0, Math.floor((Date.now() - saved.persistedAt) / 1000));
+        setTimerSeconds((saved.timerSeconds || 0) + elapsedSincePersist);
+        setTimerRunning(true);
+        timerRef.current = setInterval(() => setTimerSeconds((s) => s + 1), 1000);
+      } else {
+        setTimerSeconds(saved.timerSeconds || 0);
+      }
+    } catch {
+      // ignore corrupt/unparseable local storage
+    }
+  }, []);
+
+  // Persist the timer's state on every tick/change so it survives a reload.
+  useEffect(() => {
+    if (!timerProject && timerSeconds === 0) {
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(
+      TIMER_STORAGE_KEY,
+      JSON.stringify({
+        timerProject,
+        timerSeconds,
+        committedSeconds,
+        timerRunning,
+        persistedAt: Date.now(),
+        weekStartISO: fmtISODate(startOfWeek(new Date())),
+      }),
+    );
+  }, [timerProject, timerSeconds, committedSeconds, timerRunning]);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
   return (
     <main className="w-[92%] max-w-[1600px] mx-auto px-2 py-8">
+      {draftRestored && (
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span className="flex items-center gap-2 font-medium">
+            <Icons.Alert /> Restored unsaved changes from your last visit to this week.
+          </span>
+          <button onClick={discardDraft} className="shrink-0 font-bold underline hover:text-amber-900">
+            Discard draft &amp; reload
+          </button>
+        </div>
+      )}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-5">
       <div className="p-4 flex items-center gap-3 flex-wrap">
         {!id && (
@@ -353,11 +501,12 @@ export default function TimesheetEntry() {
 
         {editable && (
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-1.5">
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-1.5" title={!atCurrentWeek ? "The timer only works for the current week" : undefined}>
               <select
                 value={timerProject}
                 onChange={(e) => setTimerProject(e.target.value)}
-                disabled={timerRunning}
+                disabled={timerRunning || timerSeconds > 0 || !atCurrentWeek}
+                title={timerSeconds > 0 ? "Reset the timer before switching projects" : undefined}
                 className="h-9 rounded-xl border border-slate-200 px-3 text-sm font-medium bg-white disabled:opacity-60"
               >
                 <option value="">Select Project</option>
@@ -367,11 +516,14 @@ export default function TimesheetEntry() {
               </select>
               <button
                 onClick={toggleTimer}
-                className={`h-9 flex items-center gap-1.5 px-3.5 rounded-xl text-white text-sm font-bold transition ${
+                disabled={!timerRunning && !atCurrentWeek}
+                title={timerRunning ? "Pause" : timerSeconds > 0 ? "Resume" : "Start"}
+                className={`h-9 flex items-center gap-1.5 px-3.5 rounded-xl text-white text-sm font-bold transition disabled:opacity-50 ${
                   timerRunning ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
                 }`}
               >
-                {timerRunning ? <Icons.Pause /> : <Icons.Play />} {timerRunning ? fmtHHMMSS(timerSeconds) : "Start"}
+                {timerRunning ? <Icons.Pause /> : <Icons.Play />}{" "}
+                {timerRunning ? fmtHHMMSS(timerSeconds) : timerSeconds > 0 ? `Resume ${fmtHHMMSS(timerSeconds)}` : "Start"}
               </button>
               <button onClick={resetTimer} className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-slate-600 transition" title="Reset timer">
                 <Icons.Refresh />
@@ -380,7 +532,7 @@ export default function TimesheetEntry() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={handleSave}
+                onClick={() => handleSave()}
                 disabled={saving || submitting || Boolean(capError)}
                 title={capError || undefined}
                 className="h-10 flex items-center gap-1.5 px-4 rounded-[14px] border border-slate-300 bg-white text-slate-700 text-sm font-bold hover:bg-slate-50 transition disabled:opacity-60"
@@ -455,9 +607,11 @@ export default function TimesheetEntry() {
                         className="w-full rounded-lg border border-slate-200 text-sm px-2.5 py-2 bg-white disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
                       >
                         <option value="">Select Project</option>
-                        {projects.map((p) => (
-                          <option key={p._id} value={p._id}>{p.name}</option>
-                        ))}
+                        {projects
+                          .filter((p) => p._id === row.projectId || !rows.some((r, idx) => idx !== i && r.projectId === p._id))
+                          .map((p) => (
+                            <option key={p._id} value={p._id}>{p.name}</option>
+                          ))}
                       </select>
                     </td>
                     {DAY_LABELS.map((_, d) => {
@@ -466,6 +620,7 @@ export default function TimesheetEntry() {
                       const isHoliday = isHolidayDay(row, d);
                       const locked = isWeekend || isHoliday;
                       const overCap = dayTotals[d] > MAX_HOURS_PER_DAY;
+                      const hasHours = (parseFloat(row.hours[d]) || 0) > 0;
                       return (
                         <td key={d} className={`px-2 py-3 text-center align-top ${overCap ? "bg-red-50/60" : isToday ? "bg-teal-50/40" : locked ? "bg-slate-50/30" : ""}`}>
                           <input
@@ -479,12 +634,12 @@ export default function TimesheetEntry() {
                               overCap ? "border-red-300 focus:ring-red-500/30 focus:border-red-400" : "border-slate-200 focus:ring-teal-500/30 focus:border-teal-400"
                             }`}
                           />
-                          <label className="flex flex-col items-center gap-0.5 mt-1.5 cursor-pointer" title="Applicable for NSA">
+                          <label className="flex flex-col items-center gap-0.5 mt-1.5 cursor-pointer" title={hasHours ? "Applicable for NSA" : "Enter hours for this day to enable NSA"}>
                             <input
                               type="checkbox"
                               checked={row.nsa[d]}
                               onChange={(e) => updateNsa(i, d, e.target.checked)}
-                              disabled={!editable || locked}
+                              disabled={!editable || locked || !hasHours}
                               className="accent-teal-600 w-3.5 h-3.5"
                             />
                             <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">NSA</span>
@@ -525,6 +680,21 @@ export default function TimesheetEntry() {
               <button onClick={addRow} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-500 text-xs font-semibold hover:border-teal-400 hover:text-teal-600 hover:bg-white transition">
                 <Icons.Plus /> Add row
               </button>
+            </div>
+          )}
+
+          {editable && current && ["needs_edit", "rejected"].includes(current.status) && (
+            <div className="px-5 py-4 border-t border-slate-100 bg-amber-50/40">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                What changed since your manager's feedback? (included when you resubmit)
+              </label>
+              <textarea
+                value={resubmitReason}
+                onChange={(e) => setResubmitReason(e.target.value)}
+                rows={2}
+                placeholder="Explain what you updated..."
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
+              />
             </div>
           )}
 

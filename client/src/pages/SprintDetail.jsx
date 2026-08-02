@@ -26,11 +26,6 @@ function Badge({ label, variant }) {
   );
 }
 
-function getStatusVariant(s) {
-  const m = { Active: "active", Planning: "planning", Completed: "completed" };
-  return m[s] || "default";
-}
-
 function Field({ label, required = false, error, children }) {
   return (
     <div>
@@ -115,7 +110,6 @@ export default function SprintDetail({
   const [commentsLoading, setCommentsLoading] = useState(false);
 
   const [storiesCount, setStoriesCount] = useState(0);
-  const [storiesLoading, setStoriesLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: initialSprint?.name || "",
@@ -191,15 +185,12 @@ export default function SprintDetail({
     const fetchStoriesCount = async () => {
       if (!sprint?._id) return;
       try {
-        setStoriesLoading(true);
         const res = await getStoriesBySprint(sprint._id);
         const list = res?.data?.data || res?.data || [];
         setStoriesCount(Array.isArray(list) ? list.length : 0);
       } catch (err) {
         console.error("Failed to load stories count:", err);
         setStoriesCount(0);
-      } finally {
-        setStoriesLoading(false);
       }
     };
 
@@ -213,7 +204,7 @@ export default function SprintDetail({
       const res = await addSprintComment(sprint._id, newComment.trim());
       setComments(res.data.data || res.data.comments || []);
       setNewComment("");
-    } catch (err) {
+    } catch {
       alert("Failed to post comment.");
     } finally {
       setCommentLoading(false);

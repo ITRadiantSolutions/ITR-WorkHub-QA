@@ -9,17 +9,18 @@ import {
   TrendingUp,
   CheckCircle2,
   Trash2,
-  Minus,
   Users,
   Play,
   Building2,
   UserCircle,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import ErrorPopup from "../components/ErrorPopup";
 import getAuthAxios from "../../utils/authAxios";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 export default function AssignIndividual() {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -144,6 +145,7 @@ export default function AssignIndividual() {
 
   const [assignees, setAssignees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [assigneeTypeFilter, setAssigneeTypeFilter] = useState("all"); // "all" | "user" | "group"
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [selectedAssignees, setSelectedAssignees] =
     useState([]); const [submittedList, setSubmittedList] = useState([]);
@@ -153,7 +155,6 @@ export default function AssignIndividual() {
   const [showHistory, setShowHistory] = useState(false);
 
   const [selectedKras, setSelectedKras] = useState([]);
-  const [showLibraryDropdown, setShowLibraryDropdown] = useState(false);
   const submittedForCycle = submittedList;
   //const [templateName, setTemplateName] = useState("");
   const isSubmittedView = status === "submitted";
@@ -173,9 +174,11 @@ export default function AssignIndividual() {
     fetchAssignees();
   }, []);
 
-  const filteredAssignees = assignees.filter((a) =>
-    a.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredAssignees = assignees.filter((a) => {
+    if (!a.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (assigneeTypeFilter !== "all" && a.type !== assigneeTypeFilter) return false;
+    return true;
+  });
 
   const isKpiValid = (kra) => {
     if (!kra.kpis || kra.kpis.length === 0) return true;
@@ -201,20 +204,10 @@ export default function AssignIndividual() {
 
   //     if (editingTemplateId) {
   //       await api.put(`/kra-master-template/${editingTemplateId}`, payload);
-  //       Swal.fire({
-  //         icon: "success",
-  //         title: "Template Updated",
-  //         timer: 1000,
-  //         showConfirmButton: false,
-  //       });
+  //       toast.success("Template Updated");
   //     } else {
   //       await api.post("/kra-master-template", payload);
-  //       Swal.fire({
-  //         icon: "success",
-  //         title: "Template Created",
-  //         timer: 1000,
-  //         showConfirmButton: false,
-  //       });
+  //       toast.success("Template Created");
   //     }
 
   //     await fetchTemplates();
@@ -240,7 +233,7 @@ export default function AssignIndividual() {
           kras: savedKras,
           updatedBy: loggedInUser?.id,
         });
-        Swal.fire({ icon: "success", title: "Assignment Updated", timer: 1200, showConfirmButton: false });
+        toast.success("Assignment Updated");
       } else {
         // ✅ NEW ASSIGNMENT
         await api.post("/kpi-template/submit", {
@@ -248,7 +241,7 @@ export default function AssignIndividual() {
           kras: savedKras,
           createdBy: loggedInUser?.id,
         });
-        Swal.fire({ icon: "success", title: "Template Assigned", timer: 1200, showConfirmButton: false });
+        toast.success("Template Assigned");
       }
 
       resetTemplateBuilder();
@@ -268,12 +261,7 @@ export default function AssignIndividual() {
         assignedToId: selectedAssignees.id,
         kras: selectedKras,
       });
-      Swal.fire({
-        icon: "success",
-        title: "Assigned Template Updated",
-        timer: 1000,
-        showConfirmButton: false,
-      });
+      toast.success("Assigned Template Updated");
       setViewMode("view");
     } catch (err) {
       console.error(err);
@@ -371,6 +359,15 @@ export default function AssignIndividual() {
     0,
   );
   const remainingWeight = 100 - totalKraWeight;
+
+  // Per-step "can I move on" flags — drive the disabled state on each
+  // step's Next/Assign button, not just the after-the-click error popup.
+  const step1Valid = selectedAssignees.length > 0;
+  const step2Valid = selectedKras.length > 0;
+  const step3Valid =
+    selectedKras.length > 0 &&
+    selectedKras.every((k) => k.isSaved) &&
+    totalKraWeight === 100;
 
   const updateKraWeight = (kraId, value) => {
 
@@ -474,9 +471,6 @@ export default function AssignIndividual() {
   };
 
   useEffect(() => {
-    setShowLibraryDropdown(!!kraType);
-  }, [kraType]);
-  useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) setLoggedInUser(user);
   }, []);
@@ -542,56 +536,53 @@ export default function AssignIndividual() {
 
   const cutKraFromSelection = (instanceId) =>
     setSelectedKras((prev) => prev.filter((k) => k.instanceId !== instanceId));
-  const functionalCount = selectedKras.filter(
-    (k) => k.type === "functional",
-  ).length;
-  const organizationalCount = selectedKras.filter(
-    (k) => k.type === "organizational",
-  ).length;
 
   return (
     <>
       <ErrorPopup message={error} onClose={() => setError("")} />
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="h-screen overflow-y-auto bg-gray-50 p-3 md:p-5 font-sans">
+        <div className="max-w-5xl mx-auto space-y-4">
           {/* Header */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
 
             {/* 🔙 BACK BUTTON */}
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-purple-600 mb-2 md:mb-0"
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-purple-600"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} />
               Back
             </button>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent">
                 Employee KPIs Studio
               </h1>
-              <p className="text-gray-500 mt-1 text-sm">
+              <p className="text-gray-500 mt-0.5 text-xs">
                 Design, assign, and manage Key Performance Indicators with
                 precision.
               </p>
             </div>
-            <div className="flex items-center gap-3 bg-purple-50 px-5 py-3 rounded-2xl border border-purple-100">
-              <span className="text-sm font-semibold text-purple-700">
-                Remaining Weight
-              </span>
-              <span
-                className={`text-2xl font-bold ${remainingWeight === 0 ? "text-emerald-500" : remainingWeight < 0 ? "text-red-500" : "text-purple-600"}`}
-              >
-                {remainingWeight}%
-              </span>
+            <div className="flex items-center gap-3 bg-purple-50 px-4 py-2 rounded-xl border border-purple-100">
+              <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                <TrendingUp size={16} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500">Remaining Weight</p>
+                <p
+                  className={`text-lg font-bold leading-none ${remainingWeight === 0 ? "text-emerald-500" : remainingWeight < 0 ? "text-red-500" : "text-purple-600"}`}
+                >
+                  {remainingWeight}%
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Stepper */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 overflow-x-auto">
-            <div className="flex justify-between items-center w-full min-w-[500px] relative px-4">
-              <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-gray-100 -translate-y-1/2" />
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-x-auto">
+            <div className="flex justify-between items-center w-full min-w-[420px] relative px-4">
+              <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gray-100 -translate-y-1/2" />
               <div
-                className="absolute top-1/2 left-10 right-[50%] h-0.5 bg-purple-500 -translate-y-1/2 transition-all duration-500"
+                className="absolute top-1/2 left-8 right-[50%] h-0.5 bg-purple-500 -translate-y-1/2 transition-all duration-500"
                 style={{
                   right: step === 1 ? "100%" : step === 2 ? "50%" : "10%",
                 }}
@@ -607,17 +598,17 @@ export default function AssignIndividual() {
                 return (
                   <div
                     key={s.num}
-                    className="relative z-10 flex flex-col items-center gap-2 cursor-pointer group"
+                    className="relative z-10 flex flex-col items-center gap-1.5 cursor-pointer group"
                     onClick={() => setStep(s.num)}
                   >
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 shadow-sm
                       ${isActive ? "bg-purple-600 text-white ring-4 ring-purple-100 scale-110" : isPast ? "bg-emerald-500 text-white" : "bg-white text-gray-400 border-2 border-gray-200 group-hover:border-purple-300"}`}
                     >
-                      {isPast ? <CheckCircle2 size={20} /> : s.num}
+                      {isPast ? <CheckCircle2 size={16} /> : s.num}
                     </div>
                     <span
-                      className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? "text-purple-700" : isPast ? "text-gray-800" : "text-gray-400"}`}
+                      className={`text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? "text-purple-700" : isPast ? "text-gray-800" : "text-gray-400"}`}
                     >
                       {s.label}
                     </span>
@@ -628,268 +619,151 @@ export default function AssignIndividual() {
           </div>
 
           {/* MAIN CONTENT AREA */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 min-h-[400px]">
-            {/* ====== STEP 1: CREATE TEMPLATE ====== */}
+          <div className="relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm border border-gray-100 min-h-[360px]">
+            {/* ====== STEP 1: BROWSE & SELECT KRAs ====== */}
             {step === 2 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Template Name Input */}
-                  <div className="space-y-2">
-                    {/* <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">
-                      Template Name
-                    </label> */}
-                    {/* <input
-                      type="text"
-                      value={templateName}
-                      onChange={(e) => setTemplateName(e.target.value)}
-                      placeholder="e.g. Q3 Engineering Core"
-                      className="w-full px-5 py-4 text-sm font-medium text-gray-800 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    /> */}
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">Select KRAs</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">Browse and select KRAs to assign.</p>
                   </div>
-
-                  {/* KRA Type Selector */}
-                  <div className="space-y-2 w-full col-span-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">
-                      Browse KRA Library
-                    </label>
-                    <div
-                      className={`flex bg-gray-50 rounded-2xl p-1.5 border 
-  ${kraTypeError ? "border-red-400 bg-red-50" : "border-gray-200"}`}
-                    >
-                      <button
-                        onClick={() => {
-                          setKraType("functional");
-                          setKraTypeError(false);
-                        }}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === "functional" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                      >
-                        Job Specified
-                      </button>
-                      <button
-                        onClick={() => {
-                          setKraType("organizational");
-                          setKraTypeError(false);
-                        }}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${kraType === "organizational" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                      >
-                        Organizational
-                      </button>
-                    </div>
-                  </div>
+                  {selectedKras.length > 0 && (
+                    <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full shrink-0">
+                      {selectedKras.length} selected
+                    </span>
+                  )}
                 </div>
-                {kraTypeError && (
-                  <p className="text-xs text-red-500 mt-1 font-semibold">
-                    Please select Job Specified or Organizational KRA
-                  </p>
-                )}
 
-                {/* Library Dropdown Panel */}
-                <AnimatePresence>
-                  {showLibraryDropdown &&
-                    step === 2 &&
-                    viewMode !== "viewAssigned" && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="bg-purple-50/50 rounded-3xl border border-purple-100 p-6 mt-2 relative">
-                          <button
-                            onClick={() => setShowLibraryDropdown(false)}
-                            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-white rounded-full transition-all"
-                          >
-                            <X size={20} />
-                          </button>
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                              <Building2 size={20} />
+                {/* KRA Type Selector */}
+                <div>
+                  <div className={`grid grid-cols-2 gap-2 p-1 rounded-xl border ${kraTypeError ? "border-red-400 bg-red-50" : "bg-gray-50 border-gray-200"}`}>
+                    <button
+                      onClick={() => {
+                        setKraType("functional");
+                        setKraTypeError(false);
+                      }}
+                      className={`flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${kraType === "functional" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      <Calendar size={16} /> Job Specified
+                    </button>
+                    <button
+                      onClick={() => {
+                        setKraType("organizational");
+                        setKraTypeError(false);
+                      }}
+                      className={`flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${kraType === "organizational" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      <Building2 size={16} /> Organizational
+                    </button>
+                  </div>
+                  {kraTypeError && (
+                    <p className="text-xs text-red-500 mt-1.5 font-semibold">
+                      Please select Job Specified or Organizational KRA
+                    </p>
+                  )}
+                </div>
+
+                {/* Search + Filters */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search KRA by name..."
+                      onChange={(e) => {
+                        const v = e.target.value.toLowerCase();
+                        setLibraryKras(
+                          allLibraryKras.filter(
+                            (k) => k.type === kraType && k.name.toLowerCase().includes(v),
+                          ),
+                        );
+                      }}
+                      className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    title="More filters coming soon"
+                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed shrink-0"
+                  >
+                    <SlidersHorizontal size={16} /> Filters
+                  </button>
+                </div>
+
+                {/* KRA grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[340px] overflow-y-auto pr-1">
+                  {libraryKras.length === 0 ? (
+                    <p className="col-span-full text-center py-10 text-gray-400 text-sm">
+                      No KRAs found in this category.
+                    </p>
+                  ) : (
+                    libraryKras.map((kra) => {
+                      const alreadyAdded = selectedKras.some((k) => k.originalId === kra.id);
+                      return (
+                        <label
+                          key={kra.id}
+                          className={`flex flex-col gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${alreadyAdded ? "border-purple-300 bg-purple-50/60" : "border-gray-200 bg-white hover:border-purple-200"}`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                              <Building2 size={16} />
                             </div>
-                            <h4 className="font-bold text-gray-800 capitalize text-lg">
-                              {kraType === "functional" ? "Job Specified KRAs" : `${kraType} KRAs`}
-                            </h4>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm text-gray-800 truncate">{kra.name}</p>
+                              <span className="inline-block mt-0.5 text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">
+                                {kra.kpis?.length || 0} KPIs
+                              </span>
+                            </div>
                           </div>
-                          <input
-                            type="text"
-                            placeholder="Search library..."
-                            onChange={(e) => {
-                              const v = e.target.value.toLowerCase();
-                              setLibraryKras(
-                                allLibraryKras.filter(
-                                  (k) =>
-                                    k.type === kraType &&
-                                    k.name.toLowerCase().includes(v),
-                                ),
-                              );
-                            }}
-                            className="w-full px-5 py-3 mb-6 text-sm rounded-xl bg-white border border-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm"
-                          />
+                          <div className="flex items-center gap-2 pt-2.5 border-t border-gray-100">
+                            <input
+                              type="checkbox"
+                              checked={alreadyAdded}
+                              onChange={() =>
+                                alreadyAdded
+                                  ? setSelectedKras((prev) => prev.filter((k) => k.originalId !== kra.id))
+                                  : handleSelectKra(kra)
+                              }
+                              className="w-4 h-4 accent-purple-600 cursor-pointer"
+                            />
+                            <span className="text-xs font-semibold text-gray-600">Select</span>
+                          </div>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-2 pb-2">
-                            {libraryKras.length === 0 ? (
-                              <p className="col-span-full text-center py-8 text-gray-400">
-                                No KRAs found in this category.
-                              </p>
-                            ) : (
-                              libraryKras.map((kra) => {
-                                const alreadyAdded = selectedKras.some(
-                                  (k) => k.originalId === kra.id,
-                                );
-                                return (
-                                  <div
-                                    key={kra.id}
-                                    className={`flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 ${alreadyAdded ? "bg-purple-600 border-purple-700 text-white shadow-md" : "bg-white border-gray-200 hover:border-purple-300 hover:shadow-md"}`}
-                                  >
-                                    <div>
-                                      <p
-                                        className={`font-semibold text-sm mb-2 line-clamp-2 ${alreadyAdded ? "text-white" : "text-gray-800"}`}
-                                      >
-                                        {kra.name}
-                                      </p>
-                                      <span
-                                        className={`text-xs inline-flex px-2 py-1 rounded-md font-medium ${alreadyAdded ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"}`}
-                                      >
-                                        {kra.kpis?.length || 0} KPIs
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={() =>
-                                        alreadyAdded
-                                          ? setSelectedKras((prev) =>
-                                            prev.filter(
-                                              (k) => k.originalId !== kra.id,
-                                            ),
-                                          )
-                                          : handleSelectKra(kra)
-                                      }
-                                      className={`mt-4 py-2 w-full flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-colors ${alreadyAdded ? "bg-white/20 hover:bg-white/30 text-white" : "bg-purple-50 text-purple-700 hover:bg-purple-100"}`}
-                                    >
-                                      {alreadyAdded ? (
-                                        <>
-                                          <Minus size={16} /> Remove
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Plus size={16} /> Add to Template
-                                        </>
-                                      )}
-                                    </button>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                </AnimatePresence>
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-end">
                   <motion.button
                     onClick={() => navigate("/kra-builder?from=assign_individual")}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-4 py-2 
-    bg-gradient-to-r from-violet-600 to-purple-600 
-    text-white rounded-lg text-sm font-semibold 
+                    className="flex items-center gap-2 px-3.5 py-2
+    bg-gradient-to-r from-violet-600 to-purple-600
+    text-white rounded-lg text-xs font-semibold
     shadow hover:shadow-lg transition-all duration-300"
                   >
-                    <Plus size={16} />
+                    <Plus size={14} />
                     Create KRA
                   </motion.button>
                 </div>
-                {/* Selected KRAs Preview List */}
-                {(functionalCount > 0 || organizationalCount > 0) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-                    {functionalCount > 0 && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-purple-500" />{" "}
-                            Job Specified KRAs
-                          </h4>
-                          <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
-                            {functionalCount} Selected
-                          </span>
-                        </div>
-                        {selectedKras
-                          .filter((k) => k.type === "functional")
-                          .map((kra) => (
-                            <div
-                              key={kra.instanceId}
-                              className="flex justify-between items-center bg-gray-50 border border-gray-200 p-3 rounded-xl hover:border-purple-300 transition-colors"
-                            >
-                              <span className="text-sm font-medium text-gray-700 truncate pr-4">
-                                {kra.name}
-                              </span>
-                              <button
-                                onClick={() =>
-                                  setSelectedKras((prev) =>
-                                    prev.filter(
-                                      (k) => k.instanceId !== kra.instanceId,
-                                    ),
-                                  )
-                                }
-                                className="text-gray-400 hover:text-red-500 transition-colors"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                    {organizationalCount > 0 && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500" />{" "}
-                            Organizational KRAs
-                          </h4>
-                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                            {organizationalCount} Selected
-                          </span>
-                        </div>
-                        {selectedKras
-                          .filter((k) => k.type === "organizational")
-                          .map((kra) => (
-                            <div
-                              key={kra.instanceId}
-                              className="flex justify-between items-center bg-gray-50 border border-gray-200 p-3 rounded-xl hover:border-emerald-300 transition-colors"
-                            >
-                              <span className="text-sm font-medium text-gray-700 truncate pr-4">
-                                {kra.name}
-                              </span>
-                              <button
-                                onClick={() =>
-                                  setSelectedKras((prev) =>
-                                    prev.filter(
-                                      (k) => k.instanceId !== kra.instanceId,
-                                    ),
-                                  )
-                                }
-                                className="text-gray-400 hover:text-red-500 transition-colors"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
 
             {/* ====== STEP 2: ASSIGN TARGET ====== */}
             {step === 1 && (
-              <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto py-8">
-                <div className="text-center mb-8">
-                  <div className="mx-auto w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4">
-                    <Users size={32} />
+              <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-xl mx-auto py-4">
+                <div className="text-center mb-6">
+                  <div className="mx-auto w-14 h-14 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-3">
+                    <Users size={24} />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800">
+                  <h3 className="text-lg font-bold text-gray-800">
                     Assign to Employee or Group
                   </h3>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-gray-500 mt-1.5">
                     Search for the target user or department to assign this KRA
                     template to.
                   </p>
@@ -905,11 +779,15 @@ export default function AssignIndividual() {
                       setShowAssignDropdown(true);
                     }}
                     onFocus={() => setShowAssignDropdown(true)}
-                    className="w-full pl-12 pr-4 py-4 text-base rounded-2xl bg-white border-2 border-purple-100 focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-50 transition-all shadow-sm"
+                    className="w-full pl-11 pr-10 py-3 text-sm rounded-xl bg-white border-2 border-purple-100 focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-50 transition-all shadow-sm"
                   />
                   <Users
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400"
-                    size={20}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400"
+                    size={18}
+                  />
+                  <ChevronDown
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                    size={16}
                   />
 
                   <AnimatePresence>
@@ -982,8 +860,42 @@ export default function AssignIndividual() {
                   </AnimatePresence>
                 </div>
 
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                  <span className="text-xs font-semibold text-gray-500">Quick Filters:</span>
+                  {[
+                    { key: "user", label: "Employees", Icon: UserCircle },
+                    { key: "group", label: "User Groups", Icon: Users },
+                  ].map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => {
+                        setAssigneeTypeFilter((prev) => (prev === f.key ? "all" : f.key));
+                        setShowAssignDropdown(true);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                        assigneeTypeFilter === f.key
+                          ? "bg-purple-600 border-purple-600 text-white"
+                          : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      <f.Icon size={14} />
+                      {f.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled
+                    title="Department grouping isn't available yet"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+                  >
+                    <Building2 size={14} />
+                    Departments
+                  </button>
+                </div>
+
                 {selectedAssignees.length > 0 && (
-                  <div className="mt-8 flex flex-wrap gap-3">
+                  <div className="mt-6 flex flex-wrap gap-3">
                     {selectedAssignees.map((assignee) => (
                       <motion.div
                         key={assignee.id}
@@ -1208,13 +1120,18 @@ export default function AssignIndividual() {
 
               {step === 1 && (
                 <button
+                  disabled={!step1Valid}
                   onClick={() => {
-                    if (selectedAssignees.length === 0)
+                    if (!step1Valid)
                       return setError("Select at least one employee or group");
 
                     setStep(2);
                   }}
-                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all shadow-md shadow-purple-200"
+                  className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    step1Valid
+                      ? "text-white bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-200"
+                      : "text-gray-400 bg-gray-100 cursor-not-allowed"
+                  }`}
                 >
                   {editingTemplateId ? "Configure Weights" : "Next Step"}
                 </button>
@@ -1222,13 +1139,18 @@ export default function AssignIndividual() {
 
               {step === 2 && (
                 <button
+                  disabled={!step2Valid}
                   onClick={() => {
-                    if (selectedKras.length === 0)
+                    if (!step2Valid)
                       return setError("Select at least one KRA");
 
                     setStep(3);
                   }}
-                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-all shadow-md shadow-purple-200"
+                  className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    step2Valid
+                      ? "text-white bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-200"
+                      : "text-gray-400 bg-gray-100 cursor-not-allowed"
+                  }`}
                 >
                   Next Step
                 </button>
@@ -1302,7 +1224,13 @@ export default function AssignIndividual() {
                       }
                     })();
                   }}
-                  className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 flex items-center gap-2"
+                  disabled={!step3Valid}
+                  title={!step3Valid ? "Save every KRA and reach 100% total weight before assigning" : undefined}
+                  className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                    step3Valid
+                      ? "text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200"
+                      : "text-gray-400 bg-gray-100 cursor-not-allowed"
+                  }`}
                 >
                   <CheckCircle2 size={18} />
                   {viewMode === "editAssigned"

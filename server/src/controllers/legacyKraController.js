@@ -11,6 +11,16 @@ const requirePmsHrOrManager = (req, res) => {
   return true;
 };
 
+// The reusable KRA library is HR-curated content — unlike assigning it to
+// people (Manager, HR), only HR may add/edit/remove library entries.
+const requirePmsHr = (req, res) => {
+  if (req.user.roles.pms !== "hr") {
+    res.status(403).json({ message: "PMS HR access required" });
+    return false;
+  }
+  return true;
+};
+
 // Distinguishes an HR/manager-assigned ("base") KRA from an employee-drafted
 // one in the flat kraId string the original frontend expects — it filters
 // employee-only KRAs with `!kraId.includes("-base-")`.
@@ -32,7 +42,7 @@ export const listKraLibrary = async (req, res) => {
 };
 
 export const createKraLibraryEntries = async (req, res) => {
-  if (!requirePmsHrOrManager(req, res)) return;
+  if (!requirePmsHr(req, res)) return;
   const { type, kras } = req.body;
   if (!type || !Array.isArray(kras) || !kras.length) {
     return res.status(400).json({ message: "type and kras[] are required" });
@@ -56,7 +66,7 @@ export const createKraLibraryEntries = async (req, res) => {
 };
 
 export const updateKraLibraryEntry = async (req, res) => {
-  if (!requirePmsHrOrManager(req, res)) return;
+  if (!requirePmsHr(req, res)) return;
   const { kraId } = req.params;
   const { name, kpis, type } = req.body;
 
@@ -77,7 +87,7 @@ export const updateKraLibraryEntry = async (req, res) => {
 };
 
 export const deleteKraLibraryEntry = async (req, res) => {
-  if (!requirePmsHrOrManager(req, res)) return;
+  if (!requirePmsHr(req, res)) return;
   const { kraId } = req.params;
 
   const inUse = await KraAssignment.exists({ "kras.defRef": kraId });

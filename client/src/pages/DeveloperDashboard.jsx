@@ -216,7 +216,7 @@ function WeeklyActivityChart({ values }) {
         return (
           <g key={i}>
             <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e2e8f0" strokeWidth="1" />
-            <text x={padL - 6} y={y + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{t}</text>
+            <text x={padL - 6} y={y + 3} textAnchor="end" fontSize="11" fill="#94a3b8">{t}</text>
           </g>
         );
       })}
@@ -233,7 +233,7 @@ function WeeklyActivityChart({ values }) {
         </g>
       ))}
       {WEEK_DAY_LABELS.map((l, i) => (
-        <text key={l} x={points[i]?.x} y={height - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">
+        <text key={l} x={points[i]?.x} y={height - 4} textAnchor="middle" fontSize="11" fill="#94a3b8">
           {l}
         </text>
       ))}
@@ -362,20 +362,9 @@ export default function DeveloperDashboard() {
   // QA assign modal
   const [showQaAssignModal, setShowQaAssignModal] = useState(false);
   const [qaAssignTask, setQaAssignTask] = useState(null);
-  const [qaAssignSuccess, setQaAssignSuccess] = useState(null);
 
   // StatusSelect component for Developer
   const StatusSelect = ({ value, onChange, task }) => {
-    const colors = {
-      // eslint-disable-line no-unused-vars
-
-      TODO: "bg-slate-50 text-slate-600 border-slate-200",
-      IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-      ON_HOLD: "bg-amber-50 text-amber-700 border-amber-200",
-      QA_TESTING: "bg-purple-50 text-purple-700 border-purple-200",
-      DONE: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    };
-
     const isUpdating = updatingTask === task?._id;
 
     // For self-created tasks, allow all statuses
@@ -1808,16 +1797,12 @@ export default function DeveloperDashboard() {
                 onClose={() => {
                   setShowQaAssignModal(false);
                   setQaAssignTask(null);
-                  setQaAssignSuccess(null);
                 }}
                 task={qaAssignTask}
                 onAssigned={(updatedTask) => {
-                  setQaAssignSuccess(updatedTask);
-
                   // Close modal and update only the affected task.
                   setShowQaAssignModal(false);
                   setQaAssignTask(null);
-                  setQaAssignSuccess(updatedTask);
 
                   setTasks((current) =>
                     current.map((task) =>

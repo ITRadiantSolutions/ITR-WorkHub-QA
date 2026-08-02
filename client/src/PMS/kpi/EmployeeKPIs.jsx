@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import ErrorPopup from "../components/ErrorPopup";
 import EmployeeKPIForm from "./EmployeeKPIForm";
 import getAuthAxios from "../../utils/authAxios";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 
 export function EmployeeKPIs() {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -91,10 +91,10 @@ export function EmployeeKPIs() {
 
       if (editingTemplateId) {
         await api.put(`/kra-master-template/${editingTemplateId}`, payload);
-        Swal.fire({ icon: "success", title: "Template Updated", timer: 1000, showConfirmButton: false });
+        toast.success("Template Updated");
       } else {
         await api.post("/kra-master-template", payload);
-        Swal.fire({ icon: "success", title: "Template Created", timer: 1000, showConfirmButton: false });
+        toast.success("Template Created");
       }
 
       await fetchTemplates();
@@ -120,7 +120,7 @@ export function EmployeeKPIs() {
       };
 
       await api.post("/kpi-template/submit", payload);
-      Swal.fire({ icon: "success", title: "Template Assigned", timer: 1200, showConfirmButton: false });
+      toast.success("Template Assigned");
       resetTemplateBuilder();
       setStep(1);
     } catch (err) {
@@ -137,7 +137,7 @@ export function EmployeeKPIs() {
         assignedToId: assignee.id,
         kras: selectedKras,
       });
-      Swal.fire({ icon: "success", title: "Assigned Template Updated", timer: 1000, showConfirmButton: false });
+      toast.success("Assigned Template Updated");
       setViewMode("view");
     } catch (err) {
       console.error(err);
@@ -792,12 +792,7 @@ export function EmployeeKPIs() {
                             });
                           }
 
-                          Swal.fire({
-                            icon: "success",
-                            title: "Template Assigned to Multiple Users",
-                            timer: 1200,
-                            showConfirmButton: false,
-                          });
+                          toast.success("Template Assigned to Multiple Users");
 
                           resetTemplateBuilder();
                           setStep(1);

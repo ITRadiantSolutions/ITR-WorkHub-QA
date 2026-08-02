@@ -1,6 +1,3 @@
-import { useState, useEffect } from "react";
-import { getTask, addTaskComment } from "../services/api";
-import { useAuth } from "../context/AuthContext";
 import Icons from "./Icons";
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
@@ -49,8 +46,6 @@ function TaskViewModal({
   isOpen,
   onClose,
   selectedTask,
-  projects = [],
-  employees = [],
   comments = [],
   onAddComment,
   newComment,
@@ -58,10 +53,7 @@ function TaskViewModal({
   isLoading,
   getProjectName,
   getAssigneeName,
-  getAssigneesPreview,
 }) {
-  const { user } = useAuth();
-
   if (!isOpen || !selectedTask) return null;
 
   return (

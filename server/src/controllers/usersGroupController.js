@@ -1,8 +1,8 @@
 import UsersGroup from "../models/UsersGroup.js";
 
-const requirePmsHr = (req, res) => {
-  if (req.user.roles.pms !== "hr") {
-    res.status(403).json({ message: "PMS HR access required" });
+const requirePmsHrOrManager = (req, res) => {
+  if (!["hr", "manager"].includes(req.user.roles.pms)) {
+    res.status(403).json({ message: "PMS Manager or HR access required" });
     return false;
   }
   return true;
@@ -19,7 +19,7 @@ export const getGroup = async (req, res) => {
 };
 
 export const createGroup = async (req, res) => {
-  if (!requirePmsHr(req, res)) return;
+  if (!requirePmsHrOrManager(req, res)) return;
   const { name, description, members } = req.body;
   if (!name) return res.status(400).json({ message: "name is required" });
 
@@ -28,7 +28,7 @@ export const createGroup = async (req, res) => {
 };
 
 export const updateGroup = async (req, res) => {
-  if (!requirePmsHr(req, res)) return;
+  if (!requirePmsHrOrManager(req, res)) return;
   const { name, description, members } = req.body;
 
   const group = await UsersGroup.findById(req.params.id);
@@ -42,7 +42,7 @@ export const updateGroup = async (req, res) => {
 };
 
 export const deleteGroup = async (req, res) => {
-  if (!requirePmsHr(req, res)) return;
+  if (!requirePmsHrOrManager(req, res)) return;
   const group = await UsersGroup.findByIdAndDelete(req.params.id);
   if (!group) return res.status(404).json({ message: "Group not found" });
   res.status(204).send();

@@ -23,6 +23,7 @@ import TimesheetEntry from "./Timesheet/TimesheetEntry";
 import TimesheetHistory from "./Timesheet/History";
 import TimesheetReview from "./Timesheet/Review";
 import TimesheetManage from "./Timesheet/Manage";
+import TimesheetNsaReport from "./Timesheet/NsaReport";
 import TimesheetReports from "./Timesheet/Reports";
 import TimesheetGuide from "./Timesheet/Guide";
 import PmsHome from "./pages/PmsHome";
@@ -38,7 +39,10 @@ import AssignIndividual from "./PMS/kpi/AssignIndividual";
 import EditTemplate from "./PMS/EditTemplate";
 import UserKraSearch from "./PMS/UserKraSearch";
 import PmsLayout from "./PMS/PmsLayout";
+import ReviewQueue from "./PMS/reports/ReviewQueue";
+import SubmissionDetail from "./PMS/reports/SubmissionDetail";
 import { Toaster } from "sonner";
+import { ConfirmDialogHost } from "./components/ConfirmDialog";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -78,6 +82,7 @@ function App() {
               <Route path="new/:id" element={<TimesheetEntry />} />
               <Route path="history" element={<TimesheetHistory />} />
               <Route path="review" element={<TimesheetReview />} />
+              <Route path="nsa-report" element={<TimesheetNsaReport />} />
               <Route path="manage" element={<TimesheetManage />} />
               <Route path="reports" element={<TimesheetReports />} />
               <Route path="guide" element={<TimesheetGuide />} />
@@ -195,6 +200,22 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/pms/reviews"
+                element={
+                  <ProtectedRoute>
+                    <ReviewQueue />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pms/submissions/:id"
+                element={
+                  <ProtectedRoute>
+                    <SubmissionDetail />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             <Route
@@ -297,6 +318,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
           <Toaster richColors position="bottom-right" />
+          <ConfirmDialogHost />
         </BrowserRouter>
         </NotificationProvider>
       </AuthProvider>

@@ -1101,7 +1101,7 @@ export default function ProjectsPage({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {displayedProjects.map((p) => {
             const leadName = getUserName(p.projectLead, users);
             const leadInitial = leadName?.charAt(0)?.toUpperCase() || "N";
@@ -1129,72 +1129,46 @@ export default function ProjectsPage({
                     </button>
                   )}
 
-                  {/* Content */}
+                  {/* Content — condensed to 3 lines: title, badges + lead, dates */}
                   <div className="p-4">
-                    {/* Title */}
-                    <h3 className="text-sm font-bold text-slate-800 pr-16 line-clamp-1">
+                    {/* Line 1: Title */}
+                    <h3
+                      className={`text-sm font-bold text-slate-800 line-clamp-1 ${canClone ? "pr-16" : ""}`}
+                    >
                       {p.name}
                     </h3>
 
-                    {/* Description */}
-                    <p className="mt-2 text-xs text-slate-500 line-clamp-2 leading-5 min-h-[38px]">
-                      {p.description || "No description available"}
-                    </p>
-                    {/* Badges */}
-                    <div className="flex flex-wrap gap-2 mt-0">
+                    {/* Line 2: Badges + lead */}
+                    <div className="mt-2 flex items-center flex-wrap gap-1.5">
                       <Badge
                         label={p.status}
                         variant={getStatusVariant(p.status)}
                       />
-
                       <Badge
                         label={p.priority}
                         variant={getPriorityVariant(p.priority)}
                       />
-                    </div>
-                    {/* Lead */}
-                    <div className="mt-4 flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-semibold text-slate-600">
-                        {leadInitial}
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                          Lead
-                        </p>
-                        <p className="text-xs font-medium text-slate-700 truncate">
-                          {leadName || "Not Assigned"}
-                        </p>
-                      </div>
+                      <span className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500 min-w-0">
+                        <span className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-semibold text-slate-600 shrink-0">
+                          {leadInitial}
+                        </span>
+                        <span className="truncate max-w-[100px]">
+                          {leadName || "Unassigned"}
+                        </span>
+                      </span>
                     </div>
 
-                    {/* Timeline */}
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-slate-400">
-                          <Icon.Calendar />
-                          Start
-                        </div>
-                        <p className="mt-1 text-xs font-semibold text-slate-700">
-                          {startDate}
-                        </p>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-slate-400">
-                          <Icon.Calendar />
-                          End
-                        </div>
-                        <p className="mt-1 text-xs font-semibold text-slate-700">
-                          {endDate}
-                        </p>
-                      </div>
+                    {/* Line 3: Timeline */}
+                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <Icon.Calendar />
+                      <span>{startDate}</span>
+                      <span className="text-slate-300">–</span>
+                      <span>{endDate}</span>
                     </div>
 
                     {/* Footer */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                        <Icon.Calendar />
+                    <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400">
                         Created {createdDate}
                       </span>
 

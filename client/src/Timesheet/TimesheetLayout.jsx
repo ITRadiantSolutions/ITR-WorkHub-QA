@@ -9,8 +9,9 @@ const TABS = [
   { to: "/timesheet/new", label: "Timesheet", icon: "Calendar" },
   { to: "/timesheet/history", label: "History", icon: "Clock" },
   { to: "/timesheet/review", label: "Review", icon: "Team", managerOrHr: true },
+  { to: "/timesheet/nsa-report", label: "NSA Report", icon: "BarChart", hrOnly: true },
   { to: "/timesheet/manage", label: "Manage", icon: "Settings", managerOrHr: true },
-  { to: "/timesheet/reports", label: "Reports", icon: "Reports", hrOnly: true },
+  { to: "/timesheet/reports", label: "Reports", icon: "Reports", managerOrHr: true },
   { to: "/timesheet/guide", label: "Guide", icon: "Book" },
 ];
 

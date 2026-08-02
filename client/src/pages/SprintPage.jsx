@@ -30,11 +30,6 @@ function Badge({ label, variant }) {
   );
 }
 
-function getStatusVariant(s) {
-  const m = { Active: "active", Planning: "planning", Completed: "completed" };
-  return m[s] || "default";
-}
-
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 function Field({ label, required = false, error, children }) {
   return (
@@ -119,7 +114,7 @@ function StatPill({ label, value, color }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SprintPage({ searchRequest }) {
-  const { user, hasRole } = useAuth();
+  const { hasRole } = useAuth();
   const dispatch = useAppDispatch();
   const sprints = useAppSelector(selectSprints);
   const projects = useAppSelector(selectProjects);
@@ -586,11 +581,8 @@ export default function SprintPage({ searchRequest }) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredSprints.map((sprint) => {
-            const project = projects.find(
-              (p) => p._id === sprint.projectId?._id,
-            );
             const startDate = new Date(sprint.startDate).toLocaleDateString(
               "en-US",
               { year: "numeric", month: "short", day: "numeric" },
@@ -598,18 +590,6 @@ export default function SprintPage({ searchRequest }) {
             const endDate = new Date(sprint.endDate).toLocaleDateString(
               "en-US",
               { year: "numeric", month: "short", day: "numeric" },
-            );
-            const daysLeft = Math.ceil(
-              (new Date(sprint.endDate) - new Date()) / (1000 * 60 * 60 * 24),
-            );
-            const totalDays = Math.ceil(
-              (new Date(sprint.endDate) - new Date(sprint.startDate)) /
-                (1000 * 60 * 60 * 24),
-            );
-            const elapsed = totalDays - daysLeft;
-            const progress = Math.min(
-              100,
-              Math.max(0, Math.round((elapsed / totalDays) * 100)),
             );
 
             const statusConfig = {
@@ -631,132 +611,34 @@ export default function SprintPage({ searchRequest }) {
               dot: "#94a3b8",
             };
 
+            // Minimal list card — name, status, start/end date only.
+            // Click opens the full SprintDetail view for everything else.
             return (
               <div
                 key={sprint._id}
                 onClick={() => setSelectedSprint(sprint._id)}
                 className="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group"
               >
-                {/* Top row */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: sc.dot }}
-                      />
-                      <h3 className="text-[14px] font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
-                        {sprint.name}
-                      </h3>
-                    </div>
-                    {project && (
-                      <p className="text-[11.5px] text-slate-400 ml-4 truncate">
-                        {project.name}
-                      </p>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold shrink-0 ${sc.cls}`}
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: sc.dot }}
+                  />
+                  <h3 className="text-[13.5px] font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors flex-1 min-w-0">
+                    {sprint.name}
+                  </h3>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${sc.cls}`}
                   >
                     {sprint.status}
                   </span>
                 </div>
 
-                {/* Goal */}
-                <p className="text-[12.5px] text-slate-500 line-clamp-2 leading-relaxed mb-3 min-h-[38px]">
-                  {sprint.goal || (
-                    <span className="italic text-slate-300">
-                      No sprint goal added
-                    </span>
-                  )}
-                </p>
-
-                {/* Progress bar */}
-                <div className="mb-3">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Timeline Progress
-                    </span>
-                    <span className="text-[10.5px] font-bold text-slate-600">
-                      {progress}%
-                    </span>
-                  </div>
-                  <div className="h-[5px] bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${progress}%`,
-                        backgroundColor:
-                          sprint.status === "Completed"
-                            ? "#10b981"
-                            : daysLeft < 0
-                              ? "#ef4444"
-                              : "#3b82f6",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Date row */}
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                    <p className="text-[9.5px] uppercase font-semibold text-slate-400 mb-0.5">
-                      Start
-                    </p>
-                    <p className="text-[12px] font-bold text-slate-700">
-                      {startDate}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                    <p className="text-[9.5px] uppercase font-semibold text-slate-400 mb-0.5">
-                      End
-                    </p>
-                    <p className="text-[12px] font-bold text-slate-700">
-                      {endDate}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                      <line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" />
-                      <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
-                    <span>
-                      {totalDays} day{totalDays !== 1 ? "s" : ""} total
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[11.5px] font-bold px-2 py-0.5 rounded-full ${
-                      sprint.status === "Completed"
-                        ? "bg-emerald-50 text-emerald-600"
-                        : daysLeft > 7
-                          ? "bg-slate-100 text-slate-600"
-                          : daysLeft > 0
-                            ? "bg-amber-50 text-amber-600"
-                            : "bg-red-50 text-red-600"
-                    }`}
-                  >
-                    {sprint.status === "Completed"
-                      ? "✓ Done"
-                      : daysLeft > 0
-                        ? `${daysLeft}d left`
-                        : `${Math.abs(daysLeft)}d overdue`}
-                  </span>
+                <div className="flex items-center gap-1.5 text-[11.5px] text-slate-500 ml-4">
+                  <Icons.Calendar />
+                  <span>{startDate}</span>
+                  <span className="text-slate-300">–</span>
+                  <span>{endDate}</span>
                 </div>
               </div>
             );

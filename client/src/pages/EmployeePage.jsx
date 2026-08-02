@@ -12,7 +12,6 @@ import {
 import { toast } from "sonner";
 import Icons from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 // NOTE: used to refresh role immediately after admin role change
 
@@ -150,7 +149,6 @@ function confirmToast({
 // ─────────────────────────────────────────────────────────────────────────────
 export default function EmployeesPage({ searchRequest }) {
   const { refreshUser, user: authUser } = useAuth();
-  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("pending");
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -418,7 +416,9 @@ export default function EmployeesPage({ searchRequest }) {
     try {
       const r = await API.get("/auth/pending-users");
       setPendingUsers(normalizeUsers(r.data));
-    } catch {}
+    } catch (e) {
+      console.error("Failed to fetch pending users", e);
+    }
   };
   const fetchApprovedUsers = async () => {
     try {
@@ -439,13 +439,17 @@ export default function EmployeesPage({ searchRequest }) {
             provider: u.provider,
           })),
       );
-    } catch {}
+    } catch (e) {
+      console.error("Failed to fetch approved users", e);
+    }
   };
   const fetchRejectedUsers = async () => {
     try {
       const r = await getRejectedUsers();
       setRejectedUsers(normalizeUsers(r.data));
-    } catch {}
+    } catch (e) {
+      console.error("Failed to fetch rejected users", e);
+    }
   };
 
   const handleView = (id) => {

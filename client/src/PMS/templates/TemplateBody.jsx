@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { confirmDialog } from "../../components/ConfirmDialog";
 
 // This file's original fetch() calls sent no Authorization header (the old
 // app served frontend+backend from one origin). Ours are separate origins
@@ -460,7 +461,7 @@ export default function TemplateBody({
       [temp.id]: updated,
     }));
     if (isFinalSubmitted) {
-      Swal.fire("Locked", "Self review already submitted. Editing is not allowed.", "info");
+      toast.info("Self review already submitted. Editing is not allowed.");
       return;
     }
 
@@ -470,7 +471,7 @@ export default function TemplateBody({
       setOpenSavedKra(null);
     }
 
-    Swal.fire("Deleted");
+    toast.success("Deleted");
   };
   const hasEmployeeDrafts = (draftKras[temp.id] || []).length > 0;
   const editingKra = (extraKras[temp.id] || []).find((k) => k.__editing);
@@ -602,14 +603,9 @@ export default function TemplateBody({
         return next;
       });
 
-      Swal.fire({
-        icon: "success",
-        title: "All responses saved",
-        timer: 1200,
-        showConfirmButton: false,
-      });
+      toast.success("All responses saved");
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Save Failed" });
+      toast.error("Save Failed");
     }
   };
 
@@ -1190,20 +1186,16 @@ export default function TemplateBody({
                             {/* delete  */}
 
                             <button
-                              onClick={() => {
-                                Swal.fire({
+                              onClick={async () => {
+                                const confirmed = await confirmDialog({
                                   title: "Delete KRA?",
                                   text: "This action cannot be undone.",
-                                  icon: "warning",
-                                  showCancelButton: true,
-                                  confirmButtonColor: "#d33",
-                                  cancelButtonColor: "#6b7280",
-                                  confirmButtonText: "Yes, delete it",
-                                }).then((result) => {
-                                  if (result.isConfirmed) {
-                                    handleDeleteSavedKra(kraId, index);
-                                  }
+                                  confirmText: "Yes, delete it",
+                                  danger: true,
                                 });
+                                if (confirmed) {
+                                  handleDeleteSavedKra(kraId, index);
+                                }
                               }}
                               title="Delete KRA"
                               className="p-2 rounded-md text-red-600 hover:bg-red-50 transition"

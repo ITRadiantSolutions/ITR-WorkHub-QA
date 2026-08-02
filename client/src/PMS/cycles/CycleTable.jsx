@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Edit, Trash2, Calendar, Clock, Save, Users, X, Search } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { confirmDialog } from "../../components/ConfirmDialog";
 import { isPMS_HR } from "../../utils/pmsrolecheck";
 
 const statusStyles = {
@@ -211,7 +212,7 @@ export default function CycleTable({
       });
 
     } catch {
-      Swal.fire("Error", "Failed to save changes", "error");
+      toast.error("Failed to save changes");
     } finally {
       setSaving((prev) => ({ ...prev, [cycle.id]: false }));
     }
@@ -653,18 +654,14 @@ export default function CycleTable({
                     <Edit className="w-4 h-4" />
                   </motion.button>
                   <motion.button
-                    onClick={() => {
-                      Swal.fire({
+                    onClick={async () => {
+                      const confirmed = await confirmDialog({
                         title: "Delete Cycle?",
                         text: "This action cannot be undone.",
-                        icon: "warning",
-                        showCancelButton: true,
-                        confirmButtonColor: "#ef4444",
-                        cancelButtonColor: "#64748b",
-                        confirmButtonText: "Yes, delete it",
-                      }).then((result) => {
-                        if (result.isConfirmed) onDelete(cycle.id);
+                        confirmText: "Yes, delete it",
+                        danger: true,
                       });
+                      if (confirmed) onDelete(cycle.id);
                     }}
                     title="Delete"
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

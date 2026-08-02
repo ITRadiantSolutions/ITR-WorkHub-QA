@@ -41,28 +41,38 @@ export default function PmsLayout() {
         </button>
 
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {TABS.filter((t) => {
-            if (t.hrOnly) return hr;
-            if (t.managerOrHr) return hr || manager;
-            return true;
-          }).map((t) => {
-            const Icon = Icons[t.icon];
-            const active = location.pathname === t.to || location.pathname.startsWith(`${t.to}/`);
-            return (
-              <button
-                key={t.to}
-                onClick={() => navigate(t.to)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  active
-                    ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white shadow-sm"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                }`}
-              >
-                {Icon ? <Icon /> : null}
-                {t.label}
-              </button>
-            );
-          })}
+          {(() => {
+            const visibleTabs = TABS.filter((t) => {
+              if (t.hrOnly) return hr;
+              if (t.managerOrHr) return hr || manager;
+              return true;
+            });
+            // Pick the single most-specific tab whose `to` matches the current
+            // path, so a parent route (e.g. "/pms") doesn't also light up
+            // alongside a more specific child route (e.g. "/pms/cycles").
+            const activeTo = visibleTabs
+              .filter((t) => location.pathname === t.to || location.pathname.startsWith(`${t.to}/`))
+              .sort((a, b) => b.to.length - a.to.length)[0]?.to;
+
+            return visibleTabs.map((t) => {
+              const Icon = Icons[t.icon];
+              const active = t.to === activeTo;
+              return (
+                <button
+                  key={t.to}
+                  onClick={() => navigate(t.to)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    active
+                      ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                  }`}
+                >
+                  {Icon ? <Icon /> : null}
+                  {t.label}
+                </button>
+              );
+            });
+          })()}
         </nav>
 
         <div className="px-3 py-3 border-t border-slate-100 space-y-1 shrink-0">

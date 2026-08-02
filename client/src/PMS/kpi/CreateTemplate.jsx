@@ -19,7 +19,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import ErrorPopup from "../components/ErrorPopup";
 import getAuthAxios from "../../utils/authAxios";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 export function CreateTemplete() {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -244,12 +244,7 @@ export function CreateTemplete() {
 
       await api.post("/kpi-template/submit", payload);
 
-      Swal.fire({
-        icon: "success",
-        title: "Template Assigned",
-        timer: 1200,
-        showConfirmButton: false,
-      });
+      toast.success("Template Assigned");
 
       resetTemplateBuilder();
       setStep(1);
@@ -270,12 +265,7 @@ export function CreateTemplete() {
         assignedToId: selectedAssignees.id,
         kras: selectedKras,
       });
-      Swal.fire({
-        icon: "success",
-        title: "Assigned Template Updated",
-        timer: 1000,
-        showConfirmButton: false,
-      });
+      toast.success("Assigned Template Updated");
       setViewMode("view");
     } catch (err) {
       console.error(err);

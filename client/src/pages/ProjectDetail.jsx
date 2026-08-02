@@ -375,7 +375,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
   const [loading, setLoading] = useState(!initialProject);
   const [projectLoading, setProjectLoading] = useState(false);
-  const [editingProject, setEditingProject] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [projectEmployees, setProjectEmployees] = useState([]);
@@ -398,7 +397,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
   const [showTaskViewModal, setShowTaskViewModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [taskDetails, setTaskDetails] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [taskLoading, setTaskLoading] = useState(false);
@@ -409,10 +407,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
   // to ensure Add Task works correctly.
   // Task creation is handled via TaskPage UI
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
-  const [taskError, setTaskError] = useState("");
-
-  // All projects user can access (admin: all projects)
-  const [userProjects, setUserProjects] = useState([]);
 
   const [projectUsers, setProjectUsers] = useState([]);
   const [showCloneModal, setShowCloneModal] = useState(false);
@@ -441,7 +435,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
   // ── Sprint Create Modal (inside Project Details) ─────────────────────────
   const [sprintCreateModalOpen, setSprintCreateModalOpen] = useState(false);
   const [sprintCreateSubmitting, setSprintCreateSubmitting] = useState(false);
-  const [sprintCreateSuccessMsg, setSprintCreateSuccessMsg] = useState("");
   const [sprintCreateErrors, setSprintCreateErrors] = useState({});
   const [sprintCreateForm, setSprintCreateForm] = useState({
     name: "",
@@ -582,8 +575,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
     setSprintCreateSubmitting(true);
     try {
       await API.post("/sprints", sprintCreateForm);
-      setSprintCreateSuccessMsg("Sprint created successfully!");
-      setTimeout(() => setSprintCreateSuccessMsg(""), 3000);
+      toast.success("Sprint created successfully!");
       setSprintCreateModalOpen(false);
       setSprintCreateForm({
         name: "",
@@ -1023,7 +1015,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
       const response = await getTask(taskId);
       const fullTask = response?.data?.data || response?.data;
 
-      setTaskDetails(fullTask);
       setComments(fullTask?.comments || []);
     } catch (e) {
       console.error("Error fetching task details:", e);
@@ -1117,7 +1108,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
       }
 
       setProject(updatedProject);
-      setEditingProject(false);
       setSaveSuccess(true);
 
       setTimeout(() => setSaveSuccess(false), 2500);
@@ -1406,7 +1396,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
         allowAdminAssign={true}
         assigneesOptions={projectEmployees}
         defaultAssigneeIds={[]}
-        onTaskCreated={(newTask) => {
+        onTaskCreated={() => {
           setShowCreateTaskModal(false);
 
           // reload task list
@@ -2194,7 +2184,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                       setSprintCreateModalOpen(true);
                       setSprintCreateErrors({});
                       setSprintCreateSubmitting(false);
-                      setSprintCreateSuccessMsg("");
                       setSprintCreateForm((f) => ({
                         ...f,
                         projectId: project._id,
@@ -2362,7 +2351,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                         setSprintCreateModalOpen(true);
                         setSprintCreateErrors({});
                         setSprintCreateSubmitting(false);
-                        setSprintCreateSuccessMsg("");
                         setSprintCreateForm((f) => ({
                           ...f,
                           projectId: project._id,
@@ -3732,7 +3720,6 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     <button
                       onClick={() => {
                         populateForm(project);
-                        setEditingProject(false);
                       }}
                       disabled={saving}
                       className="px-5 py-3 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-50"

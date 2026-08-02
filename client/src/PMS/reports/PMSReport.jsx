@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
  import getAuthAxios from "../../utils/authAxios";
 import Loader from "../components/Loader";
 import HeaderSwitch from "./HeaderSwitch";
@@ -303,11 +303,7 @@ export default function PMSReport() {
     );
 
     if (!reviewedKras.length) {
-      Swal.fire(
-        "No Review Entered",
-        "Please provide Manager Comment and Manager Rating for at least one KRA before submitting.",
-        "warning"
-      );
+      toast.warning("Please provide Manager Comment and Manager Rating for at least one KRA before submitting.");
       return;
     }
 
@@ -331,11 +327,7 @@ export default function PMSReport() {
         .trim() || "Manager review submitted";
 
     if (!employeeKras.length) {
-      Swal.fire(
-        "Awaiting Self Review",
-        "Employee has not submitted the self review yet. Please wait for employee submission before giving manager feedback & rating.",
-        "info"
-      );
+      toast.info("Employee has not submitted the self review yet. Please wait for employee submission before giving manager feedback & rating.");
       return;
     }
 
@@ -354,10 +346,10 @@ export default function PMSReport() {
         oneOnOneComment: data.oneOnOneComment,
       });
 
-      Swal.fire("Submitted", "success");
+      toast.success("Submitted");
       navigate(-1);
     } catch {
-      Swal.fire("Error", "Submission failed", "error");
+      toast.error("Submission failed");
     }
   };
   /* ================================
@@ -394,17 +386,13 @@ export default function PMSReport() {
   ================================ */
   const handleExportAll = async () => {
     if (!filteredEmployees?.length) {
-      Swal.fire("No data", "No employees to export", "info");
+      toast.info("No employees to export");
       return;
     }
 
+    let exportToastId;
     try {
-      Swal.fire({
-        title: "Exporting reports…",
-        text: "Please wait",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-      });
+      exportToastId = toast.loading("Exporting reports…", { description: "Please wait" });
 
       const api = await getAuthAxios();
 
@@ -557,11 +545,12 @@ export default function PMSReport() {
 
       XLSX.writeFile(wb, "PMS_All_Employee_Reports.xlsx");
 
-      Swal.close();
+      toast.dismiss(exportToastId);
 
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to export reports", "error");
+      toast.dismiss(exportToastId);
+      toast.error("Failed to export reports");
     }
   };
 

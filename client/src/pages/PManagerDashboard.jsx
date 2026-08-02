@@ -3,7 +3,7 @@ import { isTaskOverdue } from "../utils/taskDates";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "../components/NotificationBell";
-import { API, DATA_MUTATED_EVENT, deleteBug } from "../services/api";
+import { API, DATA_MUTATED_EVENT } from "../services/api";
 import ProjectsPage from "./ProjectPage";
 import TasksPage from "./TaskPage";
 import SprintPage from "./SprintPage";
@@ -17,7 +17,6 @@ import {
   STATUS_STYLES,
   StatusSelect,
   Field,
-  inputCls,
   BugDetailModal,
 } from "../components/BugComponents";
 import Icons from "../components/Icons";
@@ -128,34 +127,34 @@ function DashboardPie({ data, centerValue, centerLabel }) {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const [hovered, setHovered] = useState(null);
-  let consumed = 0;
+  const segmentSizes = data.map((item) => (total ? (item.value / total) * circumference : 0));
+  const segments = data.map((item, i) => ({
+    ...item,
+    segment: segmentSizes[i],
+    offset: segmentSizes.slice(0, i).reduce((a, b) => a + b, 0),
+  }));
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="relative h-40 w-40 shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label={`${centerLabel} distribution`}>
           <circle cx="50" cy="50" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="12" />
-          {data.map((item) => {
-            const segment = total ? (item.value / total) * circumference : 0;
-            const offset = consumed;
-            consumed += segment;
-            return (
-              <circle
-                key={item.label}
-                cx="50"
-                cy="50"
-                r={radius}
-                fill="none"
-                stroke={item.color}
-                strokeWidth="12"
-                strokeDasharray={`${segment} ${circumference - segment}`}
-                strokeDashoffset={-offset}
-                className="transition-all duration-700 cursor-pointer"
-                style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
-                onMouseEnter={() => setHovered(item)}
-                onMouseLeave={() => setHovered(null)}
-              />
-            );
-          })}
+          {segments.map((item) => (
+            <circle
+              key={item.label}
+              cx="50"
+              cy="50"
+              r={radius}
+              fill="none"
+              stroke={item.color}
+              strokeWidth="12"
+              strokeDasharray={`${item.segment} ${circumference - item.segment}`}
+              strokeDashoffset={-item.offset}
+              className="transition-all duration-700 cursor-pointer"
+              style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
+              onMouseEnter={() => setHovered(item)}
+              onMouseLeave={() => setHovered(null)}
+            />
+          ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           {hovered ? (
@@ -217,13 +216,9 @@ export default function ManagerDashboard() {
   const [bugs, setBugs] = useState([]);
   const [bugLoading, setBugLoading] = useState(true);
   const [bugError, setBugError] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState("ALL");
-  const [filterStatus, setFilterStatus] = useState("ALL");
-  const [loading, setLoading] = useState(true);
   const [dashboardTasksLoading, setDashboardTasksLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [bugSearch, setBugSearch] = useState("");
   const [sprints, setSprints] = useState([]);
   const [globalQuery, setGlobalQuery] = useState("");
   const [globalSearchFocused, setGlobalSearchFocused] = useState(false);
@@ -241,40 +236,12 @@ export default function ManagerDashboard() {
     });
   }, [activeTab, fetchTabCounts, setTabCounts, tabCounts]);
 
-  // Bug detail modal state
-  const [selectedBug, setSelectedBug] = useState(null);
-  const [showBugModal, setShowBugModal] = useState(false);
-
-  const handleViewBug = (bug) => {
-    setSelectedBug(bug);
-    setShowBugModal(true);
-  };
-
-  const handleCloseBugModal = () => {
-    setShowBugModal(false);
-    setSelectedBug(null);
-  };
-
-  const handleDeleteBug = async (bugId) => {
-    try {
-      await deleteBug(bugId);
-      setBugs((prev) => prev.filter((b) => b._id !== bugId));
-      toast.success("Bug deleted successfully");
-      setShowBugModal(false);
-      setSelectedBug(null);
-    } catch (error) {
-      console.error("Delete bug error:", error);
-      toast.error("Failed to delete bug");
-    }
-  };
-
   useEffect(() => {
     window.history.replaceState(null, "", window.location.href);
   }, []);
 
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
       setDashboardTasksLoading(true);
       setProjectsLoading(true);
 
@@ -296,8 +263,6 @@ export default function ManagerDashboard() {
       ]);
     } catch (err) {
       console.error("Error fetching data:", err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -348,36 +313,6 @@ export default function ManagerDashboard() {
   const handleRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
   }, []);
-
-  const handleUpdateStatus = async (bugId, newStatus) => {
-    try {
-      await API.put(`/bugs/${bugId}`, { status: newStatus });
-      setBugs((prev) =>
-        prev.map((b) => (b._id === bugId ? { ...b, status: newStatus } : b)),
-      );
-    } catch {
-      setBugError("Failed to update bug status");
-    }
-  };
-
-  const filteredBugs = bugs.filter((b) => {
-    // SEARCH
-    const matchesSearch =
-      !bugSearch ||
-      b.title?.toLowerCase().includes(bugSearch.toLowerCase()) ||
-      b.description?.toLowerCase().includes(bugSearch.toLowerCase()) ||
-      b.status?.toLowerCase().includes(bugSearch.toLowerCase()) ||
-      b.severity?.toLowerCase().includes(bugSearch.toLowerCase()) ||
-      b.reportedBy?.name?.toLowerCase().includes(bugSearch.toLowerCase());
-
-    // SEVERITY
-    if (filterSeverity !== "ALL" && b.severity !== filterSeverity) return false;
-
-    // STATUS
-    if (filterStatus !== "ALL" && b.status !== filterStatus) return false;
-
-    return matchesSearch;
-  });
 
   const bugCounts = {
     total: bugs.length,

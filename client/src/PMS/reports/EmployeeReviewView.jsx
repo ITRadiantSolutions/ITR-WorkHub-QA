@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Star, CheckCircle2, Send, AlertCircle, User, Download, Calendar } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import * as XLSX from "xlsx";
  import Loader from "../components/Loader";
 import getAuthAxios from "../../utils/authAxios";
@@ -243,9 +243,9 @@ export default function EmployeeReviewView({
         oneOnOneComment,
       });
 
-      Swal.fire("Saved!", "Draft saved successfully", "success");
+      toast.success("Draft saved successfully");
     } catch (err) {
-      Swal.fire("Error", "Failed to save draft", "error");
+      toast.error("Failed to save draft");
     }
   };
   const isFinalSubmitted = [
@@ -298,7 +298,7 @@ export default function EmployeeReviewView({
   const handleManagerAction = async (kra, idx, action) => {
     const managerId = user?._id || user?.id || user?.userId;
     if (!report?.templateId || !managerId) {
-      Swal.fire("Missing data", "Template or manager information is missing.", "warning");
+      toast.warning("Template or manager information is missing.");
       return;
     }
 
@@ -318,12 +318,10 @@ export default function EmployeeReviewView({
         prev.map((item, i) => (i === idx ? { ...item, status: newStatus } : item))
       );
 
-      Swal.fire("Updated", `KRA marked as ${action}.`, "success");
+      toast.success(`KRA marked as ${action}.`);
     } catch (err) {
-      Swal.fire(
-        "Action failed",
-        err?.response?.data?.detail || err?.message || "Unable to update KRA status.",
-        "error"
+      toast.error(
+        err?.response?.data?.detail || err?.message || "Unable to update KRA status."
       );
     } finally {
       setActionLoadingByKra((prev) => ({ ...prev, [kra.id]: false }));
@@ -778,11 +776,7 @@ export default function EmployeeReviewView({
                   <motion.button
                     onClick={async () => {
                       if (!canSubmitFinalReview) {
-                        Swal.fire(
-                          "Incomplete review",
-                          submitBlockReason || "Please complete all fields.",
-                          "warning"
-                        );
+                        toast.warning(submitBlockReason || "Please complete all fields.");
                         return;
                       }
 

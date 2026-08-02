@@ -95,7 +95,13 @@ function DistributionPieChart({ data, centerLabel, centerValue }) {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const [hovered, setHovered] = useState(null);
-  let consumed = 0;
+
+  const segmentSizes = data.map((item) => (total ? (item.value / total) * circumference : 0));
+  const segments = data.map((item, i) => ({
+    ...item,
+    segment: segmentSizes[i],
+    offset: segmentSizes.slice(0, i).reduce((a, b) => a + b, 0),
+  }));
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -114,28 +120,23 @@ function DistributionPieChart({ data, centerLabel, centerValue }) {
             stroke="#f1f5f9"
             strokeWidth="12"
           />
-          {data.map((item) => {
-            const segment = total ? (item.value / total) * circumference : 0;
-            const offset = consumed;
-            consumed += segment;
-            return (
-              <circle
-                key={item.label}
-                cx="50"
-                cy="50"
-                r={radius}
-                fill="none"
-                stroke={item.color}
-                strokeWidth="12"
-                strokeDasharray={`${segment} ${circumference - segment}`}
-                strokeDashoffset={-offset}
-                className="transition-all duration-700 cursor-pointer"
-                style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
-                onMouseEnter={() => setHovered(item)}
-                onMouseLeave={() => setHovered(null)}
-              />
-            );
-          })}
+          {segments.map((item) => (
+            <circle
+              key={item.label}
+              cx="50"
+              cy="50"
+              r={radius}
+              fill="none"
+              stroke={item.color}
+              strokeWidth="12"
+              strokeDasharray={`${item.segment} ${circumference - item.segment}`}
+              strokeDashoffset={-item.offset}
+              className="transition-all duration-700 cursor-pointer"
+              style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
+              onMouseEnter={() => setHovered(item)}
+              onMouseLeave={() => setHovered(null)}
+            />
+          ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           {hovered ? (
@@ -220,9 +221,6 @@ export default function AdminDashboard() {
   const [globalQuery, setGlobalQuery] = useState("");
   const [globalSearchFocused, setGlobalSearchFocused] = useState(false);
   const [pageSearchRequest, setPageSearchRequest] = useState(null);
-  // NOTE: notificationFilter is used by the normal (non-admin) notification flow.
-  // Admin notifications use adminStatusFilter.
-  const [notificationFilter] = useState("all");
 
   // Admin notifications (all employees) state
   const [adminNotifications, setAdminNotifications] = useState([]);
@@ -342,15 +340,7 @@ export default function AdminDashboard() {
     };
   }, [adminEmployeeId, adminProjectId, adminStatusFilter, adminQuery]);
 
-  const {
-    notifications,
-
-    unreadCount,
-    loading: notifLoading,
-    fetchNotifications,
-    markAsRead,
-    clearAll,
-  } = useNotifications();
+  const { markAsRead } = useNotifications();
 
   useEffect(() => {
     window.history.replaceState(null, "", window.location.href);

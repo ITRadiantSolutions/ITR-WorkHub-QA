@@ -36,7 +36,6 @@ function ToggleCard({
   icon: Ic,
   label,
   sublabel,
-  count,
   checked,
   onChange,
   disabled,
@@ -148,12 +147,6 @@ export default function CloneProjectModal({
   };
 
   if (!isOpen || !sourceProject || !canClone) return null;
-
-  const sourceStats = [
-    { label: "Members", value: sourceProject.teamMembers?.length || 0 },
-    { label: "Sprints", value: sourceProject.sprints?.length || 0 },
-    { label: "Tasks", value: sourceProject.tasks?.length || 0 },
-  ];
 
   return (
     <div

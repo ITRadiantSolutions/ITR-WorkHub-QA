@@ -19,7 +19,7 @@ const initialsOf = (name) =>
     .join("");
 
 // ── Project modal (create/edit) ────────────────────────────────────────────
-function ProjectModal({ project, onClose, onSaved }) {
+function ProjectModal({ project, existingProjects, onClose, onSaved }) {
   const [form, setForm] = useState({
     name: project?.name || "",
     description: project?.description || "",
@@ -33,7 +33,17 @@ function ProjectModal({ project, onClose, onSaved }) {
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const submit = async () => {
-    if (!form.name.trim()) return toast.error("Project name is required");
+    const name = form.name.trim();
+    if (!name) return toast.error("Project name is required");
+    if (!form.description.trim()) return toast.error("Description is required");
+    if (!form.pocName.trim() || !form.pocEmail.trim() || !form.pocPhone.trim()) {
+      return toast.error("Point of contact name, email and phone are all required");
+    }
+    const duplicate = (existingProjects || []).some(
+      (p) => p._id !== project?._id && p.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) return toast.error(`A project named "${name}" already exists`);
+
     setSaving(true);
     try {
       if (project) await API.put(`/projects/${project._id}`, form);
@@ -78,7 +88,7 @@ function ProjectModal({ project, onClose, onSaved }) {
             </div>
           </div>
           <div className="border-t border-slate-100 pt-3.5">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Point of contact</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Point of contact (required)</p>
             <div className="space-y-2.5">
               <input value={form.pocName} onChange={set("pocName")} placeholder="POC name" className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" />
               <input value={form.pocEmail} onChange={set("pocEmail")} placeholder="POC email" type="email" className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" />
@@ -409,14 +419,137 @@ function ModifyProjectsModal({ user, projects, assignedIds, onClose, onSaved }) 
   );
 }
 
-function EmployeeCard({ user, projectNames, onAddProject, onModifyProjects }) {
+// ── Bulk-assign several employees to several projects at once ─────────────
+function BulkAssignModal({ users, projects, onClose, onSaved }) {
+  const [userQuery, setUserQuery] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
+  const [selectedProjects, setSelectedProjects] = useState(new Set());
+  const [saving, setSaving] = useState(false);
+
+  const activeUsers = users.filter((u) => !u.archived?.timesheet);
+  const filteredUsers = activeUsers.filter(
+    (u) => !userQuery.trim() || u.name.toLowerCase().includes(userQuery.trim().toLowerCase()) || u.email.toLowerCase().includes(userQuery.trim().toLowerCase()),
+  );
+
+  const toggleUser = (id) =>
+    setSelectedUsers((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleProject = (id) =>
+    setSelectedProjects((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const submit = async () => {
+    if (!selectedUsers.size || !selectedProjects.size) {
+      return toast.error("Select at least one employee and one project");
+    }
+    setSaving(true);
+    try {
+      const res = await API.post("/projects/team/bulk-add", {
+        userIds: [...selectedUsers],
+        projectIds: [...selectedProjects],
+      });
+      const { addedCount = 0, alreadyMember = [] } = res.data || {};
+      if (addedCount) toast.success(`Added ${addedCount} assignment${addedCount === 1 ? "" : "s"}`);
+      if (alreadyMember.length) toast.info(`${alreadyMember.length} were already assigned and were skipped`);
+      if (!addedCount && !alreadyMember.length) toast.info("Nothing to do");
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Bulk assignment failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-bold text-slate-900">Bulk assign to projects</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
+        </div>
+        <p className="text-sm text-slate-500 mb-4">Add several employees to several projects in one go.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Employees ({selectedUsers.size} selected)</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSelectedUsers(new Set(filteredUsers.map((u) => u._id)))} className="text-[11px] font-semibold text-teal-700 hover:text-teal-800">
+                  Select All
+                </button>
+                <button onClick={() => setSelectedUsers(new Set())} className="text-[11px] font-semibold text-slate-400 hover:text-slate-600">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <input
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              placeholder="Search employees..."
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm mb-2"
+            />
+            <div className="max-h-64 overflow-y-auto space-y-1 border border-slate-100 rounded-xl p-2">
+              {filteredUsers.map((u) => (
+                <label key={u._id} className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer ${selectedUsers.has(u._id) ? "bg-teal-50" : "hover:bg-slate-50"}`}>
+                  <input type="checkbox" checked={selectedUsers.has(u._id)} onChange={() => toggleUser(u._id)} className="accent-teal-600" />
+                  <span className="truncate">{u.name}</span>
+                </label>
+              ))}
+              {!filteredUsers.length && <p className="text-xs text-slate-400 text-center py-4">No matching employees.</p>}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Projects ({selectedProjects.size} selected)</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSelectedProjects(new Set(projects.map((p) => p._id)))} className="text-[11px] font-semibold text-teal-700 hover:text-teal-800">
+                  Select All
+                </button>
+                <button onClick={() => setSelectedProjects(new Set())} className="text-[11px] font-semibold text-slate-400 hover:text-slate-600">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div className="max-h-64 overflow-y-auto space-y-1 border border-slate-100 rounded-xl p-2 mt-[34px]">
+              {projects.map((p) => (
+                <label key={p._id} className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer ${selectedProjects.has(p._id) ? "bg-teal-50" : "hover:bg-slate-50"}`}>
+                  <input type="checkbox" checked={selectedProjects.has(p._id)} onChange={() => toggleProject(p._id)} className="accent-teal-600" />
+                  <span className="truncate">{p.name}</span>
+                </label>
+              ))}
+              {!projects.length && <p className="text-xs text-slate-400 text-center py-4">No projects yet.</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-5">
+          <button onClick={submit} disabled={saving} className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow disabled:opacity-50">
+            {saving ? "Assigning..." : "Assign"}
+          </button>
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-slate-500 text-sm font-semibold">Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmployeeCard({ user, projectNames, onAddProject, onModifyProjects, onToggleArchive, archiveBusy }) {
+  const archived = Boolean(user.archived?.timesheet);
+  return (
+    <div className={`bg-white rounded-2xl border shadow-sm p-4 flex flex-col ${archived ? "border-amber-200 opacity-75" : "border-slate-100"}`}>
       <div className="flex items-center gap-2.5 mb-2">
         <div className={`w-9 h-9 rounded-full ${colorFor(user.name)} text-white text-xs font-bold flex items-center justify-center shrink-0`}>
           {initialsOf(user.name)}
         </div>
-        <h3 className="font-bold text-slate-900 truncate">{user.name}</h3>
+        <h3 className="font-bold text-slate-900 truncate flex-1">{user.name}</h3>
+        {archived && <span className="shrink-0 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Archived</span>}
       </div>
       <p className="text-xs text-slate-500 mb-2 truncate">{user.email}</p>
       <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
@@ -429,13 +562,22 @@ function EmployeeCard({ user, projectNames, onAddProject, onModifyProjects }) {
         )}
       </div>
       <div className="flex items-center gap-2 mt-auto pt-2 border-t border-slate-50">
-        <button onClick={() => onAddProject(user)} className="flex-1 rounded-lg border border-emerald-200 text-emerald-700 text-xs font-semibold py-2 hover:bg-emerald-50">
+        <button onClick={() => onAddProject(user)} disabled={archived} className="flex-1 rounded-lg border border-emerald-200 text-emerald-700 text-xs font-semibold py-2 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed">
           + Add Project
         </button>
-        <button onClick={() => onModifyProjects(user)} className="flex-1 rounded-lg border border-red-200 text-red-600 text-xs font-semibold py-2 hover:bg-red-50">
+        <button onClick={() => onModifyProjects(user)} disabled={archived} className="flex-1 rounded-lg border border-red-200 text-red-600 text-xs font-semibold py-2 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
           Remove/Modify
         </button>
       </div>
+      <button
+        onClick={() => onToggleArchive(user)}
+        disabled={archiveBusy}
+        className={`mt-2 rounded-lg text-xs font-semibold py-2 border disabled:opacity-50 ${
+          archived ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50" : "border-slate-200 text-slate-500 hover:bg-slate-50"
+        }`}
+      >
+        {archived ? "Restore access" : "Archive from Timesheet"}
+      </button>
     </div>
   );
 }
@@ -531,14 +673,16 @@ function AssignRolesModal({ users, onClose, onChanged }) {
   );
 }
 
+// The three company-standard shifts — kept as fixed options (rather than
+// free text) so downstream reporting always sees one of these exact values.
+const SHIFT_OPTIONS = ["11:30am - 8:30pm", "2:00pm - 11:00pm", "4:30pm - 2:30am"];
+
 function AssignShiftsModal({ users, onClose, onChanged }) {
   const [query, setQuery] = useState("");
-  const [drafts, setDrafts] = useState({});
   const [busyId, setBusyId] = useState(null);
   const filtered = users.filter((u) => !query.trim() || u.name.toLowerCase().includes(query.trim().toLowerCase()));
 
-  const save = async (user) => {
-    const shift = drafts[user._id] ?? user.shift ?? "";
+  const save = async (user, shift) => {
     setBusyId(user._id);
     try {
       await API.patch(`/users/${user._id}/shift`, { shift });
@@ -559,23 +703,29 @@ function AssignShiftsModal({ users, onClose, onChanged }) {
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
         </div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search employees..." className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm mb-4" />
-        <div className="space-y-1.5">
+        <div className="space-y-3">
           {filtered.map((u) => (
-            <div key={u._id} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2">
-              <p className="text-sm font-semibold text-slate-800 truncate flex-1">{u.name}</p>
-              <input
-                defaultValue={u.shift || ""}
-                onChange={(e) => setDrafts((d) => ({ ...d, [u._id]: e.target.value }))}
-                placeholder="e.g. 9:00 AM - 6:00 PM"
-                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs w-48"
-              />
-              <button
-                onClick={() => save(u)}
-                disabled={busyId === u._id}
-                className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold disabled:opacity-50 shrink-0"
-              >
-                Save
-              </button>
+            <div key={u._id} className="rounded-xl border border-slate-200 px-3 py-2.5">
+              <p className="text-sm font-semibold text-slate-800 truncate mb-2">{u.name}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SHIFT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => save(u, opt)}
+                    disabled={busyId === u._id}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition disabled:opacity-50 ${
+                      u.shift === opt ? "bg-teal-600 border-teal-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+                {u.shift && !SHIFT_OPTIONS.includes(u.shift) && (
+                  <span className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-200 bg-amber-50 text-amber-700" title="Legacy value — pick one of the standard shifts above to normalize it">
+                    {u.shift} (legacy)
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -600,8 +750,11 @@ export default function Manage() {
   const [newEmployeeOpen, setNewEmployeeOpen] = useState(false);
   const [assignRolesOpen, setAssignRolesOpen] = useState(false);
   const [assignShiftsOpen, setAssignShiftsOpen] = useState(false);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [addProjectFor, setAddProjectFor] = useState(null);
   const [modifyProjectsFor, setModifyProjectsFor] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveBusyId, setArchiveBusyId] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -638,15 +791,31 @@ export default function Manage() {
 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-  }, [users, search]);
+    return users
+      .filter((u) => Boolean(u.archived?.timesheet) === showArchived)
+      .filter((u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+  }, [users, search, showArchived]);
 
   const items = tab === "projects" ? filteredProjects : tab === "teams" ? filteredUsers : [];
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const patchUser = (id, patch) => setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, ...patch } : u)));
+
+  const toggleArchive = async (targetUser) => {
+    const archiving = !targetUser.archived?.timesheet;
+    if (archiving && !window.confirm(`Archive ${targetUser.name} from Timesheet? They'll lose access until restored.`)) return;
+    setArchiveBusyId(targetUser._id);
+    try {
+      await API.patch(`/users/${targetUser._id}/archive`, { module: "timesheet", archived: archiving });
+      toast.success(archiving ? `${targetUser.name} archived` : `${targetUser.name} restored`);
+      patchUser(targetUser._id, { archived: { ...targetUser.archived, timesheet: archiving } });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update archive status");
+    } finally {
+      setArchiveBusyId(null);
+    }
+  };
 
   return (
     <main className="w-[92%] max-w-[1600px] mx-auto px-2 py-8">
@@ -655,7 +824,10 @@ export default function Manage() {
           <h2 className="text-xl font-extrabold text-slate-900">Workspace Management</h2>
           <p className="text-sm text-slate-500">Manage your projects and workspace settings</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setBulkAssignOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-teal-200 text-teal-700 text-sm font-bold hover:bg-teal-50">
+            <Icons.Plus /> Bulk Assign
+          </button>
           <button onClick={() => setAssignRolesOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-teal-200 text-teal-700 text-sm font-bold hover:bg-teal-50">
             <Icons.Users /> Assign Roles
           </button>
@@ -689,14 +861,26 @@ export default function Manage() {
           )}
         </div>
         {tab !== "holidays" && (
-          <div className="relative w-full sm:w-80">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, email, POC..."
-              className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
-            />
+          <div className="flex items-center gap-2 flex-wrap">
+            {tab === "teams" && (
+              <button
+                onClick={() => setShowArchived((v) => !v)}
+                className={`px-3.5 py-2.5 rounded-xl text-sm font-semibold border transition ${
+                  showArchived ? "bg-amber-50 border-amber-200 text-amber-700" : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                {showArchived ? "Showing archived" : "Show archived"}
+              </button>
+            )}
+            <div className="relative w-full sm:w-80">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></span>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, email, POC..."
+                className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -728,6 +912,8 @@ export default function Manage() {
                   projectNames={(projectsByUser.get(u._id) || []).map((p) => p.name)}
                   onAddProject={setAddProjectFor}
                   onModifyProjects={setModifyProjectsFor}
+                  onToggleArchive={toggleArchive}
+                  archiveBusy={archiveBusyId === u._id}
                 />
               ))}
             </div>
@@ -761,6 +947,7 @@ export default function Manage() {
       {projectModal && (
         <ProjectModal
           project={projectModal === "new" ? null : projectModal}
+          existingProjects={projects}
           onClose={() => setProjectModal(null)}
           onSaved={() => { setProjectModal(null); load(); }}
         />
@@ -780,6 +967,14 @@ export default function Manage() {
       {newEmployeeOpen && <NewEmployeeModal onClose={() => setNewEmployeeOpen(false)} onSaved={() => { setNewEmployeeOpen(false); load(); }} />}
       {assignRolesOpen && <AssignRolesModal users={users} onClose={() => setAssignRolesOpen(false)} onChanged={patchUser} />}
       {assignShiftsOpen && <AssignShiftsModal users={users} onClose={() => setAssignShiftsOpen(false)} onChanged={patchUser} />}
+      {bulkAssignOpen && (
+        <BulkAssignModal
+          users={users}
+          projects={projects}
+          onClose={() => setBulkAssignOpen(false)}
+          onSaved={() => { setBulkAssignOpen(false); load(); }}
+        />
+      )}
       {addProjectFor && (
         <AddProjectModal
           user={addProjectFor}

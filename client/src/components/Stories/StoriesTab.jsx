@@ -128,8 +128,6 @@ function StoryForm({
   onCancel,
   onSubmit,
   submitting,
-  isAdminPm,
-  canManageStory,
 }) {
   const validate = () => {
     const e = {};
@@ -796,7 +794,10 @@ export default function SprintStories({ sprint, onClose }) {
       const res = await addStoryComment(activeStory._id, newComment.trim());
       setComments(res?.data?.data || res?.data?.comments || []);
       setNewComment("");
-    } catch {
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to post comment.",
+      );
     } finally {
       setPostingComment(false);
     }

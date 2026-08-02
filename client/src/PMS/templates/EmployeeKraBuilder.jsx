@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Trash2, Save } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { confirmDialog } from "../../components/ConfirmDialog";
 
 const DRAFT_KEY = "kras_builder";
 
@@ -64,7 +65,7 @@ export default function EmployeeKraBuilder() {
         const found = (data || []).find((k) => String(k.id) === String(kraId));
 
         if (!found) {
-          Swal.fire("Not found", "Selected KRA could not be found.", "warning");
+          toast.warning("Selected KRA could not be found.");
           navigate(-1);
           return;
         }
@@ -81,7 +82,7 @@ export default function EmployeeKraBuilder() {
           },
         ]);
       } catch (err) {
-        Swal.fire("Error", err?.message || "Failed to load KRA.", "error");
+        toast.error(err?.message || "Failed to load KRA.");
       } finally {
         setLoading(false);
       }
@@ -111,7 +112,7 @@ export default function EmployeeKraBuilder() {
 
   const addKra = () => {
     if (!type) {
-      Swal.fire("Type required", "Please select a KRA type first.", "warning");
+      toast.warning("Please select a KRA type first.");
       return;
     }
 
@@ -126,15 +127,13 @@ export default function EmployeeKraBuilder() {
   };
 
   const deleteKra = async (id) => {
-    const result = await Swal.fire({
+    const confirmed = await confirmDialog({
       title: "Delete this KRA?",
       text: "This removes all KPIs under it.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Delete",
-      confirmButtonColor: "#dc2626",
+      confirmText: "Delete",
+      danger: true,
     });
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
     setKras((prev) => prev.filter((k) => k.id !== id));
   };
 
@@ -219,14 +218,9 @@ export default function EmployeeKraBuilder() {
 
   const save = async () => {
     if (validationErrors.length > 0) {
-      Swal.fire({
-        icon: "warning",
-        title: "Fix required fields",
-        html: `<div style="text-align:left">${validationErrors
-          .slice(0, 6)
-          .map((e) => `- ${e}`)
-          .join("<br/>")}</div>`,
-      });
+      toast.warning(
+        `Fix required fields: ${validationErrors.slice(0, 6).join(", ")}`
+      );
       return;
     }
 
@@ -248,21 +242,14 @@ export default function EmployeeKraBuilder() {
 
         const data = await response.json();
         if (!response.ok) {
-          Swal.fire({
-            icon: "warning",
-            title: "Cannot edit",
-            text:
-              data?.detail ||
-              "This KRA is already used in a template and cannot be edited.",
-          });
+          toast.warning(
+            data?.detail ||
+              "This KRA is already used in a template and cannot be edited."
+          );
           return;
         }
 
-        Swal.fire({
-          icon: "success",
-          title: "KRA updated successfully",
-          confirmButtonColor: "#4f46e5",
-        });
+        toast.success("KRA updated successfully");
       } else {
         const response = await fetch("/api/kra-library", {
           method: "POST",
@@ -283,20 +270,11 @@ export default function EmployeeKraBuilder() {
 
         if (!response.ok) {
           const data = await response.json();
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: data?.detail || "Failed to create KRA",
-          });
+          toast.error(data?.detail || "Failed to create KRA");
           return;
         }
 
-        Swal.fire({
-          icon: "success",
-          title: "Success",
-          text: "KRA created successfully",
-          confirmButtonColor: "#4f46e5",
-        });
+        toast.success("KRA created successfully");
       }
 
       sessionStorage.removeItem(DRAFT_KEY);
@@ -308,11 +286,7 @@ export default function EmployeeKraBuilder() {
         navigate("/employeetemplate");
       }
     } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Something went wrong.",
-      });
+      toast.error("Something went wrong.");
     } finally {
       setIsSaving(false);
     }

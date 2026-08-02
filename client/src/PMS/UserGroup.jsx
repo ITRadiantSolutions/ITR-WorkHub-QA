@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Users, ChevronDown, ChevronUp, Trash2, Pencil, X } from "lucide-react";
 import getAuthAxios from "../utils/authAxios";
 import Loader from "../PMS/components/Loader";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { confirmDialog } from "../components/ConfirmDialog";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function UserGroups() {
@@ -104,17 +105,11 @@ export default function UserGroups() {
   /* ---------------- CREATE GROUP ---------------- */
   const saveGroup = async () => {
     if (!groupName.trim()) {
-      return Swal.fire({
-        icon: "warning",
-        title: "Group name required"
-      });
+      return toast.warning("Group name required");
     }
 
     if (selectedUsers.length === 0) {
-      return Swal.fire({
-        icon: "warning",
-        title: "Select at least one member"
-      });
+      return toast.warning("Select at least one member");
     }
 
     try {
@@ -139,15 +134,9 @@ export default function UserGroups() {
       setGroups(res.data || []);
 
       // ✅ SUCCESS ALERT
-      Swal.fire({
-        icon: "success",
-        title: editMode ? "Group Updated" : "Group Created",
-        text: editMode
-          ? "Group updated successfully"
-          : "Group created successfully",
-        timer: 1800,
-        showConfirmButton: false
-      });
+      toast.success(
+        editMode ? "Group updated successfully" : "Group created successfully"
+      );
 
       // reset modal
       setShowCreate(false);
@@ -160,11 +149,7 @@ export default function UserGroups() {
     } catch (err) {
       console.error(err);
 
-      Swal.fire({
-        icon: "error",
-        title: "Save Failed",
-        text: "Unable to save group. Please try again."
-      });
+      toast.error("Unable to save group. Please try again.");
     }
   };
 
@@ -179,18 +164,14 @@ export default function UserGroups() {
   };
   const deleteGroup = async (id) => {
 
-    const result = await Swal.fire({
+    const confirmed = await confirmDialog({
       title: "Delete Group?",
       text: "This action cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, delete it",
-      cancelButtonText: "Cancel"
+      confirmText: "Yes, delete it",
+      danger: true,
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
 
     try {
       const api = await getAuthAxios();
@@ -201,24 +182,13 @@ export default function UserGroups() {
       );
 
       // success alert
-      Swal.fire({
-        icon: "success",
-        title: "Deleted",
-        text: "Group deleted successfully",
-        timer: 1800,
-        showConfirmButton: false
-      });
+      toast.success("Group deleted successfully");
 
     } catch (err) {
       console.error(err);
 
       // error alert
-      Swal.fire({
-        icon: "error",
-        title: "Delete Failed",
-        text: "Unable to delete the group. Please try again.",
-        confirmButtonColor: "#ef4444"
-      });
+      toast.error("Unable to delete the group. Please try again.");
     }
   };
 

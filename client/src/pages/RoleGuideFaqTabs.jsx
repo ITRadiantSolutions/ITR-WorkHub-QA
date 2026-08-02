@@ -247,12 +247,11 @@ export default function RoleGuideFaqTabs({ initialTab = "guide" }) {
   const guide = roleContent?.guide || [];
   const faq = roleContent?.faq || [];
 
-  const [tab, setTab] = useState(initialTab);
+  const tab = initialTab;
   const [query, setQuery] = useState("");
 
   const [issuesLoading, setIssuesLoading] = useState(false);
   const [issues, setIssues] = useState([]);
-  const [showAdminIssues, setShowAdminIssues] = useState(false);
 
   useEffect(() => {
     const isAdmin = user?.role?.toString()?.toUpperCase?.() === "ADMIN";
@@ -281,7 +280,6 @@ export default function RoleGuideFaqTabs({ initialTab = "guide" }) {
           e?.message ||
           "Failed to load submitted issues for admin";
         toast.error(msg);
-        // eslint-disable-next-line no-console
         console.error("getUserIssuesForAdmin failed:", e);
       })
       .finally(() => {
@@ -302,13 +300,6 @@ export default function RoleGuideFaqTabs({ initialTab = "guide" }) {
         )
       : faq;
   }, [faq, query]);
-
-  const roleLabel = roleKey
-    ? roleKey
-        .replace(/_/g, " ")
-        .toLowerCase()
-        .replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Unknown";
 
   return (
     <div className="w-full max-w-8xl mx-auto px-3 sm:px-4 lg:px-0">

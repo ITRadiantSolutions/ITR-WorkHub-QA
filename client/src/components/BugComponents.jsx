@@ -210,7 +210,6 @@ export function BugDetailModal({
     severity: "MEDIUM",
     status: "OPEN",
   });
-  const [isEditing, setIsEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("details");
 
@@ -222,7 +221,6 @@ export function BugDetailModal({
       severity: bug.severity || "MEDIUM",
       status: bug.status || "OPEN",
     });
-    setIsEditing(false);
     setActiveTab("details");
   }, [bug]);
 
@@ -233,7 +231,6 @@ export function BugDetailModal({
       const res = await API.put(`/bugs/${bug._id}`, draft);
       const updated = res.data?.data || res.data;
       if (onUpdateBug) onUpdateBug(updated);
-      setIsEditing(false);
       toast.success("Bug updated successfully");
     } catch (e) {
       toast.error(e?.response?.data?.message || "Failed to update bug");

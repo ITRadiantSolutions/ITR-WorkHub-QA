@@ -8,3 +8,5 @@ logs/
 output/
 *.log
 .DS_Store
+coverage/
+.vitest-cache/

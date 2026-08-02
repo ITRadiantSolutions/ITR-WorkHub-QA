@@ -197,7 +197,12 @@ function DistributionDonut({ data, centerLabel }) {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const [hovered, setHovered] = useState(null);
-  let consumed = 0;
+  const segmentSizes = data.map((item) => (total ? (item.value / total) * circumference : 0));
+  const segments = data.map((item, i) => ({
+    ...item,
+    segment: segmentSizes[i],
+    offset: segmentSizes.slice(0, i).reduce((a, b) => a + b, 0),
+  }));
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="relative h-40 w-40 shrink-0">
@@ -210,28 +215,23 @@ function DistributionDonut({ data, centerLabel }) {
             stroke="#f1f5f9"
             strokeWidth="13"
           />
-          {data.map((item) => {
-            const length = total ? (item.value / total) * circumference : 0;
-            const offset = consumed;
-            consumed += length;
-            return (
-              <circle
-                key={item.label}
-                cx="50"
-                cy="50"
-                r={radius}
-                fill="none"
-                stroke={item.color}
-                strokeWidth="13"
-                strokeDasharray={`${length} ${circumference - length}`}
-                strokeDashoffset={-offset}
-                className="transition-all duration-700 cursor-pointer"
-                style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
-                onMouseEnter={() => setHovered(item)}
-                onMouseLeave={() => setHovered(null)}
-              />
-            );
-          })}
+          {segments.map((item) => (
+            <circle
+              key={item.label}
+              cx="50"
+              cy="50"
+              r={radius}
+              fill="none"
+              stroke={item.color}
+              strokeWidth="13"
+              strokeDasharray={`${item.segment} ${circumference - item.segment}`}
+              strokeDashoffset={-item.offset}
+              className="transition-all duration-700 cursor-pointer"
+              style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
+              onMouseEnter={() => setHovered(item)}
+              onMouseLeave={() => setHovered(null)}
+            />
+          ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           {hovered ? (
@@ -304,9 +304,6 @@ function Field({ label, required, children }) {
   );
 }
 
-const inputCls =
-  "w-full border border-slate-200 bg-white px-3 py-2 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder-slate-400 transition";
-
 // ─────────────────────────────────────────────────────────────────────────────
 export default function QADashboard() {
   const { user, logout } = useAuth();
@@ -315,36 +312,16 @@ export default function QADashboard() {
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState("ALL");
-  const [filterStatus, setFilterStatus] = useState("ALL");
   const [tasks, setTasks] = useState([]);
   const [taskLoading, setTaskLoading] = useState(true);
   const [taskSearch, setTaskSearch] = useState("");
-  const [newTask, setNewTask] = useState({
-    title: "",
-    description: "",
-    projectId: "",
-    priority: "Medium",
-    dueDate: "",
-    status: "TODO",
-  });
   const [filterTaskStatus, setFilterTaskStatus] = useState("ALL");
   const [filterPriority, setFilterPriority] = useState("ALL");
 
   // Pagination for tasks
   const [taskPageSize] = useState(20);
   const [taskPage, setTaskPage] = useState(1);
-
-  const [newBug, setNewBug] = useState({
-    title: "",
-    description: "",
-    severity: "MEDIUM",
-    status: "OPEN",
-    attachments: [],
-  });
 
   const [projects, setProjects] = useState([]);
   const [userProjects, setUserProjects] = useState([]);
@@ -373,10 +350,6 @@ export default function QADashboard() {
       fetchTabCounts();
     });
   }, [activeTab, fetchTabCounts, setTabCounts, tabCounts]);
-
-  // Bug detail modal state
-  const [selectedBug, setSelectedBug] = useState(null);
-  const [showBugModal, setShowBugModal] = useState(false);
 
   useEffect(() => {
     window.history.replaceState(null, "", window.location.href);
@@ -531,78 +504,6 @@ export default function QADashboard() {
       setLoading(false);
     }
   };
-  const handleReportBug = async (e) => {
-    e.preventDefault();
-
-    if (!newBug.title.trim() || !newBug.taskId) {
-      setError("Bug title and related task are required");
-      return;
-    }
-
-    setSubmitting(true);
-    setError("");
-
-    try {
-      // Existing attachment metadata is preserved when updating the bug.
-      const res = await API.post("/bugs", {
-        title: newBug.title,
-        description: newBug.description,
-        severity: newBug.severity,
-        status: newBug.status,
-        taskId: newBug.taskId,
-        reportedBy: user?._id,
-        attachments: Array.isArray(newBug.attachments)
-          ? newBug.attachments
-          : undefined,
-      });
-
-      const created = res.data?.data || res.data;
-
-      if (created?._id) {
-        setBugs((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
-      } else {
-        await fetchBugs();
-      }
-
-      setNewBug({
-        title: "",
-        description: "",
-        severity: "MEDIUM",
-        status: "OPEN",
-        taskId: "",
-        attachments: [],
-      });
-
-      setShowForm(false);
-    } catch (error) {
-      setError("Failed to report bug. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleUpdateStatus = async (bugId, newStatus) => {
-    try {
-      const payload = { status: newStatus };
-
-      const bug = bugs.find((b) => b._id === bugId);
-      if (bug?._id) {
-        payload.title = bug.title;
-        payload.description = bug.description;
-        payload.severity = bug.severity;
-        payload.attachments = bug.attachments;
-      }
-
-      await API.put(`/bugs/${bugId}`, payload);
-
-      setBugs((prev) =>
-        prev.map((b) => (b._id === bugId ? { ...b, status: newStatus } : b)),
-      );
-    } catch {
-      setError("Failed to update bug status");
-    }
-  };
-
   const handleLogout = () => {
     toast.custom(
       (t) => (
@@ -702,18 +603,6 @@ export default function QADashboard() {
     }).length,
   };
 
-  const taskPriorityCounts = {
-    high: tasks.filter((t) => t.priority === "High").length,
-    medium: tasks.filter((t) => t.priority === "Medium").length,
-    low: tasks.filter((t) => t.priority === "Low").length,
-  };
-
-  const filtered = bugs.filter((b) => {
-    if (filterSeverity !== "ALL" && b.severity !== filterSeverity) return false;
-    if (filterStatus !== "ALL" && b.status !== filterStatus) return false;
-    return true;
-  });
-
   // 👇 Task filtering & analytics
   const filteredTasks = tasks.filter((task) => {
     /* Status Filter */
@@ -772,70 +661,6 @@ export default function QADashboard() {
     return true;
   });
 
-  const handleAddTask = async (e) => {
-    e.preventDefault();
-
-    // Validation
-    if (!newTask.title?.trim() || !newTask.projectId || !newTask.dueDate) {
-      setTaskError("Title, project, and due date are required");
-      return;
-    }
-
-    setAddingTask(true);
-    setTaskError("");
-
-    try {
-      // Clean payload
-      const payload = {
-        title: newTask.title.trim(),
-
-        description: newTask.description?.trim() || "",
-
-        projectId: newTask.projectId,
-
-        priority: newTask.priority || "Medium",
-
-        dueDate: newTask.dueDate,
-
-        // Always normalize status
-        status: newTask.status?.toString()?.trim()?.toUpperCase() || "TODO",
-      };
-
-      const res = await API.post("/tasks", payload);
-
-      const created = res.data?.data || res.data;
-
-      // Update UI immediately
-      setTasks((prev) => [created, ...prev]);
-
-      // Reset form
-      setNewTask({
-        title: "",
-        description: "",
-        projectId: "",
-        priority: "Medium",
-        dueDate: "",
-        status: "TODO",
-      });
-
-      setShowTaskForm(false);
-
-      toast.success("Task created successfully");
-    } catch (err) {
-      console.error("CREATE TASK ERROR:", err);
-
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        "Failed to create task";
-
-      setTaskError(message);
-
-      toast.error(message);
-    } finally {
-      setAddingTask(false);
-    }
-  };
   const handleUpdateTaskStatus = async (taskId, status) => {
     const normalizedStatus = normalizeStatus(status);
     const currentTask = tasks.find((task) => task._id === taskId);
@@ -2275,9 +2100,6 @@ export default function QADashboard() {
           )}
         </main>
       </div>
-
-      {/* Import TaskViewModal */}
-      {false && <TaskViewModal />}
     </div>
   );
 }
