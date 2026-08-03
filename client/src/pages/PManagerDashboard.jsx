@@ -13,12 +13,11 @@ import KeepAliveTab from "../components/KeepAliveTab";
 import { toast } from "sonner";
 import {
   BugIcon,
-  SEVERITY,
-  STATUS_STYLES,
   StatusSelect,
   Field,
   BugDetailModal,
 } from "../components/BugComponents";
+import { SEVERITY, STATUS_STYLES } from "../components/bugConstants";
 import Icons from "../components/Icons";
 import RoleGuideFaq from "./RoleGuideFaq";
 import useAdminSidebarTabCounts from "../hooks/useAdminSidebarTabCounts";

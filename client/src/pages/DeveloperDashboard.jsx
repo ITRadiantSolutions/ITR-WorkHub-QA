@@ -1203,7 +1203,7 @@ export default function DeveloperDashboard() {
                     <TaskStatusPie metrics={metrics} />
                   )}
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+                {/* <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-bold text-slate-700">Weekly Activity</p>
                     <span className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-500">This Week <Icons.ChevronDown /></span>
@@ -1213,7 +1213,7 @@ export default function DeveloperDashboard() {
                   ) : (
                     <WeeklyActivityChart values={weeklyActivity} />
                   )}
-                </div>
+                </div> */}
               </div>
 
               {/* My Active Tasks + Recent Activity */}

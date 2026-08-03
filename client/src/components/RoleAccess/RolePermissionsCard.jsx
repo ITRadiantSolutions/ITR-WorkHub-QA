@@ -17,7 +17,7 @@ export default function RolePermissionsCard({ roleConfig }) {
       </div>
 
       {/* Permissions Grid */}
-      <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {permissions.map((p, i) => (
           <div
             key={i}

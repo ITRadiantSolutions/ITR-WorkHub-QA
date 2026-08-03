@@ -22,30 +22,22 @@ export default function RoleSettingsView({
 
   return (
     <div className="w-full max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
-        
-        {/* Profile */}
-        <div className="xl:col-span-4">
-          <RoleProfileCard
-            user={user}
-            roleConfig={resolvedConfig}
-          />
-        </div>
+      {/* Profile first (full-width, horizontal), then permissions as a
+          4-column grid, then access points — a single stacked column
+          reads better than a narrow profile card fighting a wide grid. */}
+      <div className="flex flex-col gap-5">
+        <RoleProfileCard
+          user={user}
+          roleConfig={resolvedConfig}
+        />
 
-        {/* Permissions */}
-        <div className="xl:col-span-8">
-          <RolePermissionsCard
-            roleConfig={resolvedConfig}
-          />
-        </div>
+        <RolePermissionsCard
+          roleConfig={resolvedConfig}
+        />
 
-        {/* Access Points */}
-        <div className="xl:col-span-12">
-          <RoleAccessPointsCard
-            roleConfig={resolvedConfig}
-          />
-        </div>
-
+        <RoleAccessPointsCard
+          roleConfig={resolvedConfig}
+        />
       </div>
     </div>
   );

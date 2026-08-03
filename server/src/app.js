@@ -1,5 +1,8 @@
 import express from "express";
 import cors from "cors";
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { apiResponseCache } from "./middleware/apiResponseCache.js";
 import authRoutes from "./routes/auth.routes.js";
 import approvalRoutes from "./routes/approval.routes.js";
@@ -72,6 +75,16 @@ app.use("/api", legacyPmsMiscRoutes);
 app.use("/api/reports", legacyReportsRoutes);
 app.use("/api/usersgroup", legacyUsersGroupRoutes);
 app.use("/api", legacyKraMasterTemplateRoutes);
+
+// Serve the built React client, when present — the deploy workflow copies
+// client/dist here so one App Service can host both API and frontend on
+// the free tier. In local dev this directory doesn't exist (the client
+// runs on its own Vite dev server instead), so this is a no-op then.
+const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
+if (fs.existsSync(path.join(publicDir, "index.html"))) {
+  app.use(express.static(publicDir));
+  app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(publicDir, "index.html")));
+}
 
 // Central JSON error handler — keeps thrown/rejected errors from any async
 // route handler out of Express's default HTML error page.

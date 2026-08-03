@@ -278,6 +278,16 @@ export default function TimesheetEntry() {
     .map((total, d) => ({ day: DAY_LABELS[d], total }))
     .filter((d) => d.total > MAX_HOURS_PER_DAY);
 
+  // Once other rows already account for the full daily cap, block this cell
+  // from accepting new hours instead of letting the total run over and only
+  // flagging it afterward. A cell that already has its own value stays
+  // editable, so reducing/clearing an existing entry is never locked out.
+  const isDayFullForRow = (rowIdx, d) => {
+    const ownValue = parseFloat(rows[rowIdx].hours[d]) || 0;
+    if (ownValue > 0) return false;
+    return dayTotals[d] - ownValue >= MAX_HOURS_PER_DAY;
+  };
+
   const totalError = rows.some((r) => r.projectId) && grandTotal === 0 ? "Please enter time in at least one cell before saving." : "";
 
   // Every weekday that isn't a company holiday needs at least some logged
@@ -621,15 +631,24 @@ export default function TimesheetEntry() {
                       const locked = isWeekend || isHoliday;
                       const overCap = dayTotals[d] > MAX_HOURS_PER_DAY;
                       const hasHours = (parseFloat(row.hours[d]) || 0) > 0;
+                      const dayFull = !locked && isDayFullForRow(i, d);
                       return (
-                        <td key={d} className={`px-2 py-3 text-center align-top ${overCap ? "bg-red-50/60" : isToday ? "bg-teal-50/40" : locked ? "bg-slate-50/30" : ""}`}>
+                        <td key={d} className={`px-2 py-3 text-center align-top ${overCap ? "bg-red-50/60" : isToday ? "bg-teal-50/40" : locked || dayFull ? "bg-slate-50/30" : ""}`}>
                           <input
                             value={row.hours[d]}
                             onChange={(e) => updateHour(i, d, e.target.value)}
-                            disabled={!editable || locked}
+                            disabled={!editable || locked || dayFull}
                             min={0}
-                            placeholder={isHoliday ? "Holiday" : "—"}
-                            title={isHoliday ? "Holiday — not editable" : isWeekend ? "Weekend — not editable" : undefined}
+                            placeholder={isHoliday ? "Holiday" : dayFull ? "Full" : "—"}
+                            title={
+                              isHoliday
+                                ? "Holiday — not editable"
+                                : isWeekend
+                                  ? "Weekend — not editable"
+                                  : dayFull
+                                    ? `Other rows already log ${MAX_HOURS_PER_DAY}h for this day — the daily limit is reached`
+                                    : undefined
+                            }
                             className={`w-16 text-center rounded-lg border px-1.5 py-1.5 text-sm font-medium tabular-nums disabled:bg-slate-50 disabled:text-slate-300 focus:outline-none focus:ring-2 ${
                               overCap ? "border-red-300 focus:ring-red-500/30 focus:border-red-400" : "border-slate-200 focus:ring-teal-500/30 focus:border-teal-400"
                             }`}

@@ -1,18 +1,21 @@
 // Shared week/date-range helpers used by timesheets, entries, and HR reports.
 
+// Computed entirely in UTC (not the server process's local timezone) so the
+// result is deployment-independent and matches the UTC-midnight timestamps
+// legacy-migrated timesheets were stored with. A local-time version of this
+// used to produce a *different* weekStart than the legacy data for the same
+// calendar week whenever the server ran outside UTC, silently creating a
+// second, disconnected timesheet document for weeks that already had one.
 export const startOfWeek = (date) => {
   const d = new Date(date);
-  const day = d.getDay(); // 0 = Sunday
+  const day = d.getUTCDay(); // 0 = Sunday
   const diff = (day + 6) % 7; // days since Monday
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - diff);
-  return d;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diff));
 };
 
 export const addDays = (date, days) => {
   const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
 };
 
 // Mirrors the preset ranges routes_entries.py exposed for dashboard filtering.

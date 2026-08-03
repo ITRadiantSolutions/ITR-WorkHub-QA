@@ -495,9 +495,9 @@ export default function Dashboard() {
                   </div>
                   <h3 className="font-bold text-slate-900 text-sm">Activity Distribution</h3>
                 </div>
-                <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500">
+                {/* <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500">
                   By Project <Icons.ChevronDown />
-                </span>
+                </span> */}
               </div>
               <div className="flex-1 flex items-center justify-center">
                 {donutSegments.length ? (
@@ -522,9 +522,9 @@ export default function Dashboard() {
                   </div>
                   <h3 className="font-bold text-slate-900 text-sm">Hours Logged</h3>
                 </div>
-                <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500">
+                {/* <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500">
                   By Day <Icons.ChevronDown />
-                </span>
+                </span> */}
               </div>
               <div className="flex-1 flex flex-col justify-center">
                 <HoursLineChart series={lineSeries} totalHours={totalHours} />

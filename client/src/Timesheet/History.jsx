@@ -22,11 +22,15 @@ const STATUS_STYLES = {
 const fmtShort = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 const fmtDateTime = (d) => (d ? new Date(d).toISOString().slice(0, 16).replace("T", " ") : "-");
 
+const PAGE_SIZE_OPTIONS = [9, 18, 27, 36];
+
 export default function History() {
   const navigate = useNavigate();
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("submitted");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
 
   useEffect(() => {
     API.get("/timesheets")
@@ -34,6 +38,8 @@ export default function History() {
       .catch(() => toast.error("Failed to load history"))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => setPage(1), [tab, pageSize]);
 
   const counts = TABS.reduce((acc, t) => {
     acc[t.key] = timesheets.filter((ts) => ts.status === t.key).length;
@@ -43,6 +49,9 @@ export default function History() {
   const filtered = timesheets
     .filter((ts) => ts.status === tab)
     .sort((a, b) => new Date(b.weekStart) - new Date(a.weekStart));
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
@@ -88,8 +97,9 @@ export default function History() {
           <p className="text-slate-500 font-medium">No timesheets in this category.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((ts) => {
+        <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {paginated.map((ts) => {
             const style = STATUS_STYLES[ts.status] || STATUS_STYLES.draft;
             const canEdit = ts.status === "needs_edit" || ts.status === "rejected";
             return (
@@ -120,6 +130,51 @@ export default function History() {
             );
           })}
         </div>
+
+        <div className="mt-5 flex items-center justify-between flex-wrap gap-3">
+          <span className="text-xs text-slate-500">
+            Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+              >
+                <Icons.Back />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-7 h-7 rounded-full text-xs font-bold transition ${
+                    p === page ? "bg-teal-600 text-white" : "text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+              >
+                <Icons.ChevronRight />
+              </button>
+            </div>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="text-xs font-semibold border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>{n} per page</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        </>
       )}
     </main>
   );

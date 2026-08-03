@@ -1,21 +1,6 @@
 import React from "react";
 import Icons from "../Icons";
 
-
-function FieldRow({ label, value }) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-2.5 border-b border-slate-50 last:border-0">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-        {label}
-      </span>
-
-      <span className="text-xs font-semibold text-slate-800 break-words sm:text-right">
-        {value || "—"}
-      </span>
-    </div>
-  );
-}
-
 export default function RoleProfileCard({ user, roleConfig }) {
   const fields = roleConfig?.profile?.fields || [];
   const badgeLabel = roleConfig?.profile?.badgeLabel;
@@ -50,23 +35,22 @@ export default function RoleProfileCard({ user, roleConfig }) {
         </div>
       </div>
 
-      <div className=" p-4 sm:p-5">
-        {/* User identity block */}
-       <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4">
-          {/* Avatar */}
-<div className="w-12 h-12 mx-auto sm:mx-0 rounded-xl bg-blue-700 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm">            {user?.name?.charAt(0)?.toUpperCase() || "?"}
+      <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
+        {/* Identity */}
+        <div className="flex items-center gap-3 shrink-0 lg:w-64">
+          <div className="w-12 h-12 rounded-xl bg-blue-700 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm">
+            {user?.name?.charAt(0)?.toUpperCase() || "?"}
           </div>
-
-       <div className="flex-1 min-w-0 text-center sm:text-left">
-    <p className="text-sm sm:text-base font-bold text-slate-900 break-words">
+          <div className="min-w-0">
+            <p className="text-sm sm:text-base font-bold text-slate-900 break-words">
               {user?.name || "—"}
             </p>
-         <p className="text-[11px] text-slate-500 break-all mt-0.5">
+            <p className="text-[11px] text-slate-500 break-all mt-0.5">
               {user?.email || "—"}
             </p>
             {badgeLabel && (
               <span
-             className={`inline-flex items-center gap-1 mt-2 text-[10px] font-bold px-2 py-1 rounded-full border ${badgeCls}`}
+                className={`inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold px-2 py-1 rounded-full border ${badgeCls}`}
               >
                 <Icons.Check />
                 {badgeLabel}
@@ -75,12 +59,23 @@ export default function RoleProfileCard({ user, roleConfig }) {
           </div>
         </div>
 
-        {/* Field rows */}
-        <div className="space-y-0 divide-y divide-slate-50">
+        <div className="hidden lg:block w-px self-stretch bg-slate-100" />
+
+        {/* Field values, laid out horizontally alongside the identity block */}
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
           {fields.map((f, i) => {
             const value =
               f.valueKey && user ? user?.[f.valueKey] : (f.value ?? "—");
-            return <FieldRow key={i} label={f.label} value={value || "—"} />;
+            return (
+              <div key={i} className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {f.label}
+                </p>
+                <p className="text-xs font-semibold text-slate-800 break-words mt-1">
+                  {value || "—"}
+                </p>
+              </div>
+            );
           })}
         </div>
       </div>

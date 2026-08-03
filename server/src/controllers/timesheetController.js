@@ -31,19 +31,20 @@ const MAX_SECS_PER_DAY = 8 * 3600;
 const MAX_SECS_PER_WEEK = 40 * 3600;
 
 const pad2 = (n) => String(n).padStart(2, "0");
-const fmtISODate = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const fmtISODate = (d) => `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
 const addDays = (date, n) => {
   const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + n));
 };
+// Computed in UTC (not the server process's local timezone) so weekStart is
+// deployment-independent and matches the UTC-midnight timestamps
+// legacy-migrated timesheets were stored with — see dateRanges.js's copy of
+// this function for the full story on why local-time math broke this.
 const startOfWeek = (date) => {
   const d = new Date(date);
-  const day = d.getDay(); // 0 = Sunday
+  const day = d.getUTCDay(); // 0 = Sunday
   const diff = (day + 6) % 7; // days since Monday
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - diff);
-  return d;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diff));
 };
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(String(id ?? ""));
