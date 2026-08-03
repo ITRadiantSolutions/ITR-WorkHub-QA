@@ -212,7 +212,7 @@ export default function BusinessUserDashboard() {
                 ].map((card, i) => (
                   <div
                     key={i}
-                    className={`rounded-xl p-4 border shadow-sm ${card.dark ? "bg-blue-700 border-blue-800" : "bg-white border-slate-200"}`}
+                    className={`rounded-xl p-4 border shadow-sm ${card.dark ? "bg-indigo-600 border-blue-800" : "bg-white border-slate-200"}`}
                   >
                     <p
                       className={`text-[11px] font-semibold uppercase tracking-wide mb-2 ${card.dark ? "text-slate-400" : "text-slate-500"}`}
@@ -500,7 +500,7 @@ export default function BusinessUserDashboard() {
                                 posting[project._id] ||
                                 !inputs[project._id]?.trim()
                               }
-                              className="self-end flex items-center gap-1.5 bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-800 disabled:opacity-50 transition shrink-0"
+                              className="self-end flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition shrink-0"
                             >
                               {posting[project._id] ? (
                                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

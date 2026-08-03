@@ -49,7 +49,7 @@ const inputCls =
 // ── Micro components ──────────────────────────────────────────────────────────
 function Avatar({ name, size = "sm" }) {
   const colors = [
-    "bg-indigo-500",
+    "bg-indigo-600",
     "bg-violet-500",
     "bg-blue-500",
     "bg-emerald-500",
@@ -559,7 +559,7 @@ export default function EmployeesPage({ searchRequest }) {
       id: "edited",
       label: "Edited",
       count: editedUsers.length,
-      activeCls: "bg-indigo-500 text-white",
+      activeCls: "bg-indigo-600 text-white",
       dotCls: "bg-white/30",
     },
   ];
@@ -1019,7 +1019,7 @@ const col4 = isRejected
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
                   <Icons.Edit />
                 </div>
                 <div>
@@ -1108,7 +1108,7 @@ const col4 = isRejected
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 h-9 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 h-9 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   {saving ? (
                     <>

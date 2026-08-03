@@ -83,7 +83,7 @@ function SearchableProjectSelect({ projects, value, onChange, error }) {
       </button>
       {open && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-          <div className="border-b border-slate-100 p-2"><input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects..." className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100" /></div>
+          <div className="border-b border-slate-100 p-2"><input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects..." className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100" /></div>
           <div role="listbox" className="max-h-56 overflow-y-auto p-1.5">
             {matches.length ? matches.map((project) => (
               <button key={project._id} type="button" role="option" aria-selected={String(project._id) === String(value)} onClick={() => { onChange(project._id); setOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${String(project._id) === String(value) ? "bg-blue-50 font-semibold text-blue-700" : "text-slate-700 hover:bg-slate-50"}`}><span className="truncate">{project.name}</span>{String(project._id) === String(value) && <span className="ml-2 text-blue-600">✓</span>}</button>
@@ -298,7 +298,7 @@ export default function SprintPage({ searchRequest }) {
                 setShowForm(true);
                 setErrors({});
               }}
-              className="h-9 px-4 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5"
+              className="h-9 px-4 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -653,7 +653,7 @@ export default function SprintPage({ searchRequest }) {
             {/* Modal Header */}
             <div className="px-5 py-4 border-b border-slate-100 shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
@@ -833,7 +833,7 @@ export default function SprintPage({ searchRequest }) {
               <button
                 onClick={createSprint}
                 disabled={submitting}
-                className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
+                className="h-9 px-5 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 {submitting ? (
                   <>

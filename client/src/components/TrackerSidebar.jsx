@@ -19,7 +19,7 @@ export default function TrackerSidebar({ title = "FlowTrack", navItems, activeId
   return (
     <aside className="w-64 shrink-0 bg-white border-r border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col sticky top-0 h-screen">
       <button onClick={() => navigate("/hub")} className="flex items-center gap-2.5 px-5 py-5 shrink-0 group">
-        <div className="w-9 h-9 rounded-[14px] bg-blue-700 flex items-center justify-center text-white shadow-sm group-hover:bg-blue-600 transition-colors shrink-0">
+        <div className="w-9 h-9 rounded-[14px] bg-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:bg-indigo-400 transition-colors shrink-0">
           <Icons.Zap />
         </div>
         <span className="text-lg font-extrabold tracking-tight text-slate-900 truncate">{title}</span>
@@ -35,7 +35,7 @@ export default function TrackerSidebar({ title = "FlowTrack", navItems, activeId
               onClick={() => onSelect(item.id)}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 active
-                  ? "bg-gradient-to-r from-blue-700 to-blue-500 text-white shadow-sm"
+                  ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-sm"
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               }`}
             >
@@ -64,7 +64,7 @@ export default function TrackerSidebar({ title = "FlowTrack", navItems, activeId
           onClick={() => navigate("/hub")}
           className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition"
         >
-          <div className="w-9 h-9 rounded-full bg-blue-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
             {initials}
           </div>
           <div className="text-left min-w-0 flex-1">

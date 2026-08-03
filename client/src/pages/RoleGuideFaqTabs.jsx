@@ -5,74 +5,26 @@ import { ROLE_GUIDE_FAQ } from "../data/roleGuideFaq";
 import { getUserIssuesForAdmin } from "../services/api";
 import { toast } from "sonner";
 
-// ── Role accent tokens ────────────────────────────────────────────────────────
+// ── Role accent tokens — one consistent FlowTrack indigo theme for every
+// role, rather than a different accent color per role.
+const INDIGO_ACCENT = {
+  chip: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  dot: "bg-indigo-600",
+  soft: "bg-indigo-50",
+  text: "text-indigo-600",
+  border: "border-indigo-200",
+  num: "bg-indigo-600",
+  ring: "ring-indigo-200",
+  line: "bg-indigo-100",
+  tab: "bg-indigo-600",
+};
 const ROLE_ACCENTS = {
-  ADMIN: {
-    chip: "bg-amber-50 text-amber-700 border-amber-200",
-    dot: "bg-amber-500",
-    soft: "bg-amber-50",
-    text: "text-amber-600",
-    border: "border-amber-200",
-    num: "bg-amber-500",
-    ring: "ring-amber-200",
-    line: "bg-amber-100",
-    tab: "bg-amber-500",
-  },
-  PM: {
-    chip: "bg-blue-50 text-blue-700 border-blue-200",
-    dot: "bg-blue-500",
-    soft: "bg-blue-50",
-    text: "text-blue-600",
-    border: "border-blue-200",
-    num: "bg-blue-600",
-    ring: "ring-blue-200",
-    line: "bg-blue-100",
-    tab: "bg-blue-600",
-  },
-  DEVELOPER: {
-    chip: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    dot: "bg-emerald-500",
-    soft: "bg-emerald-50",
-    text: "text-emerald-600",
-    border: "border-emerald-200",
-    num: "bg-emerald-600",
-    ring: "ring-emerald-200",
-    line: "bg-emerald-100",
-    tab: "bg-emerald-600",
-  },
-  QA: {
-    chip: "bg-violet-50 text-violet-700 border-violet-200",
-    dot: "bg-violet-500",
-    soft: "bg-violet-50",
-    text: "text-violet-600",
-    border: "border-violet-200",
-    num: "bg-violet-600",
-    ring: "ring-violet-200",
-    line: "bg-violet-100",
-    tab: "bg-violet-600",
-  },
-  BUSINESS_USER: {
-    chip: "bg-rose-50 text-rose-700 border-rose-200",
-    dot: "bg-rose-500",
-    soft: "bg-rose-50",
-    text: "text-rose-600",
-    border: "border-rose-200",
-    num: "bg-rose-600",
-    ring: "ring-rose-200",
-    line: "bg-rose-100",
-    tab: "bg-rose-600",
-  },
-  DEFAULT: {
-    chip: "bg-slate-100 text-slate-600 border-slate-200",
-    dot: "bg-slate-400",
-    soft: "bg-slate-100",
-    text: "text-slate-600",
-    border: "border-slate-200",
-    num: "bg-slate-700",
-    ring: "ring-slate-200",
-    line: "bg-slate-200",
-    tab: "bg-slate-700",
-  },
+  ADMIN: INDIGO_ACCENT,
+  PM: INDIGO_ACCENT,
+  DEVELOPER: INDIGO_ACCENT,
+  QA: INDIGO_ACCENT,
+  BUSINESS_USER: INDIGO_ACCENT,
+  DEFAULT: INDIGO_ACCENT,
 };
 
 // ── Sliding pill tab bar ──────────────────────────────────────────────────────

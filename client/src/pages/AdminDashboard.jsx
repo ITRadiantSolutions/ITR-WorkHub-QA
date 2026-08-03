@@ -897,7 +897,7 @@ export default function AdminDashboard() {
                     value: m.totalUsers,
                     sub: `${m.totalUsers} employees`,
                     Ic: Icons.Employees,
-                    iconCls: "bg-blue-50 text-blue-500",
+                    iconCls: "bg-indigo-50 text-indigo-500",
                     loading: employeeLoading,
                   },
                   {
@@ -905,7 +905,7 @@ export default function AdminDashboard() {
                     value: m.totalTasks,
                     sub: `${m.doneTasks} completed`,
                     Ic: Icons.Activity,
-                    iconCls: "bg-emerald-50 text-emerald-500",
+                    iconCls: "bg-indigo-50 text-indigo-500",
                     loading: metricsLoading,
                   },
                   {
@@ -913,35 +913,35 @@ export default function AdminDashboard() {
                     value: stats.bugs.length,
                     sub: `${stats.bugs.length} total bugs`,
                     Ic: Icons.Bug,
-                    iconCls: "bg-red-50 text-red-500",
+                    iconCls: "bg-indigo-50 text-indigo-500",
                     loading: metricsLoading,
                   },
                 ].map((card, i) => (
                   <div
                     key={i}
-                    className="rounded-xl p-4 border shadow-sm transition-shadow hover:shadow-md bg-white border-slate-200"
+                    className="rounded-xl p-3 border shadow-sm transition-shadow hover:shadow-md bg-white border-slate-200"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                         {card.label}
                       </p>
                       <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${card.iconCls}`}
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center ${card.iconCls}`}
                       >
                         <card.Ic />
                       </div>
                     </div>
-                    <p className="text-[28px] font-bold leading-none mb-1.5 text-slate-800">
+                    <p className="text-xl font-bold leading-none mb-1 text-slate-800">
                       {card.loading ? (
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500">
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
+                        <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
                           Loading
                         </span>
                       ) : (
                         card.value
                       )}
                     </p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[10.5px] text-slate-400">
                       {card.loading ? "Fetching dashboard data..." : card.sub}
                     </p>
                   </div>
@@ -997,7 +997,7 @@ export default function AdminDashboard() {
                             value: stats.projects.filter(
                               (p) => p.status === "Completed",
                             ).length,
-                            color: "#2563eb",
+                            color: "#4f46e5",
                           },
                         ]}
                       />
@@ -1043,7 +1043,7 @@ export default function AdminDashboard() {
                             {
                               label: "In Progress",
                               value: m.progressTasks,
-                              color: "#3b82f6",
+                              color: "#4f46e5",
                             },
                             {
                               label: "On Hold",
@@ -1117,7 +1117,7 @@ export default function AdminDashboard() {
                             value: stats.bugs.filter(
                               (b) => b.status === "IN_PROGRESS",
                             ).length,
-                            color: "#3b82f6",
+                            color: "#4f46e5",
                           },
                           {
                             label: "Resolved",
@@ -1356,7 +1356,7 @@ export default function AdminDashboard() {
                 </div>
                 {projectsLoading ? (
                   <div className="flex items-center justify-center gap-2 py-8 text-[11px] font-semibold text-slate-400">
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
                     Loading projects...
                   </div>
                 ) : stats.projects.length === 0 ? (
@@ -1454,7 +1454,7 @@ export default function AdminDashboard() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white">
                         <Icons.Activity />
                       </div>
                       <div>
@@ -1548,7 +1548,7 @@ export default function AdminDashboard() {
                       label: "Total activity",
                       value: total,
                       note: "All matching records",
-                      dot: "bg-blue-700",
+                      dot: "bg-indigo-600",
                     },
                     {
                       label: "Unread",
@@ -1703,7 +1703,7 @@ export default function AdminDashboard() {
                           setAdminStatusFilter("all");
                           setAdminQuery("");
                         }}
-                        className="mt-4 rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white"
+                        className="mt-4 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
                       >
                         Clear filters
                       </button>

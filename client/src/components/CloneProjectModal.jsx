@@ -47,7 +47,7 @@ function ToggleCard({
       disabled={disabled}
       className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${
         checked
-          ? "border-blue-700 bg-blue-700 text-white shadow-md"
+          ? "border-indigo-600 bg-indigo-600 text-white shadow-md"
           : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
       }`}
     >
@@ -164,7 +164,7 @@ export default function CloneProjectModal({
         <div className="relative px-6 pt-6 pb-5 border-b border-slate-100">
           <div className="flex items-start gap-4">
             {/* Icons */}
-            <div className="w-11 h-11 rounded-xl bg-blue-700 flex items-center justify-center text-white shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0">
               <Icons.Copy />
             </div>
             <div className="flex-1 min-w-0">
@@ -365,7 +365,7 @@ export default function CloneProjectModal({
             <button
               onClick={handleClone}
               disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-60 text-sm active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-60 text-sm active:scale-[0.98]"
             >
               {submitting ? (
                 <>

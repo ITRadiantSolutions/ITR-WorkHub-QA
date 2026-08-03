@@ -782,7 +782,7 @@ export default function ManagerDashboard() {
 
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Icons.Projects /></span><div><p className="text-xs font-bold text-slate-700">Projects</p><p className="text-[10px] text-slate-400">Managed portfolio</p></div></div><span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600">{projects.length} total</span></div>
-                  <div className="p-4">{projectsLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />Loading projects...</div> : <DashboardPie centerValue={projects.length} centerLabel="projects" data={[
+                  <div className="p-4">{projectsLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading projects...</div> : <DashboardPie centerValue={projects.length} centerLabel="projects" data={[
                     { label: "Active", value: projects.filter((p) => p.status === "Active").length, color: "#10b981" }, { label: "Planning", value: projects.filter((p) => p.status === "Planning").length, color: "#8b5cf6" }, { label: "Completed", value: projects.filter((p) => p.status === "Completed").length, color: "#3b82f6" },
                   ]} />}</div>
                 </div>
@@ -951,7 +951,7 @@ className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-betwee
 
                 <div className="p-5 space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-blue-700 text-white flex items-center justify-center text-lg font-bold">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold">
                       {user?.name?.charAt(0)?.toUpperCase()}
                     </div>
 

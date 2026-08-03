@@ -244,7 +244,7 @@ function StatCard({ label, value, sub, Icon, warn, ok }) {
 function Badge({ label, variant }) {
   const s = {
     done: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    progress: "bg-blue-50 text-blue-700 border border-blue-200",
+    progress: "bg-indigo-50 text-indigo-700 border border-indigo-200",
     todo: "bg-slate-50 text-slate-600 border border-slate-200",
     hold: "bg-amber-50 text-amber-700 border border-amber-200",
     qa: "bg-violet-50 text-violet-700 border border-violet-200",
@@ -290,7 +290,7 @@ function Section({ title, subtitle, icon: Icon, action, children }) {
       <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           {Icon && (
-            <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
+            <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
               <Icon />
             </div>
           )}
@@ -1762,7 +1762,7 @@ function AdminReport({
             <Icons.Search />
           </span>
           <input
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-xs text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-xs text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-slate-900"
             placeholder="Search by employee name or email..."
             value={empSearch}
             onChange={(e) => {
@@ -1829,7 +1829,7 @@ function AdminReport({
                   <button
                     key={emp._id}
                     onClick={() => setSelectedEmp(isSelected ? null : emp)}
-                    className={`group flex min-w-0 flex-col rounded-xl border p-3 text-left transition-all ${isSelected ? "border-blue-700 bg-blue-700 text-white shadow-md" : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-sm"}`}
+                    className={`group flex min-w-0 flex-col rounded-xl border p-3 text-left transition-all ${isSelected ? "border-indigo-600 bg-indigo-600 text-white shadow-md" : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-sm"}`}
                   >
                     <div className="flex w-full items-center gap-2.5">
                       <span
@@ -1922,7 +1922,7 @@ function AdminReport({
             <div className="border border-slate-200 rounded-xl overflow-hidden">
               {/* Header */}
               <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
-                <div className="w-9 h-9 rounded-full bg-blue-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
                   {selectedEmp.name?.charAt(0)?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -2107,7 +2107,7 @@ function AdminReport({
                               t.status === "DONE"
                                 ? "bg-emerald-500"
                                 : t.status === "IN_PROGRESS"
-                                  ? "bg-blue-500"
+                                  ? "bg-indigo-600"
                                   : "bg-slate-300"
                             }`}
                           />

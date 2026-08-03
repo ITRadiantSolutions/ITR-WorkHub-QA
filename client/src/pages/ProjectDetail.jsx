@@ -53,7 +53,7 @@ const ProjectAttachmentRow = ({ attachment, index }) => {
   return (
     <div className="group flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-indigo-100">
           <Icons.File />
         </div>
         <div className="min-w-0">
@@ -80,7 +80,7 @@ const ProjectAttachmentRow = ({ attachment, index }) => {
           href={url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-700 px-3.5 text-[11px] font-bold text-white transition hover:bg-blue-800 sm:self-center"
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3.5 text-[11px] font-bold text-white transition hover:bg-indigo-700 sm:self-center"
         >
           <Icons.Eye />
           Open file
@@ -98,7 +98,7 @@ const ProjectAttachmentRow = ({ attachment, index }) => {
 function Badge({ label, variant }) {
   const s = {
     done: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    progress: "bg-blue-50 text-blue-700 border border-blue-200",
+    progress: "bg-indigo-50 text-indigo-700 border border-indigo-200",
     todo: "bg-slate-50 text-slate-600 border border-slate-200",
     high: "bg-red-50 text-red-700 border border-red-200",
     medium: "bg-amber-50 text-amber-700 border border-amber-200",
@@ -227,7 +227,7 @@ function StatusSelect({ value, onChange }) {
             value === "DONE"
               ? "bg-emerald-500"
               : value === "IN_PROGRESS"
-                ? "bg-blue-500"
+                ? "bg-indigo-600"
                 : value === "QA_TESTING"
                   ? "bg-purple-500"
                   : "bg-slate-400"
@@ -249,7 +249,7 @@ function StatusSelect({ value, onChange }) {
             value === "DONE"
               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
               : value === "IN_PROGRESS"
-                ? "border-blue-200 bg-blue-50 text-blue-700"
+                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                 : value === "QA_TESTING"
                   ? "border-purple-200 bg-purple-50 text-purple-700"
                   : "border-slate-200 bg-slate-50 text-slate-600"
@@ -609,7 +609,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
           {/* Modal Header */}
           <div className="px-5 py-4 border-b border-slate-100 shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="14"
@@ -796,7 +796,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
             <button
               onClick={createSprintInProjectDetail}
               disabled={sprintCreateSubmitting}
-              className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
+              className="h-9 px-5 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {sprintCreateSubmitting ? (
                 <>
@@ -1352,7 +1352,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
             {isLead && (
               <button
                 onClick={() => setShowCloneModal(true)}
-                className="flex items-center gap-1.5 bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-800 transition shadow-sm ml-auto"
+                className="flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-sm ml-auto"
                 title="Clone this project"
               >
                 <svg
@@ -1605,7 +1605,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
                   <button
                     onClick={() => setShowCreateTaskModal(true)}
-                    className="flex items-center gap-1.5 bg-blue-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-blue-800 transition shadow-sm"
+                    className="flex items-center gap-1.5 bg-indigo-600 text-white px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-sm"
                   >
                     <Icons.Plus />
                     Add Task
@@ -1697,7 +1697,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                                     task.status === "DONE"
                                       ? "bg-emerald-500"
                                       : task.status === "IN_PROGRESS"
-                                        ? "bg-blue-500"
+                                        ? "bg-indigo-600"
                                         : task.status === "QA_TESTING"
                                           ? "bg-purple-500"
                                           : "bg-slate-400"
@@ -2189,7 +2189,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                         projectId: project._id,
                       }));
                     }}
-                    className="mt-4 h-8 px-4 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition inline-flex items-center gap-1.5"
+                    className="mt-4 h-8 px-4 rounded-lg bg-indigo-600 text-white text-[12.5px] font-semibold hover:bg-indigo-700 transition inline-flex items-center gap-1.5"
                   >
                     <Icons.Plus /> Create First Sprint
                   </button>
@@ -2356,7 +2356,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                           projectId: project._id,
                         }));
                       }}
-                      className="h-8 px-3.5 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5"
+                      className="h-8 px-3.5 rounded-lg bg-indigo-600 text-white text-[12.5px] font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5"
                     >
                       <Icons.Plus /> Add Sprint
                     </button>
@@ -2680,7 +2680,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     </h3>
                   </div>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white">
                     <Icons.Tasks />
                   </div>
                 </div>
@@ -2718,7 +2718,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               {/* Header */}
               <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-700 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white">
                   <Icons.Timeline />
                 </div>
 
@@ -2742,7 +2742,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                   {/* CREATED */}
                   {project.createdAt && (
                     <div className="relative flex gap-4">
-                      <div className="relative  flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-700 text-white">
+                      <div className="relative  flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white">
                         <Icons.Plus />
                       </div>
 
@@ -2875,7 +2875,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     .map((task) => (
                       <div key={task._id} className="relative flex gap-3">
                         {/* Timeline Icon */}
-                        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-blue-700 text-white">
+                        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-indigo-600 text-white">
                           <Icons.Tasks />
                         </div>
 
@@ -2994,7 +2994,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                       type="button"
                       disabled={timelineLoading}
                       onClick={loadTimelineMore}
-                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-blue-700 px-4 text-[11px] font-semibold text-white hover:bg-blue-800 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-indigo-600 px-4 text-[11px] font-semibold text-white hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {timelineLoading ? (
                         <div className="h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -3312,7 +3312,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 {/* Card header */}
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
-                  <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center text-white shrink-0">
+                  <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shrink-0">
                     <Icons.Edit />
                   </div>
                   <div>
@@ -3327,7 +3327,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     type="button"
                     onClick={handleSaveProject}
                     disabled={saving || !projectForm.name?.trim()}
-                    className="ml-auto inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-700 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:px-4 sm:text-sm"
+                    className="ml-auto inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:px-4 sm:text-sm"
                   >
                     {saving ? (
                       <>
@@ -3624,7 +3624,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                             type="button"
                             disabled={attachmentsUploading}
                             onClick={handleUploadAttachments}
-                            className="px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-bold hover:bg-blue-800 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {attachmentsUploading ? (
                               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -3703,7 +3703,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     <button
                       onClick={handleSaveProject}
                       disabled={saving || !projectForm.name?.trim()}
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                      className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                     >
                       {saving ? (
                         <>
@@ -3911,7 +3911,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                                   {u.name.charAt(0).toUpperCase()}
                                 </div>
 
-                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-700 text-white">
+                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white">
                                   {teamUpdating[u._id] ? (
                                     <div className="h-2.5 w-2.5 rounded-full border border-white border-t-transparent animate-spin" />
                                   ) : (

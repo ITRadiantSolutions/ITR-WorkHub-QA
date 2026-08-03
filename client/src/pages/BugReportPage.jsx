@@ -117,7 +117,7 @@ function SeverityChip({ sev }) {
 function StatusChip({ status }) {
   const cfg = {
     OPEN: "bg-red-50 text-red-700 border border-red-200",
-    IN_PROGRESS: "bg-blue-50 text-blue-700 border border-blue-200",
+    IN_PROGRESS: "bg-indigo-50 text-indigo-700 border border-indigo-200",
     RESOLVED: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     WONT_FIX: "bg-slate-100 text-slate-600 border border-slate-200",
   };
@@ -542,7 +542,7 @@ export default function BugReportPage({ searchRequest }) {
                 setShowForm((v) => !v);
                 setFormError("");
               }}
-              className="h-8 px-3.5 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5"
+              className="h-8 px-3.5 rounded-lg bg-indigo-600 text-white text-[12.5px] font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5"
             >
               <Icons.Plus /> Report Bug
             </button>
@@ -786,7 +786,7 @@ export default function BugReportPage({ searchRequest }) {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-50 to-purple-50/40 px-4 py-4 sm:px-6">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-white shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
                 <Icons.Bug />
               </div>
               <div>
@@ -919,7 +919,7 @@ export default function BugReportPage({ searchRequest }) {
                     accept=".xlsx,.xls,.csv"
                     multiple
                     disabled={submitting}
-                    className="w-full text-[11px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-blue-700 file:px-2.5 file:py-1 file:text-[10.5px] file:font-semibold file:text-white hover:file:bg-blue-800"
+                    className="w-full text-[11px] text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-indigo-600 file:px-2.5 file:py-1 file:text-[10.5px] file:font-semibold file:text-white hover:file:bg-blue-800"
                     onChange={async (e) => {
                       const files = Array.from(e.target.files || []);
                       if (!files.length) {
@@ -1072,7 +1072,7 @@ export default function BugReportPage({ searchRequest }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
+                className="h-9 px-5 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 {submitting ? (
                   <>

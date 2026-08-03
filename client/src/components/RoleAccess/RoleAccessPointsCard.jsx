@@ -25,7 +25,7 @@ export default function RoleAccessPointsCard({ roleConfig }) {
                 key={i}
                 className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition px-3 py-3"
               >
-                <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold shrink-0">
+                <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[11px] font-bold shrink-0">
                   ✓
                 </div>
 

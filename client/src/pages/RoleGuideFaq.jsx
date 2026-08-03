@@ -6,74 +6,27 @@ import { getRoleKeyFromUser } from "../data/roleSettingsConfig";
 import { ROLE_GUIDE_FAQ } from "../data/roleGuideFaq";
 import RoleGuideFaqTabs from "./RoleGuideFaqTabs";
 
-// ── Role accent tokens
+// ── Role accent tokens — one consistent FlowTrack indigo theme for every
+// role, rather than a different accent color per role (was ADMIN=red,
+// PM=blue, DEVELOPER=emerald, QA=purple, BUSINESS_USER=rose).
+const INDIGO_ACCENT = {
+  chip: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  dot: "bg-indigo-600",
+  soft: "bg-indigo-50",
+  text: "text-indigo-600",
+  border: "border-indigo-200",
+  num: "bg-indigo-600",
+  ring: "ring-indigo-200",
+  line: "bg-indigo-100",
+  tab: "bg-indigo-600",
+};
 const ROLE_ACCENTS = {
-  ADMIN: {
-    chip: "bg-red-50 text-red-700 border-red-200",
-    dot: "bg-red-500",
-    soft: "bg-red-50",
-    text: "text-red-600",
-    border: "border-red-200",
-    num: "bg-red-600",
-    ring: "ring-red-200",
-    line: "bg-red-100",
-    tab: "bg-red-600",
-  },
-  PM: {
-    chip: "bg-blue-50 text-blue-700 border-blue-200",
-    dot: "bg-blue-500",
-    soft: "bg-blue-50",
-    text: "text-blue-600",
-    border: "border-blue-200",
-    num: "bg-blue-600",
-    ring: "ring-blue-200",
-    line: "bg-blue-100",
-    tab: "bg-blue-600",
-  },
-  DEVELOPER: {
-    chip: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    dot: "bg-emerald-500",
-    soft: "bg-emerald-50",
-    text: "text-emerald-600",
-    border: "border-emerald-200",
-    num: "bg-emerald-600",
-    ring: "ring-emerald-200",
-    line: "bg-emerald-100",
-    tab: "bg-emerald-600",
-  },
-  QA: {
-    chip: "bg-purple-50 text-purple-700 border-purple-200",
-    dot: "bg-purple-500",
-    soft: "bg-purple-50",
-    text: "text-purple-600",
-    border: "border-purple-200",
-    num: "bg-purple-600",
-    ring: "ring-purple-200",
-    line: "bg-purple-100",
-    tab: "bg-purple-600",
-  },
-  BUSINESS_USER: {
-    chip: "bg-rose-50 text-rose-700 border-rose-200",
-    dot: "bg-rose-500",
-    soft: "bg-rose-50",
-    text: "text-rose-600",
-    border: "border-rose-200",
-    num: "bg-rose-600",
-    ring: "ring-rose-200",
-    line: "bg-rose-100",
-    tab: "bg-rose-600",
-  },
-  DEFAULT: {
-    chip: "bg-slate-100 text-slate-600 border-slate-200",
-    dot: "bg-slate-400",
-    soft: "bg-slate-100",
-    text: "text-slate-600",
-    border: "border-slate-200",
-    num: "bg-slate-700",
-    ring: "ring-slate-200",
-    line: "bg-slate-200",
-    tab: "bg-slate-700",
-  },
+  ADMIN: INDIGO_ACCENT,
+  PM: INDIGO_ACCENT,
+  DEVELOPER: INDIGO_ACCENT,
+  QA: INDIGO_ACCENT,
+  BUSINESS_USER: INDIGO_ACCENT,
+  DEFAULT: INDIGO_ACCENT,
 };
 
 // ── Tab bar ───────────────────────────────────────────────────────────────────
@@ -462,7 +415,7 @@ function IssueModal({ user, onClose, accent }) {
             <button
               type="submit"
               disabled={submitting || submitted}
-              className="h-9 px-5 rounded-lg bg-blue-700 text-white text-[13px] font-semibold hover:bg-blue-800 transition flex items-center gap-2 disabled:opacity-50"
+              className="h-9 px-5 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition flex items-center gap-2 disabled:opacity-50"
             >
               {submitting ? (
                 <>

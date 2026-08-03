@@ -14,9 +14,9 @@ const RANGE_OPTIONS = [
 ];
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-// top project (brand gradient), second/leaves (blue), everything else (neutral)
-const SEGMENT_COLORS = ["url(#donutPrimary)", "#2563eb", "#e2e8f0"];
-const SEGMENT_LEGEND_COLORS = ["linear-gradient(135deg,#4338ca,#6366f1)", "#2563eb", "#e2e8f0"];
+// top project (brand gradient), second/leaves (lighter green), everything else (neutral)
+const SEGMENT_COLORS = ["url(#donutPrimary)", "#34d399", "#e2e8f0"];
+const SEGMENT_LEGEND_COLORS = ["linear-gradient(135deg,#047857,#10b981)", "#34d399", "#e2e8f0"];
 
 // Card shell shared by every panel on this page — soft shadow + 20px radius per brand spec.
 const CARD = "bg-white rounded-[20px] border border-slate-200 shadow-[0_4px_20px_rgba(15,23,42,0.06)] hover:shadow-[0_12px_30px_rgba(79,70,229,0.12)] transition-shadow";
@@ -72,11 +72,11 @@ function ActivityDonut({ segments }) {
         <svg width="220" height="220" viewBox="0 0 220 220">
           <defs>
             <linearGradient id="donutPrimary" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#4338ca" />
-              <stop offset="100%" stopColor="#6366f1" />
+              <stop offset="0%" stopColor="#047857" />
+              <stop offset="100%" stopColor="#10b981" />
             </linearGradient>
           </defs>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eef2ff" strokeWidth="24" />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#ecfdf5" strokeWidth="24" />
           {arcs.map((a, i) => (
             <circle
               key={i}
@@ -168,15 +168,15 @@ function HoursLineChart({ series, totalHours }) {
             </g>
           );
         })}
-        {series.length > 0 && <path d={areaPath} fill="rgba(99,102,241,.12)" stroke="none" />}
-        {series.length > 0 && <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />}
+        {series.length > 0 && <path d={areaPath} fill="rgba(5,150,105,.12)" stroke="none" />}
+        {series.length > 0 && <path d={path} fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" />}
         {points.map((p, i) => (
           <g key={i} style={{ cursor: "pointer" }}>
             <circle cx={p.x} cy={p.y} r="9" fill="transparent">
               <title>{`${series[i].name}: ${series[i].hours.toFixed(1)}h`}</title>
             </circle>
-            <circle cx={p.x} cy={p.y} r="4" fill="#4338ca" />
-            <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="#4338ca" className="tabular-nums">
+            <circle cx={p.x} cy={p.y} r="4" fill="#047857" />
+            <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fontWeight="700" fill="#047857" className="tabular-nums">
               {series[i].hours.toFixed(1)}
             </text>
           </g>
@@ -188,7 +188,7 @@ function HoursLineChart({ series, totalHours }) {
         ))}
       </svg>
       <div className="flex items-center gap-1.5 mt-2 text-[11px] text-slate-500 font-medium">
-        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#4f46e5" }} />
+        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#059669" }} />
         Total hours <span className="font-bold text-slate-700 tabular-nums">({totalHours.toFixed(1)}h)</span>
       </div>
     </div>

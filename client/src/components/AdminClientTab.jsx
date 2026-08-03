@@ -7,7 +7,7 @@ function Badge({ label, variant = "default" }) {
   const s = {
     active: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     planning: "bg-violet-50 text-violet-700 border border-violet-200",
-    progress: "bg-blue-50 text-blue-700 border border-blue-200",
+    progress: "bg-indigo-50 text-indigo-700 border border-indigo-200",
     done: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     completed: "bg-slate-100 text-slate-600 border border-slate-200",
     high: "bg-red-50 text-red-700 border border-red-200",
@@ -297,7 +297,7 @@ export default function AdminClientTab({
             setForm(emptyForm);
             setModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
         >
           <Icons.Plus className="h-4 w-4" />
           Create Account
@@ -363,7 +363,7 @@ export default function AdminClientTab({
                 {item.sub}
               </p>
               <span
-                className={`absolute bottom-0 left-0 h-0.5 w-full ${item.label === "Active" ? "bg-emerald-500" : item.label === "Planning" ? "bg-blue-500" : item.label === "Done" ? "bg-violet-500" : "bg-indigo-500"}`}
+                className={`absolute bottom-0 left-0 h-0.5 w-full ${item.label === "Active" ? "bg-emerald-500" : item.label === "Planning" ? "bg-blue-500" : item.label === "Done" ? "bg-violet-500" : "bg-indigo-600"}`}
               />
             </article>
           ))}
@@ -426,7 +426,7 @@ export default function AdminClientTab({
               setForm(emptyForm);
               setModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition"
+            className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition"
           >
             <Icons.Plus />
             Create First Account
@@ -602,7 +602,7 @@ export default function AdminClientTab({
             {/* Modal header */}
             <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center text-white shrink-0">
+                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shrink-0">
                   <Icons.Folder />
                 </div>
                 <div>
@@ -758,7 +758,7 @@ export default function AdminClientTab({
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center text-white shrink-0">
+                <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shrink-0">
                   {modalMode === "edit" ? <Icons.Edit /> : <Icons.Plus />}
                 </div>
                 <div>
@@ -898,7 +898,7 @@ export default function AdminClientTab({
                       New Project
                     </button>
                     <span
-                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${form.projects.length > 0 ? "bg-blue-700 text-white" : "bg-slate-200 text-slate-600"}`}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${form.projects.length > 0 ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600"}`}
                     >
                       {form.projects.length} selected
                     </span>
@@ -945,7 +945,7 @@ export default function AdminClientTab({
                               key={project._id}
                               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
                                 checked
-                                  ? "border-blue-700 bg-blue-700 text-white"
+                                  ? "border-indigo-600 bg-indigo-600 text-white"
                                   : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                               }`}
                             >
@@ -1033,7 +1033,7 @@ export default function AdminClientTab({
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm disabled:opacity-60 active:scale-[0.98]"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm disabled:opacity-60 active:scale-[0.98]"
               >
                 {saving ? (
                   <>

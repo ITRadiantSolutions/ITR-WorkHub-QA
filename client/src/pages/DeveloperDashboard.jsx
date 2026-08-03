@@ -81,74 +81,85 @@ function DonutChart({ completed, total }) {
   );
 }
 
+// Small radial ring — just the overall completion %, no per-status segments.
+function RadialProgress({ value, size = 88, stroke = 8, color = "#4f46e5" }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.min(100, Math.max(0, value)) / 100) * circumference;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" role="img" aria-label="Overall completion">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.7s ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-lg font-extrabold leading-none text-slate-900">{value}%</span>
+      </div>
+    </div>
+  );
+}
+
 function TaskStatusPie({ metrics }) {
   const data = [
-    { label: "Done", value: metrics.done, color: "#10b981" },
-    { label: "In Progress", value: metrics.inProgress, color: "#3b82f6" },
-    { label: "QA Testing", value: metrics.qaTesting, color: "#8b5cf6" },
-    { label: "On Hold", value: metrics.onHold, color: "#f59e0b" },
-    { label: "Todo", value: metrics.todo, color: "#cbd5e1" },
+    { label: "Completed", value: metrics.done, bar: "bg-emerald-500" },
+    { label: "In Progress", value: metrics.inProgress, bar: "bg-gradient-to-r from-indigo-500 to-indigo-600" },
+    { label: "QA Testing", value: metrics.qaTesting, bar: "bg-violet-600" },
+    { label: "On Hold", value: metrics.onHold, bar: "bg-amber-500" },
+    { label: "Todo", value: metrics.todo, bar: "bg-slate-500" },
   ];
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  const radius = 40;
-  const circumference = 2 * Math.PI * radius;
-  const [hovered, setHovered] = useState(null);
-  let consumed = 0;
+
+  const footerStats = [
+    { label: "Total Tasks", value: metrics.total, cls: "bg-violet-50 text-violet-600", Icon: Icons.Tasks },
+    { label: "Completed", value: metrics.done, cls: "bg-emerald-50 text-emerald-600", Icon: Icons.CheckCircle },
+    { label: "In Progress", value: metrics.inProgress, cls: "bg-indigo-50 text-indigo-600", Icon: Icons.Clock },
+    { label: "Overdue", value: metrics.overdue, cls: "bg-red-50 text-red-600", Icon: Icons.Alert },
+  ];
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative h-40 w-40 shrink-0">
-        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label="Tasks by status">
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="12" />
-          {data.map((item) => {
-            const segment = total ? (item.value / total) * circumference : 0;
-            const offset = consumed;
-            consumed += segment;
-            return (
-              <circle
-                key={item.label}
-                cx="50"
-                cy="50"
-                r={radius}
-                fill="none"
-                stroke={item.color}
-                strokeWidth="12"
-                strokeDasharray={`${segment} ${circumference - segment}`}
-                strokeDashoffset={-offset}
-                className="transition-all duration-700 cursor-pointer"
-                style={{ opacity: hovered && hovered.label !== item.label ? 0.35 : 1 }}
-                onMouseEnter={() => setHovered(item)}
-                onMouseLeave={() => setHovered(null)}
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          {hovered ? (
-            <>
-              <span className="text-lg font-bold leading-none text-slate-800">{hovered.value}</span>
-              <span className="mt-1 max-w-[80px] truncate text-[9px] font-bold uppercase tracking-wide text-slate-400">{hovered.label}</span>
-              <span className="text-[9px] font-semibold text-slate-400">{total ? Math.round((hovered.value / total) * 100) : 0}%</span>
-            </>
-          ) : (
-            <>
-              <span className="text-xl font-bold leading-none text-slate-800">{metrics.rate}%</span>
-              <span className="mt-1 text-[8px] font-bold uppercase tracking-widest text-slate-400">Complete</span>
-            </>
-          )}
-        </div>
+    <div>
+      <div className="flex flex-col items-center gap-1.5 mb-5">
+        <RadialProgress value={metrics.rate} />
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Overall Completion</p>
       </div>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5">
-        {data.map((item) => (
-          <span
-            key={item.label}
-            className="flex items-center gap-1.5 cursor-pointer"
-            onMouseEnter={() => setHovered(item)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-[10px] font-medium text-slate-500">{item.label}</span>
-          </span>
+
+      <div className="space-y-3">
+        {data.map((item) => {
+          const pct = total ? Math.round((item.value / total) * 100) : 0;
+          return (
+            <div key={item.label} className="flex items-center gap-3">
+              <span className="w-24 shrink-0 text-xs font-semibold text-slate-700">{item.label}</span>
+              <span className="h-2 flex-1 overflow-hidden rounded-full bg-[#E5E7EB]">
+                <span className={`block h-full rounded-full transition-all duration-700 ${item.bar}`} style={{ width: `${pct}%` }} />
+              </span>
+              <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-slate-700">{item.value}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-4">
+        {footerStats.map((s) => (
+          <div key={s.label} className="flex items-center gap-2.5">
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${s.cls}`}>
+              <s.Icon />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[11px] text-slate-400">{s.label}</p>
+              <p className="text-base font-extrabold leading-none text-slate-900">{s.value}</p>
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -185,76 +196,6 @@ function MiniSparkline({ values, color, width = 64, height = 28 }) {
   );
 }
 
-// ── Weekly Activity line chart ──────────────────────────────────────────────
-const WEEK_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-function WeeklyActivityChart({ values }) {
-  const width = 480,
-    height = 160,
-    padL = 26,
-    padR = 10,
-    padT = 16,
-    padB = 22;
-  const plotW = width - padL - padR;
-  const plotH = height - padT - padB;
-  const maxVal = Math.max(...values, 4);
-  const yMax = Math.ceil(maxVal / 4) * 4 || 4;
-  const ticks = [0, yMax / 2, yMax];
-
-  const points = values.map((v, i) => ({
-    x: padL + (values.length > 1 ? (i / (values.length - 1)) * plotW : plotW / 2),
-    y: padT + plotH - (v / yMax) * plotH,
-  }));
-  const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const areaPath = points.length
-    ? `${path} L ${points[points.length - 1].x} ${padT + plotH} L ${points[0].x} ${padT + plotH} Z`
-    : "";
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-      {ticks.map((t, i) => {
-        const y = padT + plotH - (t / yMax) * plotH;
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e2e8f0" strokeWidth="1" />
-            <text x={padL - 6} y={y + 3} textAnchor="end" fontSize="11" fill="#94a3b8">{t}</text>
-          </g>
-        );
-      })}
-      {points.length > 0 && <path d={areaPath} fill="rgba(99,102,241,.12)" stroke="none" />}
-      {points.length > 0 && <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />}
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="3.5" fill="#4338ca" />
-          {values[i] > 0 && (
-            <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="9" fontWeight="700" fill="#4338ca">
-              {values[i]}
-            </text>
-          )}
-        </g>
-      ))}
-      {WEEK_DAY_LABELS.map((l, i) => (
-        <text key={l} x={points[i]?.x} y={height - 4} textAnchor="middle" fontSize="11" fill="#94a3b8">
-          {l}
-        </text>
-      ))}
-    </svg>
-  );
-}
-
-const timeAgo = (date) => {
-  const d = new Date(date);
-  const diffMs = Date.now() - d.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hrs / 24);
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
-
 // ── Mini Progress Bar ─────────────────────────────────────────────────────────
 function ProgressBar({ value, color = "#0f172a" }) {
   return (
@@ -271,12 +212,12 @@ function ProgressBar({ value, color = "#0f172a" }) {
 function Badge({ label, variant }) {
   const styles = {
     done: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    progress: "bg-blue-50 text-blue-700 border border-blue-200",
+    progress: "bg-indigo-50 text-indigo-700 border border-indigo-200",
     todo: "bg-slate-50 text-slate-600 border border-slate-200",
     qa: "bg-violet-50 text-violet-700 border border-violet-200",
     hold: "bg-amber-50 text-amber-700 border border-amber-200",
     high: "bg-red-50 text-red-700 border border-red-200",
-    medium: "bg-amber-50 text-amber-700 border border-amber-200",
+    medium: "bg-[#F8FAFC] text-[#475569] border border-[#CBD5E1]",
     low: "bg-green-50 text-green-700 border border-green-200",
     active: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     planning: "bg-violet-50 text-violet-700 border border-violet-200",
@@ -389,7 +330,7 @@ export default function DeveloperDashboard() {
               value === "DONE"
                 ? "bg-emerald-500"
                 : value === "IN_PROGRESS"
-                  ? "bg-blue-500"
+                  ? "bg-indigo-600"
                   : value === "ON_HOLD"
                     ? "bg-amber-500"
                     : value === "QA_TESTING"
@@ -414,7 +355,7 @@ export default function DeveloperDashboard() {
         value === "DONE"
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
           : value === "IN_PROGRESS"
-            ? "border-blue-200 bg-blue-50 text-blue-700"
+            ? "border-indigo-200 bg-indigo-50 text-indigo-700"
             : value === "ON_HOLD"
               ? "border-amber-200 bg-amber-50 text-amber-700"
               : value === "QA_TESTING"
@@ -784,54 +725,7 @@ export default function DeveloperDashboard() {
     };
   }, [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Weekly Activity chart: how many tasks were actually CREATED each day
-  // this week (createdAt only — not updates), Mon through Sun.
-  const weeklyActivity = useMemo(() => {
-    const day = today.getDay();
-    const weekStart = toDay(today);
-    weekStart.setDate(weekStart.getDate() - ((day + 6) % 7));
-    const counts = Array(7).fill(0);
-    tasks.forEach((t) => {
-      if (!t.createdAt) return;
-      const diffDays = Math.floor((toDay(t.createdAt) - weekStart) / 86400000);
-      if (diffDays >= 0 && diffDays < 7) counts[diffDays] += 1;
-    });
-    return counts;
-  }, [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const activeTasks = useMemo(() => tasks.filter((t) => t.status !== "DONE"), [tasks]);
-
-  const recentActivity = useMemo(
-    () =>
-      [...tasks]
-        .filter((t) => t.updatedAt || t.createdAt)
-        .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
-        .slice(0, 5)
-        .map((t) => {
-          const isNew = t.createdAt && t.updatedAt && Math.abs(new Date(t.updatedAt) - new Date(t.createdAt)) < 60000;
-          const overdue = isTaskOverdue(t);
-          let label, icon, cls;
-          if (t.status === "DONE") {
-            label = `Task "${t.title}" marked as done`;
-            icon = "CheckCircle";
-            cls = "bg-emerald-50 text-emerald-600";
-          } else if (isNew) {
-            label = `New task "${t.title}" created`;
-            icon = "Plus";
-            cls = "bg-blue-50 text-blue-600";
-          } else if (overdue) {
-            label = `Task "${t.title}" is overdue`;
-            icon = "Alert";
-            cls = "bg-red-50 text-red-600";
-          } else {
-            label = `Task "${t.title}" updated`;
-            icon = "Edit";
-            cls = "bg-amber-50 text-amber-600";
-          }
-          return { id: t._id, label, icon, cls, at: t.updatedAt || t.createdAt };
-        }),
-    [tasks],
-  );
 
   // "My Tasks" tab: search/status/priority filtering + page-based pagination,
   // computed once and shared by the table and the pagination bar below it.
@@ -1101,7 +995,7 @@ export default function DeveloperDashboard() {
               {/* Task stat cards */}
               {dashboardTasksLoading ? (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-8 flex items-center justify-center gap-2 text-[11px] font-semibold text-slate-400">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
                   Loading tasks...
                 </div>
               ) : (
@@ -1114,7 +1008,7 @@ export default function DeveloperDashboard() {
                       icon: "Tasks",
                       bg: "bg-indigo-50",
                       fg: "text-indigo-600",
-                      spark: "#4338ca",
+                      spark: "#A5B4FC",
                       trend: taskTrendByStatus.total,
                     },
                     {
@@ -1122,9 +1016,9 @@ export default function DeveloperDashboard() {
                       value: metrics.done,
                       sub: `${metrics.rate}% done`,
                       icon: "Check",
-                      bg: "bg-emerald-50",
-                      fg: "text-emerald-600",
-                      spark: "#059669",
+                      bg: "bg-indigo-50",
+                      fg: "text-indigo-600",
+                      spark: "#A5B4FC",
                       trend: taskTrendByStatus.done,
                     },
                     {
@@ -1132,9 +1026,9 @@ export default function DeveloperDashboard() {
                       value: metrics.inProgress,
                       sub: "Actively working",
                       icon: "Clock",
-                      bg: "bg-blue-50",
-                      fg: "text-blue-600",
-                      spark: "#2563eb",
+                      bg: "bg-indigo-50",
+                      fg: "text-indigo-600",
+                      spark: "#A5B4FC",
                       trend: taskTrendByStatus.inProgress,
                     },
                     {
@@ -1142,9 +1036,9 @@ export default function DeveloperDashboard() {
                       value: metrics.onHold,
                       sub: "On hold",
                       icon: "OnHold",
-                      bg: "bg-orange-50",
-                      fg: "text-orange-600",
-                      spark: "#f97316",
+                      bg: "bg-indigo-50",
+                      fg: "text-indigo-600",
+                      spark: "#A5B4FC",
                       trend: taskTrendByStatus.onHold,
                     },
                     {
@@ -1152,9 +1046,9 @@ export default function DeveloperDashboard() {
                       value: metrics.qaTesting,
                       sub: "In testing",
                       icon: "QATesting",
-                      bg: "bg-violet-50",
-                      fg: "text-violet-600",
-                      spark: "#7c3aed",
+                      bg: "bg-indigo-50",
+                      fg: "text-indigo-600",
+                      spark: "#A5B4FC",
                       trend: taskTrendByStatus.qaTesting,
                     },
                     {
@@ -1162,9 +1056,9 @@ export default function DeveloperDashboard() {
                       value: metrics.overdue,
                       sub: "Past due date",
                       icon: "Alert",
-                      bg: "bg-red-50",
-                      fg: "text-red-600",
-                      spark: "#dc2626",
+                      bg: "bg-indigo-50",
+                      fg: "text-indigo-600",
+                      spark: "#A5B4FC",
                       trend: taskTrendByStatus.overdue,
                     },
                   ].map((s) => {
@@ -1193,37 +1087,37 @@ export default function DeveloperDashboard() {
                 </div>
               )}
 
-              {/* Task Completion + Weekly Activity */}
+              {/* Task Completion + Recent Tasks */}
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
-                  <p className="text-sm font-bold text-slate-700 mb-4">Task Completion</p>
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Icons.BarChart /></span>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">Task Completion</p>
+                        <p className="text-[11px] text-slate-400">Overall task progress</p>
+                      </div>
+                    </div>
+                    <span
+                      title="Time-range filtering isn't wired up yet"
+                      className="flex shrink-0 cursor-not-allowed items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-400"
+                    >
+                      <Icons.Calendar /> This Week <Icons.ChevronDown />
+                    </span>
+                  </div>
                   {dashboardTasksLoading ? (
                     <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />Loading tasks...</div>
                   ) : (
                     <TaskStatusPie metrics={metrics} />
                   )}
                 </div>
-                {/* <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-bold text-slate-700">Weekly Activity</p>
-                    <span className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-500">This Week <Icons.ChevronDown /></span>
-                  </div>
-                  {dashboardTasksLoading ? (
-                    <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />Loading tasks...</div>
-                  ) : (
-                    <WeeklyActivityChart values={weeklyActivity} />
-                  )}
-                </div> */}
-              </div>
 
-              {/* My Active Tasks + Recent Activity */}
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-bold text-slate-700">My Active Tasks</p>
+                    <p className="text-sm font-bold text-slate-700">Recent Tasks</p>
                   </div>
                   {dashboardTasksLoading ? (
-                    <div className="flex items-center justify-center gap-2 py-8 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading tasks...</div>
+                    <div className="flex items-center justify-center gap-2 py-8 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />Loading tasks...</div>
                   ) : activeTasks.length === 0 ? (
                     <div className="py-8 text-center"><p className="text-xs font-semibold text-slate-600">No active tasks</p><p className="mt-1 text-[10px] text-slate-400">Everything's done for now.</p></div>
                   ) : (
@@ -1235,7 +1129,7 @@ export default function DeveloperDashboard() {
                         return (
                           <button key={task._id} onClick={() => handleViewTask(task)} className="grid w-full grid-cols-1 gap-2 py-3 text-left transition hover:bg-slate-50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                             <div className="flex min-w-0 items-center gap-3">
-                              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${task.status === "QA_TESTING" ? "bg-violet-50 text-violet-600" : task.status === "ON_HOLD" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>{task.title?.charAt(0)?.toUpperCase() || "T"}</span>
+                              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${task.status === "QA_TESTING" ? "bg-violet-50 text-violet-600" : task.status === "ON_HOLD" ? "bg-amber-50 text-amber-600" : task.status === "TODO" ? "bg-slate-100 text-slate-600" : "bg-indigo-50 text-indigo-600"}`}>{task.title?.charAt(0)?.toUpperCase() || "T"}</span>
                               <div className="min-w-0"><p className="truncate text-xs font-semibold text-slate-700">{task.title}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-400"><span className="truncate">{projectName}</span><span className="h-1 w-1 rounded-full bg-slate-300" /><span className={isOverdue ? "font-semibold text-red-500" : ""}>{dueDate && !Number.isNaN(dueDate.getTime()) ? `${isOverdue ? "Overdue · " : "Due "}${dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No due date"}</span></div></div>
                             </div>
                             <div className="flex items-center gap-2 pl-11 sm:pl-0">
@@ -1248,31 +1142,6 @@ export default function DeveloperDashboard() {
                     </div>
                   )}
                   <button onClick={() => setActiveTab("tasks")} className="mt-2 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">View all tasks →</button>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
-                  <p className="text-sm font-bold text-slate-700 mb-3">Recent Activity</p>
-                  {dashboardTasksLoading ? (
-                    <div className="flex items-center justify-center gap-2 py-8 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading activity...</div>
-                  ) : recentActivity.length === 0 ? (
-                    <div className="py-8 text-center"><p className="text-xs font-semibold text-slate-600">No recent activity</p><p className="mt-1 text-[10px] text-slate-400">Task updates will appear here.</p></div>
-                  ) : (
-                    <div className="space-y-3">
-                      {recentActivity.map((item) => {
-                        const Icon = Icons[item.icon];
-                        return (
-                          <div key={item.id} className="flex items-start gap-3">
-                            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${item.cls}`}>{Icon && <Icon />}</span>
-                            <div className="min-w-0">
-                              <p className="text-xs font-medium text-slate-700 leading-snug">{item.label}</p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">By {user?.name || "You"} · {timeAgo(item.at)}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <button onClick={() => setActiveTab("tasks")} className="mt-4 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">View all activity →</button>
                 </div>
               </div>
             </div>
@@ -1310,7 +1179,7 @@ export default function DeveloperDashboard() {
                     <div className="mb-3 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
                       {/* Left */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-700 text-white">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white">
                           <Icons.Tasks />
                         </div>
 
@@ -1435,7 +1304,7 @@ export default function DeveloperDashboard() {
                               setSelectedTask(null);
                               setShowCreateModal(true);
                             }}
-                            className="flex h-8 items-center gap-1 rounded-sm bg-blue-700 px-2.5 text-[11px] font-medium text-white transition hover:bg-blue-800"
+                            className="flex h-8 items-center gap-1 rounded-sm bg-indigo-600 px-2.5 text-[11px] font-medium text-white transition hover:bg-indigo-700"
                           >
                             <Icons.Plus />
                             Create Task
@@ -1478,7 +1347,7 @@ export default function DeveloperDashboard() {
                             {
                               label: "In Progress",
                               value: metrics.inProgress,
-                              color: "bg-blue-50 text-blue-700",
+                              color: "bg-indigo-50 text-indigo-700",
                               icon: <Icons.InProgess />,
                             },
                             {

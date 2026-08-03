@@ -7,7 +7,7 @@ import Icons from "./Icons";
 function Badge({ label, variant }) {
   const styles = {
     done: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    progress: "bg-blue-50 text-blue-700 border border-blue-200",
+    progress: "bg-indigo-50 text-indigo-700 border border-indigo-200",
     todo: "bg-slate-50 text-slate-600 border border-slate-200",
     qa: "bg-purple-50 text-purple-700 border border-purple-200",
     high: "bg-red-50 text-red-700 border border-red-200",
@@ -301,7 +301,7 @@ function TaskViewModal({
                       type="button"
                       onClick={onAddComment}
                       disabled={!newComment?.trim() || isLoading}
-                      className="px-4 py-2 bg-blue-700 text-white rounded-lg text-xs font-semibold hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition whitespace-nowrap flex-shrink-0"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition whitespace-nowrap flex-shrink-0"
                     >
                       {isLoading ? (
                         <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />

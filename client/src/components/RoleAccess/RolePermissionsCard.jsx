@@ -23,7 +23,7 @@ export default function RolePermissionsCard({ roleConfig }) {
             key={i}
             className={`rounded-xl border p-3.5 hover:shadow-sm transition-all ${
               p.allowed
-                ? "bg-emerald-50 border-emerald-100"
+                ? "bg-indigo-50 border-indigo-100"
                 : "bg-slate-50 border-slate-200 opacity-70"
             }`}
           >
@@ -32,7 +32,7 @@ export default function RolePermissionsCard({ roleConfig }) {
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold ${
                   p.allowed
-                    ? "bg-emerald-500 text-white"
+                    ? "bg-indigo-600 text-white"
                     : "bg-slate-300 text-white"
                 }`}
               >

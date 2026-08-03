@@ -446,7 +446,7 @@ export default function ImportTasksModal({
 
             <div className="flex-1" />
 
-            <label className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 cursor-pointer">
+            <label className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 cursor-pointer">
               <Icons.Upload />
               {file ? "Change File" : "Upload Excel / CSV"}
               <input
@@ -676,7 +676,7 @@ export default function ImportTasksModal({
             <button
               onClick={handleImport}
               disabled={importing || validCount === 0 || !projectId}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
             >
               {importing ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

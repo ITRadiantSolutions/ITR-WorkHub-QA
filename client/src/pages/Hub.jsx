@@ -19,7 +19,7 @@ const TILES = [
     title: "FlowTrack",
     description: "Plan, organize and track work across projects, sprints, tasks and bugs.",
     icon: "Zap",
-    accent: "blue",
+    accent: "indigo",
     decor: "flowtrack",
     tags: [
       { icon: "Folder", label: "Projects" },
@@ -80,6 +80,17 @@ const ACCENTS = {
     featureBg: "bg-blue-50",
     featureFg: "text-blue-600",
   },
+  indigo: {
+    iconBg: "bg-gradient-to-br from-indigo-600 to-indigo-500",
+    text: "text-indigo-700",
+    tagIcon: "text-indigo-500",
+    border: "border-indigo-600",
+    hoverBorder: "hover:border-indigo-300",
+    ring: "focus-visible:ring-indigo-500/40",
+    solidBg: "bg-indigo-600 hover:bg-indigo-700",
+    featureBg: "bg-indigo-50",
+    featureFg: "text-indigo-600",
+  },
   emerald: {
     iconBg: "bg-gradient-to-br from-emerald-600 to-teal-600",
     text: "text-emerald-700",
@@ -113,16 +124,16 @@ const ACCENTS = {
 function FlowTrackDecor() {
   return (
     <div className="pointer-events-none absolute right-2 top-24 w-28 h-24" aria-hidden>
-      <div className="absolute right-0 top-2 w-20 h-20 rounded-xl bg-blue-100/70 rotate-6" />
-      <div className="absolute right-3 top-0 w-20 h-20 rounded-xl bg-white border border-blue-100 shadow-md -rotate-3 p-2.5">
-        <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+      <div className="absolute right-0 top-2 w-20 h-20 rounded-xl bg-indigo-100/70 rotate-6" />
+      <div className="absolute right-3 top-0 w-20 h-20 rounded-xl bg-white border border-indigo-100 shadow-md -rotate-3 p-2.5">
+        <div className="w-4 h-4 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500">
           <Icons.Check />
         </div>
         <svg width="52" height="20" viewBox="0 0 52 20" className="mt-2 overflow-visible">
           <polyline
             points="1,17 11,10 20,13 30,5 41,8 51,1"
             fill="none"
-            stroke="#3b82f6"
+            stroke="#6366f1"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -16,6 +16,21 @@
   --text-4xl: 24px;
   --text-5xl: 28px;
   --text-6xl: 32px;
+
+  /* FlowTrack theme accent — pinned explicitly to this exact "blue-indigo
+     SaaS" palette (primary #4F46E5 / dark #4338CA / light #6366F1) so it
+     doesn't silently drift if Tailwind's own indigo scale ever changes. */
+  --color-indigo-50: #EEF2FF;
+  --color-indigo-100: #E0E7FF;
+  --color-indigo-200: #C7D2FE;
+  --color-indigo-300: #A5B4FC;
+  --color-indigo-400: #818CF8;
+  --color-indigo-500: #6366F1;
+  --color-indigo-600: #4F46E5;
+  --color-indigo-700: #4338CA;
+  --color-indigo-800: #3730A3;
+  --color-indigo-900: #312E81;
+  --color-indigo-950: #1E1B4B;
 }
 
 @layer base {

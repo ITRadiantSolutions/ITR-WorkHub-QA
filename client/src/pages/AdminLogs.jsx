@@ -141,7 +141,7 @@ function MetricCard({ label, value, sub, icon, color }) {
     blue: {
       wrap: "bg-blue-50 text-blue-600",
       bar: "bg-blue-500",
-      ring: "ring-blue-100",
+      ring: "ring-indigo-100",
     },
     emerald: {
       wrap: "bg-emerald-50 text-emerald-600",
@@ -720,7 +720,7 @@ export default function AdminLogs() {
               type="button"
               onClick={() => loadLogs()}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition hover:bg-blue-800 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60"
             >
               <Icon
                 name="refresh"
@@ -1136,7 +1136,7 @@ export default function AdminLogs() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search endpoint, event, user, error…"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-[12px] outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-[12px] outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                 />
               </label>
               {[
@@ -1180,7 +1180,7 @@ export default function AdminLogs() {
                   key={i}
                   value={sel.value}
                   onChange={sel.onChange}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] text-slate-700 outline-none focus:border-blue-400 focus:bg-white"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] text-slate-700 outline-none focus:border-indigo-400 focus:bg-white"
                 >
                   {sel.opts.map(([val, lbl]) => (
                     <option key={val} value={val}>

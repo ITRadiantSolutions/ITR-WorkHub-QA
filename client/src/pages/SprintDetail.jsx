@@ -349,7 +349,7 @@ export default function SprintDetail({
             <button
               onClick={updateSprint}
               disabled={submitting}
-              className="h-8 px-4 rounded-lg bg-blue-700 text-white text-[12.5px] font-semibold hover:bg-blue-800 transition flex items-center gap-1.5 disabled:opacity-50"
+              className="h-8 px-4 rounded-lg bg-indigo-600 text-white text-[12.5px] font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {submitting ? (
                 <>
@@ -1016,7 +1016,7 @@ export default function SprintDetail({
                 <button
                   onClick={handleAddComment}
                   disabled={!newComment.trim() || commentLoading}
-                  className="h-9 px-3.5 bg-blue-700 text-white rounded-lg text-[12.5px] font-semibold hover:bg-blue-800 transition disabled:opacity-40 flex items-center gap-1.5 shrink-0"
+                  className="h-9 px-3.5 bg-indigo-600 text-white rounded-lg text-[12.5px] font-semibold hover:bg-indigo-700 transition disabled:opacity-40 flex items-center gap-1.5 shrink-0"
                 >
                   {commentLoading ? (
                     <div className="w-3.5 h-3.5 border-2 border-white/30 border-r-white rounded-full animate-spin" />

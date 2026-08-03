@@ -107,7 +107,7 @@ export default function AdminNotificationSearch({
         >
           <span>Clear</span>
           {activeFilterCount > 0 && (
-            <span className="rounded-full bg-blue-700 px-1.5 py-0.5 text-[9px] text-white">
+            <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 text-[9px] text-white">
               {activeFilterCount}
             </span>
           )}

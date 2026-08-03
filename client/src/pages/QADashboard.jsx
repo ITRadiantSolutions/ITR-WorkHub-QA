@@ -59,7 +59,7 @@ const SEVERITY = {
 
 const STATUS_STYLES = {
   OPEN: "bg-red-50 text-red-700 border border-red-200",
-  IN_PROGRESS: "bg-blue-50 text-blue-700 border border-blue-200",
+  IN_PROGRESS: "bg-indigo-50 text-indigo-700 border border-indigo-200",
   RESOLVED: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   WONT_FIX: "bg-slate-100 text-slate-600 border border-slate-200",
 };
@@ -94,7 +94,7 @@ function TaskStatusSelect({ value, onChange, task, user }) {
             normalizedValue === "DONE"
               ? "bg-emerald-500"
               : normalizedValue === "IN_PROGRESS"
-                ? "bg-blue-500"
+                ? "bg-indigo-600"
                 : normalizedValue === "QA_TESTING"
                   ? "bg-purple-500"
                   : "bg-slate-400"
@@ -116,7 +116,7 @@ function TaskStatusSelect({ value, onChange, task, user }) {
             normalizedValue === "DONE"
               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
               : normalizedValue === "IN_PROGRESS"
-                ? "border-blue-200 bg-blue-50 text-blue-700"
+                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                 : normalizedValue === "QA_TESTING"
                   ? "border-purple-200 bg-purple-50 text-purple-700"
                   : "border-slate-200 bg-slate-50 text-slate-600"
@@ -144,7 +144,7 @@ function TaskStatusSelect({ value, onChange, task, user }) {
 function TaskBadge({ label, variant }) {
   const s = {
     todo: "bg-slate-50 text-slate-600 border border-slate-200",
-    progress: "bg-blue-50 text-blue-700 border border-blue-200",
+    progress: "bg-indigo-50 text-indigo-700 border border-indigo-200",
     done: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     high: "bg-red-50 text-red-700 border border-red-200",
     medium: "bg-amber-50 text-amber-700 border border-amber-200",
@@ -1062,7 +1062,7 @@ export default function QADashboard() {
                 {/* Bug Analytics */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white"><Icons.Bug /></div><div><p className="text-sm font-bold text-slate-800">Bug Status</p><p className="text-[10px] text-slate-400">Current QA issue distribution</p></div></div>
+                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white"><Icons.Bug /></div><div><p className="text-sm font-bold text-slate-800">Bug Status</p><p className="text-[10px] text-slate-400">Current QA issue distribution</p></div></div>
                     <span className="text-[11px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-full">{counts.resolved} resolved</span>
                   </div>
                   <div className="p-5"><DistributionDonut centerLabel="bugs" data={[
@@ -1074,7 +1074,7 @@ export default function QADashboard() {
                 {/* Task Analytics */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white"><Icons.Tasks /></div><div><p className="text-sm font-bold text-slate-800">Task Progress</p><p className="text-[10px] text-slate-400">Assigned QA workload</p></div></div>
+                    <div className="flex items-center gap-2"><div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white"><Icons.Tasks /></div><div><p className="text-sm font-bold text-slate-800">Task Progress</p><p className="text-[10px] text-slate-400">Assigned QA workload</p></div></div>
                     <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">{taskCounts.total ? Math.round((taskCounts.done / taskCounts.total) * 100) : 0}% done</span>
                   </div>
                   <div className="p-5"><DistributionDonut centerLabel="tasks" data={[
@@ -1087,7 +1087,7 @@ export default function QADashboard() {
                 {/* Bugs by Severity */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
+                    <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                       <Icons.Alert />
                     </div>
                     <p className="text-sm font-bold text-slate-800">
@@ -1156,7 +1156,7 @@ export default function QADashboard() {
                 {/* Tasks by Priority */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-3.5 border-b border-slate-100 bg-slate-50">
-                    <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
+                    <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                       <Icons.Tasks />
                     </div>
                     <p className="text-sm font-bold text-slate-800">
@@ -1232,7 +1232,7 @@ export default function QADashboard() {
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
+                      <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                         <Icons.Bug />
                       </div>
                       <p className="text-sm font-bold text-slate-800">
@@ -1319,7 +1319,7 @@ export default function QADashboard() {
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center text-white">
+                      <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                         <Icons.Tasks />
                       </div>
                       <p className="text-sm font-bold text-slate-800">
@@ -1345,7 +1345,7 @@ export default function QADashboard() {
                           normalizeStatus(task.status) === "DONE"
                             ? "bg-emerald-500"
                             : normalizeStatus(task.status) === "IN_PROGRESS"
-                              ? "bg-blue-500"
+                              ? "bg-indigo-600"
                               : normalizeStatus(task.status) === "QA_TESTING"
                                 ? "bg-purple-500"
                                 : "bg-slate-300";
@@ -1434,7 +1434,7 @@ export default function QADashboard() {
               <div className="flex items-center justify-between rounded-2xl   px-1 py-1">
                 {/* Left */}
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-700 text-white">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white">
                     <Icons.Tasks />
                   </div>
 
@@ -1473,7 +1473,7 @@ export default function QADashboard() {
                         setSelectedTask(null);
                         setShowCreateModal(true);
                       }}
-                      className="flex h-7 items-center gap-1.5 rounded-sm bg-blue-700 px-2 text-[11px] font-semibold text-white transition hover:bg-blue-800"
+                      className="flex h-7 items-center gap-1.5 rounded-sm bg-indigo-600 px-2 text-[11px] font-semibold text-white transition hover:bg-indigo-700"
                     >
                       <Icons.Plus />
                       Create Task
@@ -1829,7 +1829,7 @@ export default function QADashboard() {
                                         task.status === "DONE"
                                           ? "bg-emerald-500"
                                           : task.status === "IN_PROGRESS"
-                                            ? "bg-blue-500"
+                                            ? "bg-indigo-600"
                                             : task.status === "QA_TESTING"
                                               ? "bg-purple-500"
                                               : "bg-slate-400"
