@@ -624,9 +624,10 @@ function NewEmployeeModal({ onClose, onSaved }) {
 // ── Assign roles / shifts modals ────────────────────────────────────────────
 const ROLE_OPTIONS = ["employee", "manager", "hr"];
 
-function AssignRolesModal({ users, onClose, onChanged }) {
+function AssignRolesModal({ users, onClose, onChanged, canSync, onSynced }) {
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [syncing, setSyncing] = useState(false);
   const filtered = users.filter((u) => !query.trim() || u.name.toLowerCase().includes(query.trim().toLowerCase()) || u.email.toLowerCase().includes(query.trim().toLowerCase()));
 
   const changeRole = async (user, role) => {
@@ -642,15 +643,43 @@ function AssignRolesModal({ users, onClose, onChanged }) {
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await API.post("/users/sync");
+      const added = res.data?.newAdded ?? 0;
+      toast.success(added ? `Synced from Microsoft — ${added} new user${added === 1 ? "" : "s"} added` : "Synced from Microsoft — no new users");
+      onSynced();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-slate-900">Assign roles</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+        <div className="shrink-0 p-6 pb-4 border-b border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-900">Assign roles</h3>
+            <div className="flex items-center gap-2">
+              {canSync && (
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  title="Fetch all users from Microsoft"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold disabled:opacity-50"
+                >
+                  <Icons.Refresh /> {syncing ? "Syncing..." : "Sync"}
+                </button>
+              )}
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
+            </div>
+          </div>
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search employees..." className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" />
         </div>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search employees..." className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm mb-4" />
-        <div className="space-y-1.5">
+        <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-1.5">
           {filtered.map((u) => (
             <div key={u._id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2">
               <div className="min-w-0">
@@ -697,13 +726,15 @@ function AssignShiftsModal({ users, onClose, onChanged }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-slate-900">Assign shifts</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+        <div className="shrink-0 p-6 pb-4 border-b border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-900">Assign shifts</h3>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
+          </div>
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search employees..." className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" />
         </div>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search employees..." className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm mb-4" />
-        <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-3">
           {filtered.map((u) => (
             <div key={u._id} className="rounded-xl border border-slate-200 px-3 py-2.5">
               <p className="text-sm font-semibold text-slate-800 truncate mb-2">{u.name}</p>
@@ -965,7 +996,15 @@ export default function Manage() {
         />
       )}
       {newEmployeeOpen && <NewEmployeeModal onClose={() => setNewEmployeeOpen(false)} onSaved={() => { setNewEmployeeOpen(false); load(); }} />}
-      {assignRolesOpen && <AssignRolesModal users={users} onClose={() => setAssignRolesOpen(false)} onChanged={patchUser} />}
+      {assignRolesOpen && (
+        <AssignRolesModal
+          users={users}
+          onClose={() => setAssignRolesOpen(false)}
+          onChanged={patchUser}
+          canSync={isHr}
+          onSynced={load}
+        />
+      )}
       {assignShiftsOpen && <AssignShiftsModal users={users} onClose={() => setAssignShiftsOpen(false)} onChanged={patchUser} />}
       {bulkAssignOpen && (
         <BulkAssignModal

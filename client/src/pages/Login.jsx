@@ -18,10 +18,21 @@ function EyeOffIcon() {
   );
 }
 
+// Icons.jsx has no pie/donut chart variant — a small local fallback for the
+// "Insights & Reports" feature icon.
+function PieChartIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+      <path d="M22 12A10 10 0 0 0 12 2v10z" />
+    </svg>
+  );
+}
+
 function InputField({ label, type = "text", placeholder, value, onChange, disabled, IconComp, rightEl }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
       <div className="relative group">
         {IconComp && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-blue-600 transition-colors">
@@ -60,14 +71,14 @@ const FEATURES = [
     desc: "Log hours, timesheets and stay productive.",
   },
   {
-    Ic: Icons.Star,
-    bg: "bg-violet-500",
+    Ic: Icons.BarChart,
+    bg: "bg-orange-500",
     title: "Performance Management",
     desc: "Set goals, review performance and grow together.",
   },
   {
-    Ic: Icons.BarChart,
-    bg: "bg-orange-500",
+    Ic: PieChartIcon,
+    bg: "bg-violet-500",
     title: "Insights & Reports",
     desc: "Real-time insights to make smarter decisions.",
   },
@@ -139,9 +150,16 @@ export default function Login() {
     <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }} className="h-screen w-screen overflow-hidden flex flex-col lg:flex-row">
       {/* ── Left panel — brand side ─────────────────────────────────────── */}
       <div
-        className="hidden lg:flex lg:w-[52%] flex-col justify-center gap-5 px-10 xl:px-14 py-6 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[52%] flex-col gap-5 px-10 xl:px-14 py-6 relative overflow-hidden"
         style={{ background: "linear-gradient(150deg, #eff6ff 0%, #dbeafe 60%, #bfdbfe 100%)" }}
       >
+        <div
+          className="absolute top-0 right-0 w-64 h-64 opacity-50 pointer-events-none"
+          aria-hidden
+          style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1.5px, transparent 1.5px)", backgroundSize: "16px 16px" }}
+        />
+        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-blue-300/30 blur-3xl pointer-events-none" aria-hidden />
+
         <div className="relative z-10">
           <WorkHubLogo size="lg" />
           <p className="text-slate-600 text-xs mt-2 font-medium">One Platform. All Your Work.</p>
@@ -158,31 +176,36 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="relative z-10 grid grid-cols-2 gap-x-6 gap-y-3">
+        <div className="relative z-10 grid grid-cols-4 gap-3">
           {FEATURES.map(({ Ic, bg, title, desc }) => (
-            <div key={title} className="flex items-start gap-2.5">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 ${bg}`}>
+            <div key={title} className="flex items-start gap-2">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 ${bg}`}>
                 <Ic />
               </div>
               <div>
-                <p className="text-slate-800 text-sm font-bold leading-tight">{title}</p>
-                <p className="text-slate-500 text-xs mt-0.5 leading-snug">{desc}</p>
+                <p className="text-slate-800 text-xs font-bold leading-tight">{title}</p>
+                <p className="text-slate-500 text-[10px] mt-0.5 leading-snug">{desc}</p>
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex-1 h-px bg-slate-300/70" />
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap">Our Integrated Modules</span>
+          <div className="flex-1 h-px bg-slate-300/70" />
         </div>
 
         <div className="relative z-10">
           <LoginDashboardPreview />
         </div>
 
-        <div className="relative z-10 flex items-center gap-2.5 bg-white/70 border border-white rounded-xl px-4 py-2.5 max-w-md">
+        <div className="relative z-10 flex items-center justify-center gap-2.5 bg-white/70 border border-slate-200 rounded-xl px-4 py-2.5 mt-auto">
           <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
             <Icons.Shield />
           </div>
           <div>
             <p className="text-slate-800 text-xs font-bold leading-tight">Secure &nbsp;•&nbsp; Reliable &nbsp;•&nbsp; Trusted by Teams</p>
-            <p className="text-slate-500 text-[11px] mt-0.5">Enterprise grade security for your business</p>
           </div>
         </div>
       </div>
@@ -255,7 +278,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center justify-center gap-2 transition"
+                className="w-full h-11 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2 transition"
               >
                 {loading ? (
                   <>
@@ -289,20 +312,6 @@ export default function Login() {
                 />
                 {msLoading ? "Redirecting..." : "Sign in with Microsoft"}
               </button>
-
-              <button
-                type="button"
-                onClick={() => toast.info("Google sign-in isn't set up yet — use email/password or Microsoft.")}
-                className="w-full h-11 rounded-2xl border border-slate-300 bg-white text-slate-700 font-bold text-sm flex items-center justify-center gap-3 hover:bg-slate-50 transition"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.9c2.28-2.1 3.55-5.2 3.55-8.82z" />
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.93-2.91l-3.9-3c-1.08.73-2.47 1.16-4.03 1.16-3.1 0-5.72-2.09-6.66-4.9H1.3v3.09A12 12 0 0 0 12 24z" />
-                  <path fill="#FBBC05" d="M5.34 14.35a7.2 7.2 0 0 1 0-4.7V6.56H1.3a12 12 0 0 0 0 10.88l4.04-3.09z" />
-                  <path fill="#EA4335" d="M12 4.75c1.76 0 3.35.61 4.6 1.8l3.45-3.45C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.3 6.56l4.04 3.09C6.28 6.84 8.9 4.75 12 4.75z" />
-                </svg>
-                Sign in with Google
-              </button>
             </form>
 
             <p className="text-center text-xs text-slate-500 mt-4">
@@ -313,7 +322,7 @@ export default function Login() {
           <div className="text-center mt-6">
             <p className="text-[11px] font-semibold text-slate-400 tracking-wide">Secure &nbsp;•&nbsp; Reliable &nbsp;•&nbsp; Trusted</p>
             <p className="text-[11px] text-slate-400 mt-1">© {new Date().getFullYear()} ITRadiant Solutions Pvt. Ltd. All rights reserved.</p>
-            <p className="text-[10px] text-slate-300 mt-1">Version 2.1.0</p>
+            <p className="text-[10px] text-slate-300 mt-1">Version 1.0.0</p>
           </div>
         </div>
       </div>

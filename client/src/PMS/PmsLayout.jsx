@@ -43,6 +43,16 @@ export default function PmsLayout() {
           </span>
         </button>
 
+        <div className="px-3 pb-2 shrink-0">
+          <button
+            onClick={() => navigate("/hub")}
+            className="w-full flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-violet-700 transition"
+          >
+            <Icons.Back />
+            Back to Hub
+          </button>
+        </div>
+
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
           {(() => {
             const visibleTabs = TABS.filter((t) => {

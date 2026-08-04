@@ -1,105 +1,97 @@
-// Static decorative mockup for the login page's marketing panel — no real
-// data, just a visual echo of the actual dashboard's layout.
-const NAV_ITEMS = [
-  { label: "Dashboard", active: true },
-  { label: "Projects" },
-  { label: "Tasks" },
-  { label: "Timesheets" },
-  { label: "PMS" },
-  { label: "Reports" },
-  { label: "Team" },
-  { label: "Calendar" },
-  { label: "Settings" },
-];
+import Icons from "./Icons";
 
-const STATS = [
-  { label: "Active Projects", value: "24", sub: "Projects", color: "from-blue-500 to-blue-600" },
-  { label: "Open Tasks", value: "63", sub: "Tasks", color: "from-teal-500 to-emerald-600" },
-  { label: "Hours This Week", value: "32.5", sub: "Timesheets", color: "from-indigo-500 to-violet-600" },
-  { label: "Pending Reviews", value: "4", sub: "PMS Reviews", color: "from-orange-500 to-amber-600" },
+// Static decorative mockup for the login page's marketing panel — a compact
+// echo of the Hub workspace cards (FlowTrack / Time Flow / PMS), not real data.
+const TILES = [
+  {
+    key: "flowtrack",
+    title: "FlowTrack",
+    description: "Plan, organize and track work across projects, sprints, tasks and milestones.",
+    icon: "Zap",
+    iconBg: "bg-gradient-to-br from-indigo-600 to-indigo-500",
+    text: "text-indigo-700",
+    tagIcon: "text-indigo-500",
+    border: "border-indigo-600",
+    tags: [
+      { icon: "Folder", label: "Projects" },
+      { icon: "Sprints", label: "Sprints" },
+      { icon: "Tasks", label: "Tasks" },
+      { icon: "Layers", label: "Tags" },
+    ],
+  },
+  {
+    key: "timesheet",
+    title: "Time Flow",
+    description: "Log hours, submit timesheets and approve time with ease.",
+    icon: "Clock",
+    iconBg: "bg-gradient-to-br from-emerald-600 to-teal-600",
+    filled: true,
+    solidBg: "bg-emerald-600",
+    tags: [
+      { icon: "Clock", label: "Log Hours" },
+      { icon: "Reports", label: "My Timesheets" },
+      { icon: "CheckAll", label: "Approvals" },
+    ],
+  },
+  {
+    key: "pms",
+    title: "PMS",
+    description: "Manage performance cycles, 1:1s and reviews.",
+    icon: "Star",
+    iconBg: "bg-gradient-to-br from-violet-600 to-purple-600",
+    text: "text-purple-700",
+    tagIcon: "text-purple-500",
+    border: "border-purple-600",
+    tags: [
+      { icon: "Star", label: "Reviews" },
+      { icon: "Target", label: "KPIs" },
+      { icon: "Flag", label: "Goals" },
+      { icon: "Chat", label: "Feedback" },
+    ],
+  },
 ];
-
-const TASKS = [
-  { label: "UI Design for Dashboard", status: "In Progress", tone: "bg-blue-100 text-blue-700" },
-  { label: "API Integration", status: "In Progress", tone: "bg-blue-100 text-blue-700" },
-  { label: "Fix Timesheet Bugs", status: "Review", tone: "bg-amber-100 text-amber-700" },
-  { label: "Performance Module Testing", status: "To Do", tone: "bg-slate-100 text-slate-500" },
-];
-
-const BARS = [70, 55, 60, 45, 65, 30, 15];
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function LoginDashboardPreview() {
   return (
-    <div className="hidden md:block w-full max-w-md rounded-2xl bg-white shadow-xl border border-slate-100 overflow-hidden select-none">
-      <div className="flex">
-        <div className="w-28 shrink-0 bg-slate-900 text-slate-300 py-3 px-2 space-y-0.5">
-          <div className="flex items-center gap-1.5 px-1.5 pb-3 mb-1 border-b border-white/10">
-            <div className="w-5 h-5 rounded bg-blue-500" />
-            <span className="text-[10px] font-bold text-white truncate">ITR One</span>
-          </div>
-          {NAV_ITEMS.map((item) => (
+    <div className="hidden md:grid grid-cols-3 gap-4 w-full select-none">
+      {TILES.map((tile) => {
+        const Icon = Icons[tile.icon];
+        return (
+          <div
+            key={tile.key}
+            className="flex flex-col rounded-2xl bg-white border border-slate-200 shadow-sm p-4"
+          >
+            <div className={`w-10 h-10 rounded-xl ${tile.iconBg} flex items-center justify-center text-white shrink-0 mb-2.5`}>
+              {Icon ? <Icon /> : null}
+            </div>
+            <p className="text-[13px] font-bold text-slate-900 leading-tight">{tile.title}</p>
+            <p className="text-[10px] text-slate-500 mt-1 mb-2.5 leading-snug">{tile.description}</p>
+
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {tile.tags.map((tag) => {
+                const TagIcon = Icons[tag.icon];
+                return (
+                  <span
+                    key={tag.label}
+                    className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[9px] font-medium text-slate-600"
+                  >
+                    {TagIcon ? <span className={tile.tagIcon}><TagIcon /></span> : null}
+                    {tag.label}
+                  </span>
+                );
+              })}
+            </div>
+
             <div
-              key={item.label}
-              className={`text-[10px] font-medium rounded-md px-2 py-1.5 truncate ${
-                item.active ? "bg-blue-600 text-white" : "text-slate-400"
+              className={`flex items-center justify-center gap-1.5 rounded-xl font-bold text-[10px] py-2 ${
+                tile.filled ? `${tile.solidBg} text-white` : `border ${tile.border} ${tile.text}`
               }`}
             >
-              {item.label}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex-1 bg-slate-50 p-3.5 min-w-0">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] font-bold text-slate-800">Dashboard</span>
-            <div className="flex items-center gap-2">
-              <div className="hidden lg:block h-5 w-20 rounded-full bg-white border border-slate-200" />
-              <div className="w-5 h-5 rounded-full bg-slate-200" />
-              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500" />
+              Open {tile.title} <Icons.ArrowRight />
             </div>
           </div>
-
-          <div className="grid grid-cols-4 gap-1.5 mb-3">
-            {STATS.map((s) => (
-              <div key={s.label} className={`rounded-lg p-2 bg-gradient-to-br ${s.color} text-white`}>
-                <p className="text-sm font-extrabold leading-none">{s.value}</p>
-                <p className="text-[8px] font-semibold opacity-90 mt-1 truncate">{s.sub}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg bg-white border border-slate-100 p-2">
-              <p className="text-[9px] font-bold text-slate-700 mb-1.5">My Tasks</p>
-              <div className="space-y-1">
-                {TASKS.map((t) => (
-                  <div key={t.label} className="flex items-center justify-between gap-1">
-                    <span className="text-[8px] text-slate-500 truncate">{t.label}</span>
-                    <span className={`text-[7px] font-semibold px-1 py-0.5 rounded-full shrink-0 ${t.tone}`}>
-                      {t.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-white border border-slate-100 p-2">
-              <p className="text-[9px] font-bold text-slate-700 mb-1.5">Timesheet Overview</p>
-              <div className="flex items-end gap-1 h-9">
-                {BARS.map((h, i) => (
-                  <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-blue-600 to-blue-400" style={{ height: `${h}%` }} />
-                ))}
-              </div>
-              <div className="flex gap-1 mt-1">
-                {DAYS.map((d) => (
-                  <span key={d} className="flex-1 text-[6px] text-center text-slate-400">{d}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }

@@ -65,7 +65,7 @@ function toCsv(rows) {
 function SortHeader({ col, sort, onSort }) {
   const active = sort.key === col.key;
   return (
-    <th className={`px-4 py-3 font-bold text-slate-500 text-xs uppercase tracking-wide ${col.align === "right" ? "text-right" : "text-left"}`}>
+    <th className={`px-4 py-2 font-bold text-slate-500 text-xs uppercase tracking-wide ${col.align === "right" ? "text-right" : "text-left"}`}>
       <button onClick={() => onSort(col.key)} className={`inline-flex items-center gap-1 hover:text-slate-800 ${active ? "text-teal-600" : ""}`}>
         {col.label}
         <span className="text-[10px]">{active ? (sort.dir === "desc" ? "↓" : "↑") : "↕"}</span>
@@ -398,29 +398,29 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
-        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-teal-500 shadow-sm p-4">
-          <div className="flex items-center gap-2 text-slate-400 mb-2">
+        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-teal-500 shadow-sm p-3">
+          <div className="flex items-center gap-2 text-slate-400 mb-1">
             <Icons.Users /> <span className="text-xs font-bold uppercase tracking-wide">{isHr ? "Total Employees" : "Team Members"}</span>
           </div>
           <p className="text-2xl font-extrabold text-slate-900 tabular-nums">{totals.totalEmployees || 0}</p>
           <p className="text-xs text-slate-400 mt-0.5">Active in period</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-emerald-500 shadow-sm p-4">
-          <div className="flex items-center gap-2 text-slate-400 mb-2">
+        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-emerald-500 shadow-sm p-3">
+          <div className="flex items-center gap-2 text-slate-400 mb-1">
             <Icons.Clock /> <span className="text-xs font-bold uppercase tracking-wide">Total Hours</span>
           </div>
           <p className="text-2xl font-extrabold text-slate-900 tabular-nums">{(totals.totalHours || 0).toFixed(0)}</p>
           <p className="text-xs text-slate-400 mt-0.5">Across all employees</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-emerald-500 shadow-sm p-4">
-          <div className="flex items-center gap-2 text-slate-400 mb-2">
+        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-emerald-500 shadow-sm p-3">
+          <div className="flex items-center gap-2 text-slate-400 mb-1">
             <Icons.Folder /> <span className="text-xs font-bold uppercase tracking-wide">Projects</span>
           </div>
           <p className="text-2xl font-extrabold text-slate-900 tabular-nums">{totals.totalProjects || 0}</p>
           <p className="text-xs text-slate-400 mt-0.5">Distinct projects</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-amber-500 shadow-sm p-4">
-          <div className="flex items-center gap-2 text-slate-400 mb-2">
+        <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-amber-500 shadow-sm p-3">
+          <div className="flex items-center gap-2 text-slate-400 mb-1">
             <Icons.Alert /> <span className="text-xs font-bold uppercase tracking-wide">NSA</span>
           </div>
           <p className="text-2xl font-extrabold text-slate-900 tabular-nums">{totals.totalNsaDays || 0}</p>
@@ -428,22 +428,24 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 mb-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-1.5 w-fit">
-        {VIEWS.map((v) => {
-          const Icon = Icons[v.icon];
-          return (
-            <button
-              key={v.key}
-              onClick={() => setView(v.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition ${view === v.key ? "bg-teal-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}
-            >
-              <Icon /> {v.label}
-            </button>
-          );
-        })}
-      </div>
-
       <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="flex items-center gap-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-1.5 shrink-0">
+          {VIEWS.map((v) => {
+            const Icon = Icons[v.icon];
+            return (
+              <button
+                key={v.key}
+                onClick={() => {
+                  setView(v.key);
+                  setSearch("");
+                }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition ${view === v.key ? "bg-teal-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}
+              >
+                <Icon /> {v.label}
+              </button>
+            );
+          })}
+        </div>
         <div className="relative flex-1 min-w-[200px]">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></span>
           <input
@@ -494,9 +496,9 @@ export default function Reports() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100">
-                  {view === "projects" && <th className="px-2 py-3 w-8" />}
+                  {view === "projects" && <th className="px-2 py-2 w-8" />}
                   {columns.map((c) => <SortHeader key={c.key} col={c} sort={sort} onSort={onSort} />)}
-                  {view === "projects" && <th className="px-4 py-3" />}
+                  {view === "projects" && <th className="px-4 py-2" />}
                 </tr>
               </thead>
               <tbody>
@@ -508,7 +510,7 @@ export default function Reports() {
                         className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40 cursor-pointer"
                       >
                         {employeeColumns.map((c) => (
-                          <td key={c.key} className={`px-4 py-3 ${c.align === "right" ? "text-right" : "text-left"}`}>
+                          <td key={c.key} className={`px-4 py-2 ${c.align === "right" ? "text-right" : "text-left"}`}>
                             {employeeCell(e, c.key)}
                           </td>
                         ))}
@@ -522,10 +524,10 @@ export default function Reports() {
                             onClick={() => setExpandedProject(expanded ? null : p.projectId)}
                             className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40 cursor-pointer"
                           >
-                            <td className="px-2 py-3 text-slate-400">
+                            <td className="px-2 py-2 text-slate-400">
                               {expanded ? <Icons.ChevronDown /> : <Icons.ChevronRight />}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-2">
                               <div className="flex items-center gap-2.5">
                                 <div className={`w-8 h-8 rounded-full ${colorFor(p.name)} text-white text-xs font-bold flex items-center justify-center shrink-0`}>
                                   {initialsOf(p.name)}
@@ -533,9 +535,9 @@ export default function Reports() {
                                 <span className="font-semibold text-slate-800">{p.name}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{p.employeeCount}</td>
-                            <td className="px-4 py-3 text-right font-bold text-slate-800 tabular-nums">{p.totalHours.toFixed(1)}</td>
-                            <td className="px-4 py-3 text-right">
+                            <td className="px-4 py-2 text-right text-slate-600 tabular-nums">{p.employeeCount}</td>
+                            <td className="px-4 py-2 text-right font-bold text-slate-800 tabular-nums">{p.totalHours.toFixed(1)}</td>
+                            <td className="px-4 py-2 text-right">
                               <button
                                 onClick={(ev) => {
                                   ev.stopPropagation();

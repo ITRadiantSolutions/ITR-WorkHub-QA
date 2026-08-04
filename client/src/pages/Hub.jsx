@@ -31,7 +31,7 @@ const TILES = [
   },
   {
     key: "timesheet",
-    title: "Timesheet",
+    title: "Time Flow",
     description: "Log hours, submit and approve timesheets with ease.",
     icon: "Clock",
     accent: "emerald",
