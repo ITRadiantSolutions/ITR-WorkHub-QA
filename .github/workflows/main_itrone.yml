@@ -14,6 +14,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: itrone-deploy
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
