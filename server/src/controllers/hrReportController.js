@@ -307,10 +307,23 @@ export const getTimesheetStatus = async (req, res) => {
 
   let weekStarts;
   const range = req.query.range ? resolvePresetRange(req.query.range) : null;
-  if (range) {
+  const customRange =
+    !range && req.query.startDate && req.query.endDate
+      ? { start: new Date(req.query.startDate), end: new Date(req.query.endDate) }
+      : null;
+  const effectiveRange = range || customRange;
+  if (effectiveRange) {
+    // Custom ranges are clamped server-side too — never trust the client to
+    // enforce "no future dates, max 6 months" on its own.
+    const now = new Date();
+    const end = effectiveRange.end > now ? now : effectiveRange.end;
+    const minStart = new Date(end);
+    minStart.setMonth(minStart.getMonth() - 6);
+    const start = effectiveRange.start < minStart ? minStart : effectiveRange.start;
+
     weekStarts = [];
-    let cursor = startOfWeek(range.start);
-    const last = startOfWeek(range.end);
+    let cursor = startOfWeek(start);
+    const last = startOfWeek(end);
     while (cursor <= last) {
       weekStarts.push(new Date(cursor));
       cursor = addDays(cursor, 7);
@@ -380,6 +393,17 @@ const nsaDaysForWeek = (timesheet) => {
   return days;
 };
 
+// Mon-Fri hours: seconds logged on cells flagged NSA that day, summed across rows.
+const nsaHoursForWeek = (timesheet) => {
+  const secs = Array(5).fill(0);
+  for (const row of timesheet.rows) {
+    (row.nsa || []).forEach((flag, i) => {
+      if (flag && i < 5) secs[i] += row.secs?.[i] || 0;
+    });
+  }
+  return secs.map((s) => s / 3600);
+};
+
 // Approved timesheets containing at least one NSA-flagged day, plus a
 // month-over-month distinct-employee trend for the same set.
 export const getNsaReport = async (req, res) => {
@@ -393,6 +417,7 @@ export const getNsaReport = async (req, res) => {
     weekStart: t.weekStart,
     weekEnd: t.weekEnd,
     days: nsaDaysForWeek(t),
+    hours: nsaHoursForWeek(t),
     approver: t.managerActionBy?.name || null,
   }));
 
@@ -414,9 +439,10 @@ const toCsv = (timesheets) => {
   const header = ["Name", "Mon", "Tue", "Wed", "Thu", "Fri", "Week Start", "Week End", "Approver"].join(",");
   const lines = timesheets.map((t) => {
     const days = nsaDaysForWeek(t);
+    const hours = nsaHoursForWeek(t);
     return [
       escape(t.userId?.name),
-      ...days.map((d) => escape(d ? "Yes" : "No")),
+      ...days.map((d, i) => escape(d ? `Yes (${hours[i].toFixed(1)}h)` : "No")),
       escape(t.weekStart.toISOString().slice(0, 10)),
       escape(t.weekEnd.toISOString().slice(0, 10)),
       escape(t.managerActionBy?.name || ""),

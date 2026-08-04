@@ -198,21 +198,29 @@ function NotificationItem({ notification, onMarkRead }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-const NotificationBell = () => {
+// `excludeTypePrefixes` lets a page opt out of notification categories that
+// don't belong there — e.g. the Hub landing page hides FlowTrack's
+// task/bug activity ("taskAssigned", "bugCreated", ...) since that's
+// workspace-specific noise on a page that spans every module.
+const NotificationBell = ({ excludeTypePrefixes = [] } = {}) => {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
   const dropdownRef = useRef(null);
 
   const {
-    notifications,
-    unreadCount,
+    notifications: allNotifications,
     loading,
     markAsRead,
     clearAll,
     fetchUnreadCount,
     fetchNotifications,
   } = useNotifications();
+
+  const notifications = excludeTypePrefixes.length
+    ? allNotifications.filter((n) => !excludeTypePrefixes.some((p) => n.type?.startsWith(p)))
+    : allNotifications;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Close on outside click
   useEffect(() => {

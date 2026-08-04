@@ -36,7 +36,7 @@ export default function LoginDashboardPreview() {
         <div className="w-28 shrink-0 bg-slate-900 text-slate-300 py-3 px-2 space-y-0.5">
           <div className="flex items-center gap-1.5 px-1.5 pb-3 mb-1 border-b border-white/10">
             <div className="w-5 h-5 rounded bg-blue-500" />
-            <span className="text-[10px] font-bold text-white truncate">ITR WorkHub</span>
+            <span className="text-[10px] font-bold text-white truncate">ITR One</span>
           </div>
           {NAV_ITEMS.map((item) => (
             <div

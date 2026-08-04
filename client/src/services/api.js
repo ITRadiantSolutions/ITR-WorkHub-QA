@@ -142,7 +142,7 @@ API.interceptors.response.use(
       error.config?.url?.includes(path),
     );
 
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isAuthRoute) {
       // Session/token expired (or not authorized). Force logout + redirect.
       // Avoid rendering empty dashboards by coordinating state via a global event.
       try {

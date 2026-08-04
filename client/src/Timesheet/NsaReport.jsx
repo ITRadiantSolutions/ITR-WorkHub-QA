@@ -13,49 +13,6 @@ const PRESETS = [
 
 const PAGE_SIZE = 10;
 
-function NsaTrendChart({ trend }) {
-  const width = 720,
-    height = 220,
-    padL = 32,
-    padB = 24,
-    padT = 16,
-    padR = 16;
-  const plotW = width - padL - padR;
-  const plotH = height - padT - padB;
-  const maxVal = Math.max(...trend.map((t) => t.count), 4);
-  const points = trend.map((t, i) => ({
-    x: padL + (trend.length > 1 ? (i / (trend.length - 1)) * plotW : plotW / 2),
-    y: padT + plotH - (t.count / maxVal) * plotH,
-  }));
-  const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const ticks = [0, Math.ceil(maxVal / 2), maxVal];
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-      {ticks.map((t, i) => {
-        const y = padT + plotH - (t / maxVal) * plotH;
-        return (
-          <g key={i}>
-            <line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e2e8f0" strokeWidth="1" />
-            <text x={padL - 8} y={y + 3} textAnchor="end" fontSize="12" fill="#94a3b8">{t}</text>
-          </g>
-        );
-      })}
-      {trend.length > 0 && <path d={path} fill="none" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />}
-      {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="#06b6d4">
-          <title>{`${trend[i].month}: ${trend[i].count} user${trend[i].count === 1 ? "" : "s"}`}</title>
-        </circle>
-      ))}
-      {points.map((p, i) => (
-        <text key={i} x={p.x} y={height - 4} fontSize="12" textAnchor="middle" fill="#94a3b8">
-          {trend[i].month}
-        </text>
-      ))}
-    </svg>
-  );
-}
-
 export default function NsaReport() {
   const [preset, setPreset] = useState("last_30");
   const [startDate, setStartDate] = useState("");
@@ -130,13 +87,18 @@ export default function NsaReport() {
           <div className="p-12 text-center text-slate-400 text-sm">Loading...</div>
         ) : (
           <>
-            {/* Graph on top */}
-            <div className="p-5 border-b border-slate-100">
-              <p className="text-sm font-bold text-slate-700 mb-3">Month-wise User Trend</p>
+            {/* Month-wise user counts */}
+            <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-bold text-slate-700 shrink-0">Month-wise User Count:</p>
               {data.trend.length ? (
-                <NsaTrendChart trend={data.trend} />
+                data.trend.map((t, i) => (
+                  <span key={t.month} className="text-sm text-slate-600">
+                    {t.month}: <span className="font-bold text-teal-700 tabular-nums">{t.count}</span>
+                    {i < data.trend.length - 1 && <span className="text-slate-300 ml-2">|</span>}
+                  </span>
+                ))
               ) : (
-                <p className="text-sm text-slate-400 py-10 text-center">No NSA activity in this range.</p>
+                <p className="text-sm text-slate-400">No NSA activity in this range.</p>
               )}
             </div>
 
@@ -160,7 +122,11 @@ export default function NsaReport() {
                       <td className="px-2 py-2 text-slate-800 font-medium">{e.userName}</td>
                       {(e.days || Array(5).fill(false)).map((flag, d) => (
                         <td key={d} className="px-2 py-2 text-center">
-                          {flag ? <span className="text-emerald-600 font-bold">Yes</span> : <span className="text-slate-300">No</span>}
+                          {flag ? (
+                            <span className="text-emerald-600 font-bold tabular-nums">{(e.hours?.[d] ?? 0).toFixed(1)}h</span>
+                          ) : (
+                            <span className="text-slate-300">No</span>
+                          )}
                         </td>
                       ))}
                       <td className="px-2 py-2 text-slate-500 tabular-nums">{fmtISODate(e.weekStart)}</td>

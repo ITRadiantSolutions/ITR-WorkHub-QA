@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import getInitials from "../utils/getInitials";
 import Icons from "../components/Icons";
+import ProfileModal from "../components/ProfileModal";
 import { isPMS_HR, isPMS_Manager } from "../utils/pmsrolecheck";
 
 const TABS = [
@@ -26,6 +28,7 @@ export default function PmsLayout() {
   const initials = getInitials(user?.name);
   const hr = isPMS_HR(user);
   const manager = isPMS_Manager(user);
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <div className="min-h-screen flex bg-[#F5F7FB]">
@@ -77,7 +80,7 @@ export default function PmsLayout() {
 
         <div className="px-3 py-3 border-t border-slate-100 space-y-1 shrink-0">
           <button
-            onClick={() => navigate("/hub")}
+            onClick={() => setShowProfile(true)}
             className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition"
           >
             <div className="w-9 h-9 rounded-full bg-violet-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
@@ -114,6 +117,15 @@ export default function PmsLayout() {
       <div className="flex-1 min-w-0">
         <Outlet />
       </div>
+
+      <ProfileModal
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        moduleLabel="PM"
+        role={user?.roles?.pms}
+        accentClass="from-violet-700 to-violet-500"
+      />
     </div>
   );
 }

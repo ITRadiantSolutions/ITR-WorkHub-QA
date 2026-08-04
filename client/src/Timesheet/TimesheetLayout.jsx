@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import getInitials from "../utils/getInitials";
 import Icons from "../components/Icons";
+import ProfileModal from "../components/ProfileModal";
 
 const TABS = [
   { to: "/timesheet/dashboard", label: "Dashboard", icon: "Dashboard" },
   { to: "/timesheet/new", label: "Timesheet", icon: "Calendar" },
   { to: "/timesheet/history", label: "History", icon: "Clock" },
   { to: "/timesheet/review", label: "Review", icon: "Team", managerOrHr: true },
+  { to: "/timesheet/team-status", label: "Team Status", icon: "Users", managerOrHr: true },
   { to: "/timesheet/nsa-report", label: "NSA Report", icon: "BarChart", hrOnly: true },
   { to: "/timesheet/manage", label: "Manage", icon: "Settings", managerOrHr: true },
   { to: "/timesheet/reports", label: "Reports", icon: "Reports", managerOrHr: true },
@@ -22,6 +25,7 @@ export default function TimesheetLayout() {
   const location = useLocation();
 
   const initials = getInitials(user?.name);
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <div className="min-h-screen flex bg-[#F5F7FB]">
@@ -65,7 +69,7 @@ export default function TimesheetLayout() {
 
         <div className="px-3 py-3 border-t border-slate-100 space-y-1 shrink-0">
           <button
-            onClick={() => navigate("/hub")}
+            onClick={() => setShowProfile(true)}
             className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition"
           >
             <div className="w-9 h-9 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
@@ -102,6 +106,15 @@ export default function TimesheetLayout() {
       <div className="flex-1 min-w-0">
         <Outlet />
       </div>
+
+      <ProfileModal
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        moduleLabel="Timesheet"
+        role={user?.roles?.timesheet}
+        accentClass="from-teal-700 to-teal-500"
+      />
     </div>
   );
 }

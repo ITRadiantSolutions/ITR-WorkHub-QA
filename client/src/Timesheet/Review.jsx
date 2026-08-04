@@ -211,8 +211,8 @@ export default function Review() {
   };
 
   return (
-    <main className="w-[92%] max-w-[1600px] mx-auto px-2 py-8">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+    <main className="w-[92%] max-w-[1600px] mx-auto px-2 py-5">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h2 className="text-xl font-extrabold text-slate-900">Timesheets for Review</h2>
         <div className="relative w-full sm:w-72">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></span>
@@ -289,14 +289,14 @@ export default function Review() {
                     )}
                   </th>
                   <th className="w-8" />
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">NSA</th>
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Employee</th>
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Week Start</th>
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Week End</th>
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Status</th>
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Submitted At</th>
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Comment</th>
-                  <th className="text-left px-3 py-3 font-bold text-slate-600 text-xs uppercase tracking-wide">Actions</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">NSA</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">Employee</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">Week Start</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">Week End</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">Status</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">Submitted At</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">Comment</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-xs uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -306,34 +306,34 @@ export default function Review() {
                   return (
                     <Fragment key={ts._id}>
                       <tr className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
-                        <td className="px-2 py-3 text-center">
+                        <td className="px-2 py-1.5 text-center">
                           {actionable && (
                             <input type="checkbox" checked={selected.has(ts._id)} onChange={() => toggleSelected(ts._id)} className="accent-teal-600" />
                           )}
                         </td>
-                        <td className="px-2 py-3 text-center">
+                        <td className="px-2 py-1.5 text-center">
                           <button onClick={() => toggleExpand(ts._id)} className={`text-slate-400 hover:text-teal-600 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
                             <Icons.ChevronRight />
                           </button>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-1.5">
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasNsa(ts) ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-400"}`}>
                             {hasNsa(ts) ? "Yes" : "No"}
                           </span>
                         </td>
-                        <td className="px-3 py-3 font-semibold text-slate-800">{ts.userId?.name || "Employee"}</td>
-                        <td className="px-3 py-3 text-slate-600">{fmtShort(ts.weekStart)}</td>
-                        <td className="px-3 py-3 text-slate-600">{fmtShort(ts.weekEnd)}</td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-1.5 font-semibold text-slate-800">{ts.userId?.name || "Employee"}</td>
+                        <td className="px-3 py-1.5 text-slate-600">{fmtShort(ts.weekStart)}</td>
+                        <td className="px-3 py-1.5 text-slate-600">{fmtShort(ts.weekEnd)}</td>
+                        <td className="px-3 py-1.5">
                           <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_STYLES[ts.status] || "bg-slate-100 text-slate-600"}`}>
                             {ts.status.replace(/_/g, " ")}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-slate-500 text-xs">{fmtDateTime(ts.submittedAt)}</td>
-                        <td className="px-3 py-3 text-slate-500 text-xs max-w-[160px] truncate" title={employeeComment(ts)}>
+                        <td className="px-3 py-1.5 text-slate-500 text-xs">{fmtDateTime(ts.submittedAt)}</td>
+                        <td className="px-3 py-1.5 text-slate-500 text-xs max-w-[160px] truncate" title={employeeComment(ts)}>
                           {employeeComment(ts) || "-"}
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-1.5">
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setModal({ ids: [ts._id], action: "approve" })}
@@ -361,7 +361,7 @@ export default function Review() {
                       </tr>
                       {isExpanded && (
                         <tr className="bg-slate-50/60">
-                          <td colSpan={10} className="px-6 py-4">
+                          <td colSpan={10} className="px-6 py-2.5">
                             <table className="w-full text-xs">
                               <thead>
                                 <tr className="text-slate-500">
@@ -377,13 +377,13 @@ export default function Review() {
                                   const total = (row.secs || []).reduce((sum, s) => sum + (s || 0), 0) / 3600;
                                   return (
                                     <tr key={i} className="border-t border-slate-100">
-                                      <td className="py-2 font-medium text-slate-700">{row.projectId?.name || "Project"}</td>
+                                      <td className="py-1 font-medium text-slate-700">{row.projectId?.name || "Project"}</td>
                                       {(row.secs || Array(7).fill(0)).map((s, d) => (
-                                        <td key={d} className="py-2 text-center tabular-nums text-slate-600">
+                                        <td key={d} className="py-1 text-center tabular-nums text-slate-600">
                                           {s ? (s / 3600).toFixed(1) : "—"}
                                         </td>
                                       ))}
-                                      <td className="py-2 text-center font-bold text-teal-700 tabular-nums">{total.toFixed(1)}</td>
+                                      <td className="py-1 text-center font-bold text-teal-700 tabular-nums">{total.toFixed(1)}</td>
                                     </tr>
                                   );
                                 })}
@@ -405,7 +405,7 @@ export default function Review() {
             </table>
           </div>
 
-          <div className="flex items-center justify-center gap-3 px-5 py-4 border-t border-slate-100">
+          <div className="flex items-center justify-center gap-3 px-5 py-2.5 border-t border-slate-100">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}

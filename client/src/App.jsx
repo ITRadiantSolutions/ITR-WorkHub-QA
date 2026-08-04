@@ -22,6 +22,7 @@ import TimesheetDashboard from "./Timesheet/Dashboard";
 import TimesheetEntry from "./Timesheet/TimesheetEntry";
 import TimesheetHistory from "./Timesheet/History";
 import TimesheetReview from "./Timesheet/Review";
+import TimesheetTeamStatus from "./Timesheet/TeamStatus";
 import TimesheetManage from "./Timesheet/Manage";
 import TimesheetNsaReport from "./Timesheet/NsaReport";
 import TimesheetReports from "./Timesheet/Reports";
@@ -82,6 +83,7 @@ function App() {
               <Route path="new/:id" element={<TimesheetEntry />} />
               <Route path="history" element={<TimesheetHistory />} />
               <Route path="review" element={<TimesheetReview />} />
+              <Route path="team-status" element={<TimesheetTeamStatus />} />
               <Route path="nsa-report" element={<TimesheetNsaReport />} />
               <Route path="manage" element={<TimesheetManage />} />
               <Route path="reports" element={<TimesheetReports />} />

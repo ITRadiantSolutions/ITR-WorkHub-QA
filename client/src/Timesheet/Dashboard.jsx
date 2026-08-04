@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -273,12 +273,9 @@ export default function Dashboard() {
 
   const { donutSegments, lineSeries, totalHours } = useMemo(() => {
     const byProject = new Map();
-    const byDay = Array(7).fill(0);
     entries.forEach((e) => {
       const key = e.projectName || "Unassigned";
       byProject.set(key, (byProject.get(key) || 0) + e.hours);
-      const dayIdx = (new Date(e.date).getDay() + 6) % 7; // Monday-start
-      byDay[dayIdx] += e.hours;
     });
     const sorted = Array.from(byProject.entries()).sort((a, b) => b[1] - a[1]);
 
@@ -295,11 +292,48 @@ export default function Dashboard() {
       { label: "Other Projects", value: otherTotal, color: SEGMENT_COLORS[2], legendColor: SEGMENT_LEGEND_COLORS[2] },
     ].filter((s) => s.value > 0);
 
-    const lineSeries = DAY_LABELS.map((name, i) => ({ name, hours: byDay[i] }));
+    let lineSeries;
+    if (range === "this_month" || range === "last_month") {
+      // Bucket by week-of-month (1st/2nd/3rd/... week) instead of weekday.
+      const now = new Date();
+      const monthDate =
+        range === "last_month" ? new Date(now.getFullYear(), now.getMonth() - 1, 1) : new Date(now.getFullYear(), now.getMonth(), 1);
+      const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+      const weekCount = Math.ceil(daysInMonth / 7);
+      const byWeek = Array(weekCount).fill(0);
+      entries.forEach((e) => {
+        const weekIdx = Math.min(Math.floor((new Date(e.date).getDate() - 1) / 7), weekCount - 1);
+        byWeek[weekIdx] += e.hours;
+      });
+      lineSeries = byWeek.map((hours, i) => ({ name: `Week ${i + 1}`, hours }));
+    } else if (range === "last_6_months") {
+      // Bucket by calendar month across the trailing 6-month window.
+      const byMonth = new Map();
+      entries.forEach((e) => {
+        const d = new Date(e.date);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        byMonth.set(key, (byMonth.get(key) || 0) + e.hours);
+      });
+      const now = new Date();
+      lineSeries = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        return { name: d.toLocaleDateString("en-US", { month: "short" }), hours: byMonth.get(key) || 0 };
+      });
+    } else {
+      // this_week / last_week — bucket by weekday.
+      const byDay = Array(7).fill(0);
+      entries.forEach((e) => {
+        const dayIdx = (new Date(e.date).getDay() + 6) % 7; // Monday-start
+        byDay[dayIdx] += e.hours;
+      });
+      lineSeries = DAY_LABELS.map((name, i) => ({ name, hours: byDay[i] }));
+    }
+
     const totalHours = sorted.reduce((sum, [, v]) => sum + v, 0);
 
     return { donutSegments: segments, lineSeries, totalHours };
-  }, [entries]);
+  }, [entries, range]);
 
   const recentActivity = useMemo(
     () =>
@@ -325,35 +359,6 @@ export default function Dashboard() {
       approved: weeks.map(([, v]) => v.approved),
     };
   }, [timesheets]);
-
-  // ── Team Timesheet Status (manager/HR only) — a per-week submission grid ──
-  const [statusRange, setStatusRange] = useState("this_month");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [statusGrid, setStatusGrid] = useState({ weeks: [], rows: [] });
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [expandedStatusRow, setExpandedStatusRow] = useState(null);
-
-  useEffect(() => {
-    if (!isManagerOrHr) return;
-    let cancelled = false;
-    setStatusLoading(true);
-    API.get("/hr/timesheet-status", { params: { range: statusRange, status: statusFilter } })
-      .then((res) => !cancelled && setStatusGrid(res.data || { weeks: [], rows: [] }))
-      .catch(() => toast.error("Failed to load team timesheet status"))
-      .finally(() => !cancelled && setStatusLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [isManagerOrHr, statusRange, statusFilter]);
-
-  const STATUS_DOT = {
-    approved: "bg-emerald-500",
-    submitted: "bg-orange-400",
-    needs_edit: "bg-amber-500",
-    rejected: "bg-red-500",
-    draft: "bg-slate-300",
-    not_submitted: "bg-slate-200",
-  };
 
   const firstName = user?.name?.split(" ")[0] || "there";
   const hour = new Date().getHours();
@@ -565,156 +570,78 @@ export default function Dashboard() {
                 <h3 className="font-bold text-slate-900">Quick Actions</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  onClick={() => navigate("/timesheet/new")}
-                  className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-violet-200 hover:bg-violet-50 transition text-left"
-                >
-                  <div className="w-9 h-9 rounded-[14px] bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
-                    <Icons.Plus />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800">New Timesheet</p>
-                    <p className="text-xs text-slate-400">Log your hours</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => navigate("/timesheet/new")}
-                  className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left"
-                >
-                  <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Icons.Calendar />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800">View Timesheet</p>
-                    <p className="text-xs text-slate-400">Manage entries</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => navigate("/timesheet/history")}
-                  className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left sm:col-span-2"
-                >
-                  <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Icons.Reports />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800">View History</p>
-                    <p className="text-xs text-slate-400">Past records</p>
-                  </div>
-                </button>
+                {isManagerOrHr ? (
+                  <>
+                    <button
+                      onClick={() => navigate("/timesheet/team-status")}
+                      className={`flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition text-left ${user.roles.timesheet === "hr" ? "" : "sm:col-span-2"}`}
+                    >
+                      <div className="w-9 h-9 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                        <Icons.Users />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800">Team Timesheet Status</p>
+                        <p className="text-xs text-slate-400">Submission status per week for {user.roles.timesheet === "hr" ? "everyone" : "your direct reports"}</p>
+                      </div>
+                    </button>
+                    {user.roles.timesheet === "hr" && (
+                      <button
+                        onClick={() => navigate("/timesheet/nsa-report")}
+                        className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition text-left"
+                      >
+                        <div className="w-9 h-9 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                          <Icons.BarChart />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-800">NSA Report</p>
+                          <p className="text-xs text-slate-400">Non-standard-availability across your team</p>
+                        </div>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => navigate("/timesheet/new")}
+                      className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-violet-200 hover:bg-violet-50 transition text-left"
+                    >
+                      <div className="w-9 h-9 rounded-[14px] bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                        <Icons.Plus />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800">New Timesheet</p>
+                        <p className="text-xs text-slate-400">Log your hours</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => navigate("/timesheet/new")}
+                      className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left"
+                    >
+                      <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <Icons.Calendar />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800">View Timesheet</p>
+                        <p className="text-xs text-slate-400">Manage entries</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => navigate("/timesheet/history")}
+                      className="flex items-center gap-3 p-3 rounded-[14px] border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition text-left sm:col-span-2"
+                    >
+                      <div className="w-9 h-9 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <Icons.Reports />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800">View History</p>
+                        <p className="text-xs text-slate-400">Past records</p>
+                      </div>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
-
-          {isManagerOrHr && !viewUser && (
-            <div className={`${CARD} p-4 mt-4`}>
-              <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-[14px] bg-teal-50 text-teal-700 flex items-center justify-center">
-                    <Icons.Users />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">Team Timesheet Status</h3>
-                    <p className="text-xs text-slate-400">Submission status per week for {user.roles.timesheet === "hr" ? "everyone" : "your direct reports"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
-                  >
-                    <option value="all">All statuses</option>
-                    <option value="approved">Approved</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="needs_edit">Needs Edit</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="not_submitted">Not submitted</option>
-                  </select>
-                  <select
-                    value={statusRange}
-                    onChange={(e) => setStatusRange(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
-                  >
-                    {RANGE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {statusLoading ? (
-                <div className="py-8 text-center text-slate-400 text-sm">Loading...</div>
-              ) : !statusGrid.rows.length ? (
-                <div className="py-8 text-center text-slate-400 text-sm">No matching employees for this filter.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr>
-                        <th className="text-left py-1.5 pr-3 font-bold uppercase tracking-wide text-slate-400">Employee</th>
-                        {statusGrid.weeks.map((w) => (
-                          <th key={w.weekStart} className="py-1.5 px-1.5 font-bold uppercase tracking-wide text-slate-400 text-center whitespace-nowrap">
-                            {new Date(w.weekStart).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {statusGrid.rows.map((row) => {
-                        const weekEntries = Object.entries(row.weeks);
-                        const missing = weekEntries.filter(([, w]) => w.status === "not_submitted");
-                        const isExpanded = expandedStatusRow === row.userId;
-                        return (
-                          <Fragment key={row.userId}>
-                            <tr className="border-t border-slate-50">
-                              <td className="py-2 pr-3">
-                                <button
-                                  onClick={() => setExpandedStatusRow(isExpanded ? null : row.userId)}
-                                  className="font-semibold text-slate-700 hover:text-teal-700 text-left"
-                                >
-                                  {row.userName}
-                                  {missing.length > 0 && (
-                                    <span className="ml-1.5 text-[10px] font-bold text-red-500">({missing.length} missing)</span>
-                                  )}
-                                </button>
-                              </td>
-                              {weekEntries.map(([weekStart, w]) => (
-                                <td key={weekStart} className="py-2 px-1.5 text-center">
-                                  <span
-                                    className={`inline-block w-2.5 h-2.5 rounded-full ${STATUS_DOT[w.status] || "bg-slate-200"}`}
-                                    title={`${weekStart}: ${w.status.replace("_", " ")} (${w.total.toFixed(1)}h)`}
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                            {isExpanded && (
-                              <tr key={`${row.userId}-detail`} className="bg-slate-50/60">
-                                <td colSpan={weekEntries.length + 1} className="px-3 py-3">
-                                  <div className="flex flex-wrap gap-2">
-                                    {weekEntries.map(([weekStart, w]) => (
-                                      <span
-                                        key={weekStart}
-                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                          w.status === "not_submitted" ? "bg-red-50 text-red-600" : "bg-white border border-slate-200 text-slate-600"
-                                        }`}
-                                      >
-                                        <span className={`w-2 h-2 rounded-full ${STATUS_DOT[w.status] || "bg-slate-200"}`} />
-                                        {new Date(weekStart).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} — {w.status.replace("_", " ")}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
     </main>

@@ -119,7 +119,9 @@ export default function Login() {
       } else if (errorData.status === "Deactivated") {
         setError("You are no longer part of this organisation. Please contact HR to restore your access.");
       } else {
-        setError(errorData.message || "Invalid email or password.");
+        const message = errorData.message || "Invalid email or password.";
+        setError(message);
+        toast.error(message, { duration: 4000 });
       }
     } finally {
       setLoading(false);
@@ -195,7 +197,7 @@ export default function Login() {
           <div className="bg-white border border-slate-200 rounded-3xl shadow-xl px-5 sm:px-7 py-6 sm:py-7">
             <div className="mb-5">
               <h2 className="text-[24px] sm:text-[28px] font-extrabold text-slate-900 leading-tight">Welcome Back!</h2>
-              <p className="text-slate-500 text-sm mt-1">Sign in to continue to ITR WorkHub</p>
+              <p className="text-slate-500 text-sm mt-1">Sign in to continue to ITR One</p>
             </div>
 
             {error && (

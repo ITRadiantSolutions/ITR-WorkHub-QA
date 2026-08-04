@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import getInitials from "../utils/getInitials";
 import Icons from "./Icons";
+import ProfileModal from "./ProfileModal";
 
 // Shared FlowTrack sidebar shell — same structure/visual language as
 // TimesheetLayout/PmsLayout (white sidebar, module accent color, Hub
@@ -15,6 +17,7 @@ export default function TrackerSidebar({ title = "FlowTrack", navItems, activeId
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const initials = getInitials(user?.name);
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <aside className="w-64 shrink-0 bg-white border-r border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col sticky top-0 h-screen">
@@ -61,7 +64,7 @@ export default function TrackerSidebar({ title = "FlowTrack", navItems, activeId
 
       <div className="px-3 py-3 border-t border-slate-100 space-y-1 shrink-0">
         <button
-          onClick={() => navigate("/hub")}
+          onClick={() => setShowProfile(true)}
           className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition"
         >
           <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
@@ -92,6 +95,15 @@ export default function TrackerSidebar({ title = "FlowTrack", navItems, activeId
           Logout
         </button>
       </div>
+
+      <ProfileModal
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        moduleLabel="FlowTrack"
+        role={user?.roles?.tracker || user?.role}
+        accentClass="from-indigo-600 to-indigo-500"
+      />
     </aside>
   );
 }

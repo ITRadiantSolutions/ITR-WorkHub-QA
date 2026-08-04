@@ -255,6 +255,14 @@ export const submitTimesheet = async (req, res) => {
     return res.status(409).json({ message: `Cannot submit from status '${timesheet.status}'` });
   }
 
+  // A week can only be submitted once it has actually ended — otherwise an
+  // employee could submit Monday's partial week as if it were final.
+  const weekEndStr = fmtISODate(addDays(timesheet.weekStart, 6));
+  const todayStr = fmtISODate(new Date());
+  if (todayStr <= weekEndStr) {
+    return res.status(400).json({ message: "This week hasn't ended yet — you can submit once the week is complete." });
+  }
+
   // Defense in depth: re-run the same checks saveDraft applies, in case this
   // timesheet's rows became invalid since it was last saved (e.g. a holiday
   // was declared afterwards) or /submit is called without a prior /save.

@@ -1,8 +1,8 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 import WorkHubLogo from "../components/WorkHubLogo";
-import NotificationBell from "../components/NotificationBell";
 import getInitials from "../utils/getInitials";
 
 const TRACKER_ROUTES = {
@@ -186,16 +186,23 @@ export default function Hub() {
   const navigate = useNavigate();
   const visibleTiles = TILES.filter((tile) => !user?.archived?.[tile.key]);
 
+  // Dark mode is a per-workspace preference (Timesheet/PMS/Tracker) — the Hub
+  // landing page always stays on the light theme regardless of that setting.
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    if (wasDark) root.classList.remove("dark");
+    return () => {
+      if (wasDark) root.classList.add("dark");
+    };
+  }, []);
+
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col">
       <header className="flex items-center justify-between px-6 sm:px-10 py-3 bg-white border-b border-slate-100 shrink-0">
         <WorkHubLogo size="sm" subtitle />
 
         <div className="flex items-center gap-4">
-          <NotificationBell />
-
-          <div className="hidden sm:block w-px h-8 bg-slate-200" />
-
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
               {getInitials(user?.name)}
@@ -307,7 +314,7 @@ export default function Hub() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-8 mb-2">
-          © {new Date().getFullYear()} <span className="font-semibold text-slate-500">ITR WorkHub</span>. All rights reserved.
+          © {new Date().getFullYear()} <span className="font-semibold text-slate-500">ITR One</span>. All rights reserved.
         </p>
       </main>
     </div>

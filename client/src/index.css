@@ -218,6 +218,10 @@
 .dark [class*="bg-gray-50"] {
   background-color: #0a1220 !important;
 }
+.dark [class*="bg-[#F5F7FB]"],
+.dark [class*="bg-[#f4f6fb]"] {
+  background-color: #0a1220 !important;
+}
 .dark [class*="bg-white"] {
   background-color: #111b2d !important;
 }

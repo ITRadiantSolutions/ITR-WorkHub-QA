@@ -290,6 +290,10 @@ export default function TimesheetEntry() {
 
   const totalError = rows.some((r) => r.projectId) && grandTotal === 0 ? "Please enter time in at least one cell before saving." : "";
 
+  // A week can only be submitted once it has actually ended — otherwise an
+  // employee could submit Monday's partial week as if it were final.
+  const weekNotEnded = fmtISODate(today) <= fmtISODate(weekEnd);
+
   // Every weekday that isn't a company holiday needs at least some logged
   // time before the week can be submitted — a partially-filled week can
   // still be saved as a draft, just not sent for approval.
@@ -353,6 +357,9 @@ export default function TimesheetEntry() {
   const handleSubmit = async () => {
     setManagerTouched(true);
     if (!managerId) return toast.error("Select a manager before submitting");
+    if (weekNotEnded) {
+      return toast.error("This week hasn't ended yet — you can submit once the week is complete.");
+    }
     if (missingWeekdays.length) {
       return toast.error(`Log time for ${missingWeekdays.join(", ")} before submitting — save as a draft if you need to finish later.`);
     }
@@ -551,8 +558,8 @@ export default function TimesheetEntry() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={saving || submitting || Boolean(capError)}
-                title={capError || undefined}
+                disabled={saving || submitting || Boolean(capError) || weekNotEnded}
+                title={capError || (weekNotEnded ? "This week hasn't ended yet — you can submit once the week is complete." : undefined)}
                 className="h-10 flex items-center gap-1.5 px-5 rounded-[14px] bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold shadow-sm shadow-teal-100 transition disabled:opacity-60"
               >
                 {submitting ? "Submitting..." : "Submit"}
