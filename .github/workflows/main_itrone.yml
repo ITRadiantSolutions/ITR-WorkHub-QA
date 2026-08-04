@@ -36,6 +36,7 @@ jobs:
         
       - name: Install backend dependencies
         run: |
+          cd server
           npm install
 
       - name: Upload artifact for deployment job
