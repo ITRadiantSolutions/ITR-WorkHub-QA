@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { isTaskOverdue } from "../utils/taskDates";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "../components/NotificationBell";
 import { API, DATA_MUTATED_EVENT } from "../services/api";
@@ -208,7 +207,6 @@ function Badge({ label, variant }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ManagerDashboard() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -322,70 +320,8 @@ export default function ManagerDashboard() {
   };
 
   const handleLogout = () => {
-    toast.custom(
-      (t) => (
-        <div className="w-[360px] rounded-3xl border border-slate-200 bg-white shadow-2xl p-5">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </div>
-
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-slate-900">
-                Logout Account?
-              </h3>
-
-              <p className="text-xs text-slate-500 mt-1 leading-5">
-                Are you sure you want to sign out from your account?
-              </p>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-5 flex gap-2">
-            <button
-              onClick={() => toast.dismiss(t)}
-              className="flex-1 h-10 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={() => {
-                toast.dismiss(t);
-                toast.success("Logged out successfully");
-
-                setTimeout(() => {
-                  logout();
-                  navigate("/");
-                }, 600);
-              }}
-              className="flex-1 h-10 rounded-2xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      ),
-      {
-        position: "bottom-left",
-        duration: 5000,
-      },
-    );
+    toast.success("Logged out successfully");
+    logout();
   };
 
   const toDay = (d) => {
@@ -769,27 +705,27 @@ export default function ManagerDashboard() {
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><Icons.Check /></span><div><p className="text-xs font-bold text-slate-700">Task Completion</p><p className="text-[10px] text-slate-400">Status distribution</p></div></div><span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{m.completedTasks}/{m.totalTasks} done</span></div>
                   <div className="p-4">{dashboardTasksLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />Loading tasks...</div> : <DashboardPie centerValue={`${m.completionRate}%`} centerLabel="complete" data={[
-                    { label: "Done", value: m.completedTasks, color: "#10b981" }, { label: "In Progress", value: m.inProgressTasks, color: "#3b82f6" }, { label: "QA Testing", value: m.qaTestingTasks, color: "#8b5cf6" }, { label: "On Hold", value: m.onHoldTasks, color: "#f59e0b" }, { label: "Todo", value: m.todoTasks, color: "#cbd5e1" },
+                    { label: "Done", value: m.completedTasks, color: "var(--chart-success)" }, { label: "In Progress", value: m.inProgressTasks, color: "var(--chart-primary)" }, { label: "QA Testing", value: m.qaTestingTasks, color: "var(--chart-secondary)" }, { label: "On Hold", value: m.onHoldTasks, color: "var(--chart-warning)" }, { label: "Todo", value: m.todoTasks, color: "var(--chart-neutral)" },
                   ]} />}</div>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><Icons.Tasks /></span><div><p className="text-xs font-bold text-slate-700">Task Breakdown</p><p className="text-[10px] text-slate-400">Workload comparison</p></div></div><span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${m.overdueTasks ? "border-red-100 bg-red-50 text-red-600" : "border-slate-200 bg-white text-slate-500"}`}>{m.overdueTasks} overdue</span></div>
                   <div className="p-4">{dashboardTasksLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading tasks...</div> : <BarChart data={[
-                    { label: "Todo", value: m.todoTasks, color: "#cbd5e1" }, { label: "Progress", value: m.inProgressTasks, color: "#3b82f6" }, { label: "On Hold", value: m.onHoldTasks, color: "#f59e0b" }, { label: "QA Test", value: m.qaTestingTasks, color: "#8b5cf6" }, { label: "Done", value: m.completedTasks, color: "#10b981" },
+                    { label: "Todo", value: m.todoTasks, color: "var(--chart-neutral)" }, { label: "Progress", value: m.inProgressTasks, color: "var(--chart-primary)" }, { label: "On Hold", value: m.onHoldTasks, color: "var(--chart-warning)" }, { label: "QA Test", value: m.qaTestingTasks, color: "var(--chart-secondary)" }, { label: "Done", value: m.completedTasks, color: "var(--chart-success)" },
                   ]} />}<div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-400"><span>{m.totalTasks} managed tasks</span><span className="font-semibold text-slate-600">{m.completionRate}% complete</span></div></div>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Icons.Projects /></span><div><p className="text-xs font-bold text-slate-700">Projects</p><p className="text-[10px] text-slate-400">Managed portfolio</p></div></div><span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600">{projects.length} total</span></div>
                   <div className="p-4">{projectsLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />Loading projects...</div> : <DashboardPie centerValue={projects.length} centerLabel="projects" data={[
-                    { label: "Active", value: projects.filter((p) => p.status === "Active").length, color: "#10b981" }, { label: "Planning", value: projects.filter((p) => p.status === "Planning").length, color: "#8b5cf6" }, { label: "Completed", value: projects.filter((p) => p.status === "Completed").length, color: "#3b82f6" },
+                    { label: "Active", value: projects.filter((p) => p.status === "Active").length, color: "var(--chart-success)" }, { label: "Planning", value: projects.filter((p) => p.status === "Planning").length, color: "var(--chart-secondary)" }, { label: "Completed", value: projects.filter((p) => p.status === "Completed").length, color: "var(--chart-primary)" },
                   ]} />}</div>
                 </div>
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-50 text-red-500"><Icons.Bug /></span><div><p className="text-xs font-bold text-slate-700">Bugs by Status</p><p className="text-[10px] text-slate-400">Issue resolution</p></div></div><span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600">{bugCounts.total} total</span></div>
                   <div className="p-4">{bugLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-red-500" />Loading bugs...</div> : <DashboardPie centerValue={bugCounts.total} centerLabel="bugs" data={[
-                    { label: "Open", value: bugCounts.open, color: "#ef4444" }, { label: "In Progress", value: bugCounts.progress, color: "#3b82f6" }, { label: "Resolved", value: bugCounts.resolved, color: "#10b981" }, { label: "Won't Fix", value: bugs.filter((bug) => bug.status === "WONT_FIX").length, color: "#94a3b8" },
+                    { label: "Open", value: bugCounts.open, color: "var(--chart-danger)" }, { label: "In Progress", value: bugCounts.progress, color: "var(--chart-primary)" }, { label: "Resolved", value: bugCounts.resolved, color: "var(--chart-success)" }, { label: "Won't Fix", value: bugs.filter((bug) => bug.status === "WONT_FIX").length, color: "var(--chart-neutral)" },
                   ]} />}</div>
                 </div>              </div>
               {/* Recent Tasks */}

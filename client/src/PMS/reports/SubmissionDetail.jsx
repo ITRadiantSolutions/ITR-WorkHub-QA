@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 import { API } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import Icons from "../../components/Icons";
+import StatusBadge from "../components/StatusBadge";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -13,6 +14,16 @@ const STATUS_LABELS = {
   final_employee_submitted: "Final self-review submitted",
   manager_reviewed: "Reviewed — your turn",
   final_manager_reviewed: "Review complete",
+};
+
+const STATUS_TONE = {
+  draft: "neutral",
+  pending_manager_approval: "warning",
+  manager_approved: "info",
+  employee_submitted: "warning",
+  final_employee_submitted: "warning",
+  manager_reviewed: "violet",
+  final_manager_reviewed: "success",
 };
 
 function RatingPicker({ value, onChange, disabled }) {
@@ -137,106 +148,112 @@ export default function SubmissionDetail() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-8">
+    <main className="max-w-4xl mx-auto px-6 py-8">
       <button onClick={() => navigate("/pms/reviews")} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4">
-        <Icons.Back /> Back to Reviews
+        <ArrowLeft className="w-[18px] h-[18px]" /> Back to Reviews
       </button>
 
         {loading || !submission ? (
           <div className="p-12 text-center text-slate-500">Loading...</div>
         ) : (
-          <div className="space-y-5">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center justify-between">
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">{submission.employeeId?.name || "Review"}</h2>
                 <p className="text-xs text-slate-500">{submission.employeeId?.email}</p>
               </div>
-              <span className="text-xs font-semibold text-violet-700 bg-violet-100 px-2.5 py-1 rounded-full">
-                {STATUS_LABELS[submission.status] || submission.status}
-              </span>
+              <StatusBadge
+                tone={STATUS_TONE[submission.status] || "neutral"}
+                label={STATUS_LABELS[submission.status] || submission.status}
+                size="md"
+              />
             </div>
 
-            {(submission.kraResponses || []).map((r) => (
-              <div key={r.kraId} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-slate-900">{r.kraName}</h3>
-                  <span className="text-xs font-semibold text-slate-400">Weight: {r.weight}%</span>
-                </div>
-
-                {r.kpis?.length > 0 && (
-                  <ul className="mb-3 space-y-1">
-                    {r.kpis.map((k, i) => (
-                      <li key={i} className="text-xs text-slate-500 flex items-start gap-1.5">
-                        <span className="text-violet-400 mt-0.5">•</span>
-                        <span>{k.title}{k.description ? ` — ${k.description}` : ""}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Your response</label>
-                      {isEmployee && <RatingPicker value={r.rating} onChange={(v) => updateResponse(r.kraId, "rating", v)} disabled={!canEditResponses} />}
-                    </div>
-                    <textarea
-                      value={r.response || ""}
-                      onChange={(e) => updateResponse(r.kraId, "response", e.target.value)}
-                      disabled={!canEditResponses}
-                      rows={3}
-                      placeholder={canEditResponses ? "Describe your progress against this KRA..." : "No response yet"}
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-500"
-                    />
+            {(submission.kraResponses || []).map((r) => {
+              const kpis = (r.kpis || []).filter((k) => k.title?.trim() || k.description?.trim());
+              const showManagerCol = isManagerOrHr || r.managerResponse;
+              return (
+                <div key={r.kraId} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-bold text-slate-900 text-sm">{r.kraName}</h3>
+                    <span className="text-xs font-semibold text-slate-400 shrink-0">Weight: {r.weight}%</span>
                   </div>
 
-                  {(isManagerOrHr || r.managerResponse) && (
-                    <div className="border-t border-slate-100 pt-3">
+                  {kpis.length > 0 && (
+                    <ul className="mb-3 space-y-0.5">
+                      {kpis.map((k, i) => (
+                        <li key={i} className="text-xs text-slate-500 flex items-start gap-1.5">
+                          <span className="text-violet-400 mt-0.5">•</span>
+                          <span>{k.title}{k.description ? ` — ${k.description}` : ""}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <div className={`grid grid-cols-1 gap-3 ${showManagerCol ? "md:grid-cols-2" : ""}`}>
+                    <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-bold text-violet-600 uppercase tracking-wide">Manager response</label>
-                        {isManagerOrHr && <RatingPicker value={r.managerRating} onChange={(v) => updateResponse(r.kraId, "managerRating", v)} disabled={!isManagerOrHr} />}
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Your response</label>
+                        {isEmployee && <RatingPicker value={r.rating} onChange={(v) => updateResponse(r.kraId, "rating", v)} disabled={!canEditResponses} />}
                       </div>
                       <textarea
-                        value={r.managerResponse || ""}
-                        onChange={(e) => updateResponse(r.kraId, "managerResponse", e.target.value)}
-                        disabled={!isManagerOrHr}
+                        value={r.response || ""}
+                        onChange={(e) => updateResponse(r.kraId, "response", e.target.value)}
+                        disabled={!canEditResponses}
                         rows={2}
-                        placeholder={isManagerOrHr ? "Add your feedback..." : "No manager feedback yet"}
-                        className="w-full rounded-xl border border-violet-100 bg-violet-50/30 px-3 py-2 text-sm disabled:text-slate-500"
+                        placeholder={canEditResponses ? "Describe your progress against this KRA..." : "No response yet"}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-500"
                       />
                     </div>
-                  )}
+
+                    {showManagerCol && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-bold text-violet-600 uppercase tracking-wide">Manager response</label>
+                          {isManagerOrHr && <RatingPicker value={r.managerRating} onChange={(v) => updateResponse(r.kraId, "managerRating", v)} disabled={!isManagerOrHr} />}
+                        </div>
+                        <textarea
+                          value={r.managerResponse || ""}
+                          onChange={(e) => updateResponse(r.kraId, "managerResponse", e.target.value)}
+                          disabled={!isManagerOrHr}
+                          rows={2}
+                          placeholder={isManagerOrHr ? "Add your feedback..." : "No manager feedback yet"}
+                          className="w-full rounded-xl border border-violet-100 bg-violet-50/30 px-3 py-2 text-sm disabled:text-slate-500"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {isManagerOrHr && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h3 className="font-bold text-slate-900 mb-3">Final report</h3>
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                <h3 className="font-bold text-slate-900 text-sm mb-3">Final report</h3>
                 <div className="space-y-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Overall summary</label>
                     <textarea
                       value={finalReport.managerOverallResponse}
                       onChange={(e) => setFinalReport((p) => ({ ...p, managerOverallResponse: e.target.value }))}
-                      rows={3}
+                      rows={2}
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                     />
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Overall rating</label>
                       <RatingPicker value={Number(finalReport.overallRating) || null} onChange={(v) => setFinalReport((p) => ({ ...p, overallRating: v }))} />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">1:1 notes</label>
-                    <textarea
-                      value={finalReport.oneOnOneComment}
-                      onChange={(e) => setFinalReport((p) => ({ ...p, oneOnOneComment: e.target.value }))}
-                      rows={2}
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                    />
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">1:1 notes</label>
+                      <textarea
+                        value={finalReport.oneOnOneComment}
+                        onChange={(e) => setFinalReport((p) => ({ ...p, oneOnOneComment: e.target.value }))}
+                        rows={2}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                      />
+                    </div>
                   </div>
                   <button onClick={saveFinalReport} disabled={saving} className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">
                     Save final report

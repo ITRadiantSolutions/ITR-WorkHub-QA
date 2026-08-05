@@ -44,7 +44,7 @@ const PROJECT_COLUMNS = [
   { key: "totalHours", label: "Total Hours", align: "right" },
 ];
 
-const AVATAR_COLORS = ["bg-indigo-600", "bg-slate-600", "bg-blue-600", "bg-teal-600", "bg-cyan-700", "bg-sky-700"];
+const AVATAR_COLORS = ["bg-emerald-600", "bg-green-600", "bg-teal-600", "bg-emerald-700", "bg-green-700", "bg-teal-700"];
 const colorFor = (str) => AVATAR_COLORS[Math.abs([...(str || "")].reduce((h, c) => h * 31 + c.charCodeAt(0), 0)) % AVATAR_COLORS.length];
 const initialsOf = (name) => (name || "?").trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 

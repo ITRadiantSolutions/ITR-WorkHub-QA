@@ -288,7 +288,19 @@ export default function TimesheetEntry() {
     return dayTotals[d] - ownValue >= MAX_HOURS_PER_DAY;
   };
 
-  const totalError = rows.some((r) => r.projectId) && grandTotal === 0 ? "Please enter time in at least one cell before saving." : "";
+  // A row whose project is selected but has zero hours logged for the whole
+  // week is dead weight — it adds nothing and, once other rows fill the daily
+  // cap, can become permanently unfillable. Block submit until it's either
+  // given hours or removed, rather than letting it silently ride along.
+  const emptyProjectRows = rows.filter((r) => r.projectId && rowTotal(r) === 0);
+  const selectedRows = rows.filter((r) => r.projectId);
+  const totalError = emptyProjectRows.length
+    ? emptyProjectRows.length === selectedRows.length
+      ? "Please enter time in at least one cell before saving."
+      : `No hours logged for ${emptyProjectRows
+          .map((r) => projects.find((p) => p._id === r.projectId)?.name || "a project")
+          .join(", ")} — remove the row${emptyProjectRows.length > 1 ? "s" : ""} or add time before submitting.`
+    : "";
 
   // A week can only be submitted once it has actually ended — otherwise an
   // employee could submit Monday's partial week as if it were final.
@@ -362,6 +374,9 @@ export default function TimesheetEntry() {
     }
     if (missingWeekdays.length) {
       return toast.error(`Log time for ${missingWeekdays.join(", ")} before submitting — save as a draft if you need to finish later.`);
+    }
+    if (emptyProjectRows.length) {
+      return toast.error(totalError);
     }
     if (submitting) return; // guards the whole save+submit round trip, not just the save half
     setSubmitting(true);
@@ -558,8 +573,8 @@ export default function TimesheetEntry() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={saving || submitting || Boolean(capError) || weekNotEnded}
-                title={capError || (weekNotEnded ? "This week hasn't ended yet — you can submit once the week is complete." : undefined)}
+                disabled={saving || submitting || Boolean(capError) || Boolean(emptyProjectRows.length) || weekNotEnded}
+                title={capError || totalError || (weekNotEnded ? "This week hasn't ended yet — you can submit once the week is complete." : undefined)}
                 className="h-10 flex items-center gap-1.5 px-5 rounded-[14px] bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold shadow-sm shadow-teal-100 transition disabled:opacity-60"
               >
                 {submitting ? "Submitting..." : "Submit"}
@@ -614,14 +629,18 @@ export default function TimesheetEntry() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
-                  <tr key={i} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40 transition-colors">
+                {rows.map((row, i) => {
+                  const rowIsEmpty = row.projectId && rowTotal(row) === 0;
+                  return (
+                  <tr key={i} className={`border-b border-slate-50 last:border-0 transition-colors ${rowIsEmpty ? "bg-red-50/40" : "hover:bg-slate-50/40"}`}>
                     <td className="px-4 py-3">
                       <select
                         value={row.projectId}
                         onChange={(e) => updateRow(i, { projectId: e.target.value })}
                         disabled={!editable}
-                        className="w-full rounded-lg border border-slate-200 text-sm px-2.5 py-2 bg-white disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
+                        className={`w-full rounded-lg border text-sm px-2.5 py-2 bg-white disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 ${
+                          rowIsEmpty ? "border-red-200" : "border-slate-200"
+                        }`}
                       >
                         <option value="">Select Project</option>
                         {projects
@@ -630,6 +649,11 @@ export default function TimesheetEntry() {
                             <option key={p._id} value={p._id}>{p.name}</option>
                           ))}
                       </select>
+                      {rowIsEmpty && (
+                        <p className="flex items-center gap-1 text-[10px] font-semibold text-red-500 mt-1">
+                          <Icons.Alert /> No hours logged — remove or add time
+                        </p>
+                      )}
                     </td>
                     {DAY_LABELS.map((_, d) => {
                       const isToday = isSameDay(addDays(weekStart, d), today);
@@ -696,7 +720,8 @@ export default function TimesheetEntry() {
                       </td>
                     )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

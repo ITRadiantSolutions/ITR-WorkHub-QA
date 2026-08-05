@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 
 const PAGE_SIZE = 12;
-const AVATAR_COLORS = ["bg-indigo-600", "bg-slate-600", "bg-blue-600", "bg-teal-600", "bg-cyan-700", "bg-sky-700"];
+const AVATAR_COLORS = ["bg-emerald-600", "bg-green-600", "bg-teal-600", "bg-emerald-700", "bg-green-700", "bg-teal-700"];
 const colorFor = (str) => {
   const hash = [...(str || "")].reduce((h, c) => h * 31 + c.charCodeAt(0), 0);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];

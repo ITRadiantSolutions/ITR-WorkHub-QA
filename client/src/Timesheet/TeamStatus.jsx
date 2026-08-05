@@ -44,13 +44,13 @@ const STATUS_DOT = {
 
 const AVATAR_COLORS = [
   "bg-emerald-100 text-emerald-700",
+  "bg-green-100 text-green-700",
   "bg-teal-100 text-teal-700",
-  "bg-violet-100 text-violet-700",
-  "bg-orange-100 text-orange-700",
-  "bg-blue-100 text-blue-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-cyan-100 text-cyan-700",
+  "bg-lime-100 text-lime-700",
+  "bg-emerald-200 text-emerald-800",
+  "bg-green-200 text-green-800",
+  "bg-teal-200 text-teal-800",
+  "bg-lime-200 text-lime-800",
 ];
 const colorFor = (str) => AVATAR_COLORS[Math.abs([...(str || "")].reduce((h, c) => h * 31 + c.charCodeAt(0), 0)) % AVATAR_COLORS.length];
 const initialsFor = (name) =>

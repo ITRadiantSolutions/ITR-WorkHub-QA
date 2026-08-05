@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Star, CheckCircle2, Clock, TrendingUp, Download } from "lucide-react";
  import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
+import { isPMS_HR, isPMS_Manager } from "../../utils/pmsrolecheck";
 export default function MyReportView({ report, onBack, user }) {
   const navigate = useNavigate();
   //console.log("Before", report)

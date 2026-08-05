@@ -2,8 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { ListChecks, Send, Eye, ChevronDown, Calendar, ChevronRight, ChevronLeft, Inbox } from "lucide-react";
 import { API } from "../../services/api";
-import Icons from "../../components/Icons";
+import PageHeader from "../components/PageHeader";
+import StatsCard from "../components/StatsCard";
+import FilterToolbar from "../components/FilterToolbar";
+import DataCard from "../components/DataCard";
+import StatusBadge from "../components/StatusBadge";
+import EmptyState from "../components/EmptyState";
 
 const NEEDS_REVIEW = ["employee_submitted", "final_employee_submitted"];
 const COMPLETED = ["manager_reviewed", "final_manager_reviewed"];
@@ -16,11 +22,11 @@ const STATUS_LABELS = {
   final_manager_reviewed: "Final reviewed",
 };
 
-const STATUS_DOT = {
-  employee_submitted: "bg-emerald-500",
-  final_employee_submitted: "bg-emerald-500",
-  manager_reviewed: "bg-violet-500",
-  final_manager_reviewed: "bg-violet-500",
+const STATUS_TONE = {
+  employee_submitted: "success",
+  final_employee_submitted: "success",
+  manager_reviewed: "violet",
+  final_manager_reviewed: "violet",
 };
 
 const AVATAR_STYLES = [
@@ -138,82 +144,38 @@ export default function ReviewQueue() {
 
   return (
     <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-violet-700 text-white flex items-center justify-center shadow-sm shrink-0">
-            <Icons.CheckAll />
-          </div>
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900">Reviews</h1>
-            <p className="text-sm text-slate-500">Rate and respond to your reports' self-reviews</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              <Icons.Search />
-            </span>
-            <input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search name or email..."
-              className="w-64 rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
-            />
-          </div>
-          <button
-            onClick={handleExportAll}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-violet-500 text-white text-sm font-semibold shadow-sm hover:opacity-90 transition"
-          >
-            <Icons.Download />
-            Export All
-          </button>
-        </div>
-      </div>
+      <PageHeader icon={ListChecks} title="Reviews" subtitle="Rate and respond to your reports' self-reviews" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <button
+        <StatsCard
+          icon={Send}
+          label="Needs Review"
+          value={pendingCount}
+          caption="Reports need your review"
+          accent="amber"
+          progress={90}
+          active={tab === "pending"}
           onClick={() => switchTab("pending")}
-          className={`text-left rounded-2xl border p-4 flex items-center gap-3 transition ${
-            tab === "pending" ? "bg-amber-50/70 border-amber-100" : "bg-white border-slate-100 hover:shadow-md"
-          }`}
-        >
-          <span className="w-11 h-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-            <Icons.Send />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Needs Review</p>
-            <p className="text-2xl font-extrabold text-slate-900 leading-tight">{pendingCount}</p>
-            <p className="text-xs text-slate-400">Reports need your review</p>
-            <div className="h-1 w-full bg-amber-100 rounded-full mt-2 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full" style={{ width: "90%" }} />
-            </div>
-          </div>
-        </button>
-        <button
+        />
+        <StatsCard
+          icon={Eye}
+          label="Completed"
+          value={completedCount}
+          caption="Self-reviews completed"
+          accent="emerald"
+          progress={90}
+          active={tab === "completed"}
           onClick={() => switchTab("completed")}
-          className={`text-left rounded-2xl border p-4 flex items-center gap-3 transition ${
-            tab === "completed" ? "bg-emerald-50/70 border-emerald-100" : "bg-white border-slate-100 hover:shadow-md"
-          }`}
-        >
-          <span className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-            <Icons.Eye />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Completed</p>
-            <p className="text-2xl font-extrabold text-slate-900 leading-tight">{completedCount}</p>
-            <p className="text-xs text-slate-400">Self-reviews completed</p>
-            <div className="h-1 w-full bg-emerald-100 rounded-full mt-2 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full" style={{ width: "90%" }} />
-            </div>
-          </div>
-        </button>
+        />
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 mb-5 flex items-center gap-2 flex-wrap">
+      <FilterToolbar
+        search={{ value: search, onChange: (v) => { setSearch(v); setPage(1); }, placeholder: "Search name or email..." }}
+        onExport={handleExportAll}
+        exportLabel="Export All"
+        onClearFilters={clearFilters}
+        showClear={filtersActive}
+      >
         <div className="relative">
           <select
             value={cycleFilter}
@@ -221,7 +183,7 @@ export default function ReviewQueue() {
               setCycleFilter(e.target.value);
               setPage(1);
             }}
-            className="appearance-none rounded-full border border-slate-200 bg-white pl-4 pr-8 py-2 text-xs font-semibold text-slate-600 outline-none focus:border-violet-300 cursor-pointer"
+            className="appearance-none rounded-full border border-gray-200 bg-white pl-4 pr-8 py-2 text-xs font-semibold text-gray-600 outline-none focus:border-violet-300 cursor-pointer"
           >
             <option value="all">All Review Cycles</option>
             {cycles.map((c) => (
@@ -230,9 +192,7 @@ export default function ReviewQueue() {
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <Icons.ChevronDown />
-          </span>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
         </div>
 
         <div className="relative">
@@ -242,7 +202,7 @@ export default function ReviewQueue() {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="appearance-none rounded-full border border-slate-200 bg-white pl-4 pr-8 py-2 text-xs font-semibold text-slate-600 outline-none focus:border-violet-300 cursor-pointer"
+            className="appearance-none rounded-full border border-gray-200 bg-white pl-4 pr-8 py-2 text-xs font-semibold text-gray-600 outline-none focus:border-violet-300 cursor-pointer"
           >
             <option value="all">All Status</option>
             {statusOptions.map((st) => (
@@ -251,9 +211,7 @@ export default function ReviewQueue() {
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <Icons.ChevronDown />
-          </span>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
         </div>
 
         <div className="relative">
@@ -263,98 +221,75 @@ export default function ReviewQueue() {
               setSortBy(e.target.value);
               setPage(1);
             }}
-            className="appearance-none rounded-full border border-slate-200 bg-white pl-4 pr-8 py-2 text-xs font-semibold text-slate-600 outline-none focus:border-violet-300 cursor-pointer"
+            className="appearance-none rounded-full border border-gray-200 bg-white pl-4 pr-8 py-2 text-xs font-semibold text-gray-600 outline-none focus:border-violet-300 cursor-pointer"
           >
             <option value="recent">Sort by: Recently updated</option>
             <option value="name">Sort by: Name A-Z</option>
           </select>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <Icons.ChevronDown />
-          </span>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
         </div>
-
-        {filtersActive && (
-          <button
-            onClick={clearFilters}
-            className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold text-violet-700 hover:bg-violet-50 transition"
-          >
-            <Icons.Refresh />
-            Clear Filters
-          </button>
-        )}
-      </div>
+      </FilterToolbar>
 
       {loading ? (
-        <div className="p-12 text-center text-slate-500">Loading...</div>
+        <div className="p-12 text-center text-gray-500">Loading...</div>
       ) : !filtered.length ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-slate-400 text-sm">
-          {tab === "pending" ? "Nothing needs your review right now." : "No completed reviews yet."}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <EmptyState
+            icon={Inbox}
+            title={tab === "pending" ? "Nothing needs your review right now." : "No completed reviews yet."}
+          />
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {pageItems.map((s, i) => (
-              <div key={s._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col hover:shadow-md hover:border-violet-200 transition">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${AVATAR_STYLES[i % AVATAR_STYLES.length]}`}>
-                      {(s.employeeId?.name || "?").charAt(0).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-800 text-sm truncate">{s.employeeId?.name || "Employee"}</p>
-                      <p className="text-xs text-slate-400 truncate">{s.employeeId?.email || ""}</p>
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
-                    {cycleName[s.cycleId] || "Cycle"}
-                  </span>
-                </div>
-
-                <span className="flex items-center gap-1.5 text-xs text-slate-400 mt-3">
-                  <Icons.Calendar />
-                  {tab === "pending" ? "Submitted" : "Reviewed"} — {formatDate(s.updatedAt || s.createdAt)}
-                </span>
-
-                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-100">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">KRA Assigned</p>
-                    <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mt-1">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.assignmentId ? "bg-emerald-500" : "bg-slate-300"}`} />
-                      {s.assignmentId ? "Yes" : "No"}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Reports To</p>
-                    {s.managerId?.name ? (
-                      <span className="inline-block mt-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md truncate max-w-full">
+              <DataCard
+                key={s._id}
+                avatarLabel={(s.employeeId?.name || "?").charAt(0).toUpperCase()}
+                avatarClass={AVATAR_STYLES[i % AVATAR_STYLES.length]}
+                title={s.employeeId?.name || "Employee"}
+                subtitle={s.employeeId?.email || ""}
+                topRight={<StatusBadge tone="violet" label={cycleName[s.cycleId] || "Cycle"} />}
+                dateLine={
+                  <>
+                    <Calendar className="w-3.5 h-3.5" />
+                    {tab === "pending" ? "Submitted" : "Reviewed"} — {formatDate(s.updatedAt || s.createdAt)}
+                  </>
+                }
+                meta={[
+                  {
+                    label: "KRA Assigned",
+                    value: (
+                      <p className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.assignmentId ? "bg-emerald-500" : "bg-gray-300"}`} />
+                        {s.assignmentId ? "Yes" : "No"}
+                      </p>
+                    ),
+                  },
+                  {
+                    label: "Reports To",
+                    value: s.managerId?.name ? (
+                      <span className="inline-block text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md truncate max-w-full">
                         {s.managerId.name}
                       </span>
                     ) : (
-                      <p className="text-xs font-semibold text-slate-400 mt-1">—</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Status</p>
-                    <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mt-1">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[s.status] || "bg-slate-300"}`} />
-                      {STATUS_LABELS[s.status] || s.status}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigate(`/pms/submissions/${s._id}`)}
-                  className="mt-3 w-full py-2 rounded-xl bg-violet-50 text-violet-700 text-xs font-bold hover:bg-violet-100 transition flex items-center justify-center gap-1.5"
-                >
-                  View Report
-                  <Icons.ChevronRight />
-                </button>
-              </div>
+                      <p className="text-xs font-semibold text-gray-400">—</p>
+                    ),
+                  },
+                  {
+                    label: "Status",
+                    value: <StatusBadge tone={STATUS_TONE[s.status] || "neutral"} label={STATUS_LABELS[s.status] || s.status} dot />,
+                  },
+                ]}
+                actionLabel="View Report"
+                actionIcon={ChevronRight}
+                onAction={() => navigate(`/pms/submissions/${s._id}`)}
+              />
             ))}
           </div>
 
           <div className="flex items-center justify-between mt-5 flex-wrap gap-3">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-gray-400">
               Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} reviews
             </p>
             {totalPages > 1 && (
@@ -362,16 +297,16 @@ export default function ReviewQueue() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                  className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-40 hover:bg-gray-50"
                 >
-                  <Icons.Back />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
                 {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((n) => (
                   <button
                     key={n}
                     onClick={() => setPage(n)}
                     className={`w-8 h-8 rounded-lg text-xs font-semibold ${
-                      n === page ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 border border-slate-200"
+                      n === page ? "bg-gradient-to-r from-violet-800 to-violet-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50 border border-gray-200"
                     }`}
                   >
                     {n}
@@ -380,9 +315,9 @@ export default function ReviewQueue() {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                  className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-40 hover:bg-gray-50"
                 >
-                  <Icons.ChevronRight />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             )}

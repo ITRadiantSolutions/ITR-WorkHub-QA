@@ -1,23 +1,13 @@
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSonner } from "sonner";
 import NotificationBell from "./NotificationBell";
 
 export default function Navbar({ activeTab, setActiveTab, tabs }) {
-  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { toast } = useSonner();
   const handleLogout = () => {
-    const confirmLogout = window.confirm("Are you sure you want to logout?");
-
-    if (!confirmLogout) return;
-
     toast.success("Logged out successfully");
-
-    setTimeout(() => {
-      logout();
-      navigate("/");
-    }, 700);
+    logout();
   };
   // Role badge colors
   const roleColors = {

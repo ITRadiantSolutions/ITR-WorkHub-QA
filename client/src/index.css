@@ -31,6 +31,116 @@
   --color-indigo-800: #3730A3;
   --color-indigo-900: #312E81;
   --color-indigo-950: #1E1B4B;
+
+  /* ---- Design tokens ----------------------------------------------------
+     Additive only — nothing above this changes, so no existing screen
+     shifts. New surfaces should build on these instead of reaching for
+     raw Tailwind reds/yellows/purples ad hoc. See the design-system
+     audit doc for the full rationale and component recipes. */
+
+  /* Primary — blue. This is the brand action color (buttons, links, active
+     nav/tab state, focus rings). Distinct from --color-indigo-* above,
+     which stays as-is for anything already depending on it. */
+  --color-primary-50: #EFF6FF;
+  --color-primary-100: #DBEAFE;
+  --color-primary-200: #BFDBFE;
+  --color-primary-300: #93C5FD;
+  --color-primary-400: #60A5FA;
+  --color-primary-500: #3B82F6;
+  --color-primary-600: #2563EB;
+  --color-primary-700: #1D4ED8;
+  --color-primary-800: #1E40AF;
+  --color-primary-900: #1E3A8A;
+
+  /* Accent — soft purple, for secondary emphasis (premium highlights,
+     "new"/"beta" chips, chart series) — never a primary action. */
+  --color-accent-50: #F5F3FF;
+  --color-accent-100: #EDE9FE;
+  --color-accent-200: #DDD6FE;
+  --color-accent-300: #C4B5FD;
+  --color-accent-500: #8B5CF6;
+  --color-accent-600: #7C3AED;
+  --color-accent-700: #6D28D9;
+
+  /* Semantic — muted triads (soft bg / border / text) for status, never
+     saturated Tailwind reds or yellows straight out of the box. */
+  --color-success-50: #ECFDF5;
+  --color-success-200: #A7F3D0;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+
+  --color-warning-50: #FFFBEB;
+  --color-warning-200: #FDE68A;
+  --color-warning-600: #D97706;
+  --color-warning-700: #B45309;
+
+  --color-danger-50: #FEF2F2;
+  --color-danger-200: #FECACA;
+  --color-danger-600: #DC2626;
+  --color-danger-700: #B91C1C;
+
+  --color-info-50: #EFF6FF;
+  --color-info-200: #BFDBFE;
+  --color-info-600: #2563EB;
+  --color-info-700: #1D4ED8;
+
+  /* Status/priority badges — exact pairs, not derived from the scales above.
+     Kept as their own tokens because the *mapping* (which status gets which
+     tone) is the actual design decision worth pinning down, not just the hex. */
+  --color-status-done-bg: #DCFCE7;        --color-status-done-text: #166534;
+  --color-status-inprogress-bg: #DBEAFE;  --color-status-inprogress-text: #1D4ED8;
+  --color-status-qa-bg: #EDE9FE;          --color-status-qa-text: #6D28D9;
+  --color-status-planning-bg: #F1F5F9;    --color-status-planning-text: #475569;
+  --color-priority-high-bg: #FEF2F2;      --color-priority-high-text: #DC2626;
+  --color-priority-medium-bg: #FEF3C7;    --color-priority-medium-text: #D97706;
+  --color-priority-low-bg: #ECFDF5;       --color-priority-low-text: #059669;
+
+  /* Chart palette — deliberately its own set, not the UI semantic colors
+     above. Never use more than 4 in one chart; donut charts get exactly one
+     primary color plus neutral grays for the remaining segments. */
+  --chart-primary: #3B82F6;
+  --chart-secondary: #93C5FD;
+  --chart-success: #10B981;
+  --chart-warning: #F59E0B;
+  --chart-danger: #EF4444;
+  --chart-neutral: #CBD5E1;
+
+  /* Typography roles — pairs a size with its weight so "Card Title" is one
+     lookup, not a size decision + a weight decision made separately each
+     time. Body text stays on Tailwind's slate-900 (#0F172A) / slate-500
+     (#64748B) — never slate-300/400, which reads as disabled, not secondary. */
+  --fs-page-title: 32px;    --fw-page-title: 700;
+  --fs-section-title: 24px; --fw-section-title: 600;
+  --fs-card-title: 18px;    --fw-card-title: 600;
+  --fs-table-header: 14px;  --fw-table-header: 600;
+  --fs-body: 14px;          --fw-body: 400;
+  --fs-caption: 12px;       --fw-caption: 400;
+
+  /* Radius scale — chips/inputs up to modals/hero panels. Card radius is 16px. */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Shadow scale — deliberately light. A card is a 1px slate-200 border
+     doing most of the work, with just enough shadow to lift it off the
+     page — not the heavier layered shadow of a floating popover. */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-card: 0 2px 10px rgb(15 23 42 / 0.05);
+  --shadow-elevated: 0 4px 16px rgb(15 23 42 / 0.08);
+  --shadow-popover: 0 12px 32px -8px rgb(15 23 42 / 0.20), 0 4px 12px rgb(15 23 42 / 0.08);
+
+  /* Table row hover — one exact value, reused everywhere a row/list-item
+     needs a hover state instead of each table picking its own slate shade. */
+  --color-table-row-hover: #F8FAFC;
+
+  /* Motion — one easing curve, three durations. Reuse these everywhere
+     instead of ad hoc "transition duration-150/200/300" per component. */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
 }
 
 @layer base {

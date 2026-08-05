@@ -1,24 +1,43 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import {
+  Target,
+  ArrowLeft,
+  LayoutDashboard,
+  BookOpen,
+  Layers,
+  FolderOpen,
+  UserPlus,
+  Calendar,
+  ListChecks,
+  Users,
+  Search,
+  FileText,
+  ChevronRight,
+  Moon,
+  Sun,
+  LogOut,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import getInitials from "../utils/getInitials";
-import Icons from "../components/Icons";
 import ProfileModal from "../components/ProfileModal";
 import { isPMS_HR, isPMS_Manager } from "../utils/pmsrolecheck";
 
 const TABS = [
-  { to: "/pms", label: "Overview", icon: "Dashboard" },
-  { to: "/mytemplate", label: "My KRAs", icon: "Book" },
-  { to: "/employeetemplate", label: "Create KRA & KPI", icon: "Layers", managerOrHr: true },
-  { to: "/available_template", label: "KPI Templates", icon: "FolderLg", hrOnly: true },
-  { to: "/assign-individual", label: "Assign KRAs", icon: "UserPlus", hrOnly: true },
-  { to: "/pms/cycles", label: "Review Cycles", icon: "Calendar", managerOrHr: true },
-  { to: "/pms/reviews", label: "Reviews", icon: "CheckAll", managerOrHr: true },
-  { to: "/PMS-userGroup", label: "User Groups", icon: "Users", managerOrHr: true },
-  { to: "/user-kra-search", label: "User KRA Search", icon: "Search", managerOrHr: true },
-  { to: "/PMS-reports", label: "Reports", icon: "Reports" },
+  { to: "/pms", label: "Overview", icon: LayoutDashboard },
+  { to: "/mytemplate", label: "My KRAs", icon: BookOpen },
+  { to: "/employeetemplate", label: "Create KRA & KPI", icon: Layers, managerOrHr: true },
+  { to: "/available_template", label: "KPI Templates", icon: FolderOpen, hrOnly: true },
+  { to: "/assign-individual", label: "Assign KRAs", icon: UserPlus, hrOnly: true },
+  { to: "/pms/cycles", label: "Review Cycles", icon: Calendar, managerOrHr: true },
+  { to: "/pms/reviews", label: "Reviews", icon: ListChecks, managerOrHr: true },
+  { to: "/PMS-userGroup", label: "User Groups", icon: Users, managerOrHr: true },
+  { to: "/user-kra-search", label: "User KRA Search", icon: Search, managerOrHr: true },
+  { to: "/PMS-reports", label: "Reports", icon: FileText },
 ];
+
+const ROLE_LABELS = { hr: "HR", manager: "Manager", employee: "Employee" };
 
 export default function PmsLayout() {
   const { user, logout } = useAuth();
@@ -30,31 +49,32 @@ export default function PmsLayout() {
   const hr = isPMS_HR(user);
   const manager = isPMS_Manager(user);
   const [showProfile, setShowProfile] = useState(false);
+  const roleLabel = ROLE_LABELS[user?.roles?.pms] || "Employee";
 
   return (
     <div className="min-h-screen flex bg-[#F5F7FB]">
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 bg-white border-r border-slate-200 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col sticky top-0 h-screen">
+      <aside className="w-64 shrink-0 bg-white border-r border-gray-200 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col sticky top-0 h-screen">
         <button onClick={() => navigate("/hub")} className="flex items-center gap-2.5 px-5 py-5 shrink-0 group">
-          <div className="w-9 h-9 rounded-[14px] bg-violet-700 flex items-center justify-center text-white shadow-sm group-hover:bg-violet-600 transition-colors shrink-0">
-            <Icons.Target />
+          <div className="w-9 h-9 rounded-[14px] bg-violet-800 flex items-center justify-center text-white shadow-sm group-hover:bg-violet-900 transition-colors shrink-0">
+            <Target className="w-4.5 h-4.5" />
           </div>
-          <span className="text-lg font-extrabold tracking-tight text-slate-900">
-            <span className="text-violet-700">PMS</span>
+          <span className="text-lg font-extrabold tracking-tight text-gray-900">
+            <span className="text-violet-800">PMS</span>
           </span>
         </button>
 
         <div className="px-3 pb-2 shrink-0">
           <button
             onClick={() => navigate("/hub")}
-            className="w-full flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-violet-700 transition"
+            className="w-full flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-violet-800 transition"
           >
-            <Icons.Back />
+            <ArrowLeft className="w-[18px] h-[18px]" />
             Back to Hub
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
           {(() => {
             const visibleTabs = TABS.filter((t) => {
               if (t.hrOnly) return hr;
@@ -69,19 +89,18 @@ export default function PmsLayout() {
               .sort((a, b) => b.to.length - a.to.length)[0]?.to;
 
             return visibleTabs.map((t) => {
-              const Icon = Icons[t.icon];
+              const Icon = t.icon;
               const active = t.to === activeTo;
               return (
                 <button
                   key={t.to}
                   onClick={() => navigate(t.to)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    active
-                      ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white shadow-sm"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                  className={`relative w-full flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    active ? "bg-violet-50 text-violet-800" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                   }`}
                 >
-                  {Icon ? <Icon /> : null}
+                  {active && <span className="absolute left-0.5 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-violet-800" />}
+                  <Icon className="w-5 h-5 shrink-0" />
                   {t.label}
                 </button>
               );
@@ -89,36 +108,36 @@ export default function PmsLayout() {
           })()}
         </nav>
 
-        <div className="px-3 py-3 border-t border-slate-100 space-y-1 shrink-0">
+        <div className="px-3 py-3 border-t border-gray-100 space-y-1 shrink-0">
           <button
             onClick={() => setShowProfile(true)}
-            className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition"
+            className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-gray-50 transition"
           >
-            <div className="w-9 h-9 rounded-full bg-violet-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-violet-800 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
               {initials}
             </div>
             <div className="text-left min-w-0 flex-1">
-              <p className="text-sm font-bold text-slate-800 truncate">{user?.name || "User"}</p>
-              <p className="text-xs text-slate-400">View Profile</p>
+              <p className="text-sm font-bold text-gray-800 truncate">{user?.name || "User"}</p>
+              <p className="text-xs text-gray-400">{roleLabel}</p>
             </div>
-            <span className="text-slate-300 shrink-0">
-              <Icons.ChevronRight />
+            <span className="text-gray-300 shrink-0">
+              <ChevronRight className="w-4 h-4" />
             </span>
           </button>
 
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition"
           >
-            {isDark ? <Icons.Moon /> : <Icons.Sun />}
+            {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             <span className="flex-1 text-left">Theme</span>
-            <span className="text-xs font-bold text-slate-400">{isDark ? "Dark" : "Light"}</span>
+            <span className="text-xs font-bold text-gray-400">{isDark ? "Dark" : "Light"}</span>
           </button>
           <button
             onClick={() => logout()}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-red-50 hover:text-red-600 transition"
           >
-            <Icons.Logout />
+            <LogOut className="w-5 h-5" />
             Logout
           </button>
         </div>
@@ -135,7 +154,7 @@ export default function PmsLayout() {
         user={user}
         moduleLabel="PM"
         role={user?.roles?.pms}
-        accentClass="from-violet-700 to-violet-500"
+        accentClass="from-violet-800 to-violet-600"
       />
     </div>
   );

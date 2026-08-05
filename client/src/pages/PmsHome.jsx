@@ -1,19 +1,34 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  TrendingUp,
+  Calendar,
+  User,
+  Users,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  List,
+  FileText,
+} from "lucide-react";
 import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import Icons from "../components/Icons";
+import PageHeader from "../PMS/components/PageHeader";
+import StatsCard from "../PMS/components/StatsCard";
+import EmptyState from "../PMS/components/EmptyState";
+import StatusBadge from "../PMS/components/StatusBadge";
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "");
 
-const SUBMISSION_STYLES = {
-  draft: "bg-slate-100 text-slate-600",
-  pending_manager_approval: "bg-amber-50 text-amber-700",
-  manager_approved: "bg-blue-50 text-blue-700",
-  employee_submitted: "bg-amber-50 text-amber-700",
-  final_employee_submitted: "bg-amber-50 text-amber-700",
-  manager_reviewed: "bg-blue-50 text-blue-700",
-  final_manager_reviewed: "bg-emerald-50 text-emerald-700",
+const SUBMISSION_TONE = {
+  draft: "neutral",
+  pending_manager_approval: "warning",
+  manager_approved: "info",
+  employee_submitted: "warning",
+  final_employee_submitted: "warning",
+  manager_reviewed: "info",
+  final_manager_reviewed: "success",
 };
 
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
@@ -88,24 +103,24 @@ export default function PmsHome() {
   const statCards = [
     {
       key: "cycles",
-      icon: Icons.Calendar,
-      iconCls: "bg-violet-50 text-violet-600",
+      icon: Calendar,
+      accent: "violet",
       value: cycles.length,
       label: "Review Cycles",
       caption: "Active review cycles",
     },
     {
       key: "employees",
-      icon: Icons.User,
-      iconCls: "bg-blue-50 text-blue-600",
+      icon: User,
+      accent: "blue",
       value: employeeOpenCount,
       label: "Open for Employees",
       caption: "KRAs pending action",
     },
     {
       key: "managers",
-      icon: Icons.Team,
-      iconCls: "bg-emerald-50 text-emerald-600",
+      icon: Users,
+      accent: "emerald",
       value: managerOpenCount,
       label: "Open for Managers",
       caption: "Reviews pending",
@@ -114,15 +129,7 @@ export default function PmsHome() {
 
   return (
     <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-xl bg-violet-700 text-white flex items-center justify-center shadow-sm shrink-0">
-          <Icons.TrendUp />
-        </div>
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Performance Management</h1>
-          <p className="text-sm text-slate-500">Cycles, KRAs and reviews at a glance</p>
-        </div>
-      </div>
+      <PageHeader icon={TrendingUp} title="Performance Management" subtitle="Cycles, KRAs and reviews at a glance" />
 
       {loading ? (
         <div className="p-12 text-center text-slate-500">Loading...</div>
@@ -132,25 +139,16 @@ export default function PmsHome() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             {statCards.map((s) => (
-              <div
+              <StatsCard
                 key={s.key}
+                icon={s.icon}
+                accent={s.accent}
+                value={s.value}
+                label={s.label}
+                caption={s.caption}
                 onClick={isPmsHr ? () => navigate("/pms/cycles") : undefined}
-                className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 transition ${
-                  isPmsHr ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5" : ""
-                }`}
-              >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${s.iconCls}`}>
-                  <s.icon />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-extrabold text-slate-900 tabular-nums leading-none">{s.value}</p>
-                    <p className="text-sm font-bold text-slate-800 truncate">{s.label}</p>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">{s.caption}</p>
-                </div>
-                {isPmsHr && <span className="text-slate-300 shrink-0"><Icons.ChevronRight /></span>}
-              </div>
+                chevron={isPmsHr}
+              />
             ))}
           </div>
 
@@ -173,7 +171,7 @@ export default function PmsHome() {
               </div>
 
               {!submissions.length ? (
-                <div className="p-8 text-center text-slate-400 text-sm">No reviews yet.</div>
+                <EmptyState icon={FileText} title="No reviews yet." />
               ) : (
                 <>
                   <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-3 flex-wrap">
@@ -189,7 +187,7 @@ export default function PmsHome() {
                         ))}
                       </select>
                       <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Icons.ChevronDown />
+                        <ChevronDown className="w-4 h-4" />
                       </span>
                     </div>
 
@@ -204,7 +202,7 @@ export default function PmsHome() {
                         ))}
                       </select>
                       <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Icons.ChevronDown />
+                        <ChevronDown className="w-4 h-4" />
                       </span>
                     </div>
 
@@ -216,7 +214,7 @@ export default function PmsHome() {
                           viewMode === "grid" ? "bg-violet-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"
                         }`}
                       >
-                        <Icons.Grid />
+                        <LayoutGrid className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setViewMode("list")}
@@ -225,13 +223,13 @@ export default function PmsHome() {
                           viewMode === "list" ? "bg-violet-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"
                         }`}
                       >
-                        <Icons.List />
+                        <List className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
                   {!visibleSubmissions.length ? (
-                    <div className="p-8 text-center text-slate-400 text-sm">No reviews match this filter.</div>
+                    <EmptyState icon={FileText} title="No reviews match this filter." />
                   ) : viewMode === "grid" ? (
                     <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {pagedSubmissions.map((s) => {
@@ -244,19 +242,19 @@ export default function PmsHome() {
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
-                                <Icons.File />
+                                <FileText className="w-4 h-4" />
                               </span>
                               {s.finalReport?.overallRating != null && (
                                 <span className="text-sm font-bold text-violet-700 tabular-nums shrink-0">{s.finalReport.overallRating}/5</span>
                               )}
                             </div>
                             <p className="font-semibold text-slate-800 text-sm mt-2 truncate">{s.employeeId?.name || "You"}</p>
-                            <span className={`inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${SUBMISSION_STYLES[s.status] || "bg-slate-100 text-slate-600"}`}>
-                              {s.status.replace(/_/g, " ")}
-                            </span>
+                            <div className="mt-1">
+                              <StatusBadge tone={SUBMISSION_TONE[s.status] || "neutral"} label={s.status.replace(/_/g, " ")} />
+                            </div>
                             {cycle && (
                               <p className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-2">
-                                <Icons.Calendar />
+                                <Calendar className="w-3.5 h-3.5" />
                                 {fmtDate(cycle.start)} – {fmtDate(cycle.end)}
                               </p>
                             )}
@@ -275,19 +273,19 @@ export default function PmsHome() {
                             className="text-left rounded-xl border border-slate-100 p-3 flex items-center gap-3 hover:border-violet-200 hover:shadow-sm transition"
                           >
                             <span className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
-                              <Icons.File />
+                              <FileText className="w-4 h-4" />
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold text-slate-800 text-sm truncate">{s.employeeId?.name || "You"}</p>
                               {cycle && (
                                 <p className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
-                                  <Icons.Calendar />
+                                  <Calendar className="w-3.5 h-3.5" />
                                   {fmtDate(cycle.start)} – {fmtDate(cycle.end)}
                                 </p>
                               )}
                             </div>
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SUBMISSION_STYLES[s.status] || "bg-slate-100 text-slate-600"}`}>
-                              {s.status.replace(/_/g, " ")}
+                            <span className="shrink-0">
+                              <StatusBadge tone={SUBMISSION_TONE[s.status] || "neutral"} label={s.status.replace(/_/g, " ")} />
                             </span>
                             {s.finalReport?.overallRating != null && (
                               <span className="text-sm font-bold text-violet-700 tabular-nums shrink-0 w-12 text-right">{s.finalReport.overallRating}/5</span>
@@ -309,7 +307,7 @@ export default function PmsHome() {
                           disabled={reviewPage === 1}
                           className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50"
                         >
-                          <Icons.Back />
+                          <ChevronLeft className="w-4 h-4" />
                         </button>
                         {Array.from({ length: totalReviewPages }, (_, i) => i + 1).map((p) => (
                           <button
@@ -327,7 +325,7 @@ export default function PmsHome() {
                           disabled={reviewPage === totalReviewPages}
                           className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50"
                         >
-                          <Icons.Arrow />
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                       <select

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { isTaskOverdue } from "../utils/taskDates";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "../components/NotificationBell";
 import { API, DATA_MUTATED_EVENT } from "../services/api";
@@ -307,7 +306,6 @@ function Field({ label, required, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function QADashboard() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -505,70 +503,8 @@ export default function QADashboard() {
     }
   };
   const handleLogout = () => {
-    toast.custom(
-      (t) => (
-        <div className="w-[360px] rounded-3xl border border-slate-200 bg-white shadow-2xl p-5">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </div>
-
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-slate-900">
-                Logout Account?
-              </h3>
-
-              <p className="text-xs text-slate-500 mt-1 leading-5">
-                Are you sure you want to sign out from your account?
-              </p>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-5 flex gap-2">
-            <button
-              onClick={() => toast.dismiss(t)}
-              className="flex-1 h-10 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={() => {
-                toast.dismiss(t);
-                toast.success("Logged out successfully");
-
-                setTimeout(() => {
-                  logout();
-                  navigate("/");
-                }, 600);
-              }}
-              className="flex-1 h-10 rounded-2xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      ),
-      {
-        position: "bottom-left",
-        duration: 5000,
-      },
-    );
+    toast.success("Logged out successfully");
+    logout();
   };
   const counts = {
     total: bugs.length,
@@ -1066,8 +1002,8 @@ export default function QADashboard() {
                     <span className="text-[11px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-full">{counts.resolved} resolved</span>
                   </div>
                   <div className="p-5"><DistributionDonut centerLabel="bugs" data={[
-                    { label: "Open", value: counts.open, color: "#dc2626" }, { label: "In Progress", value: counts.progress, color: "#3b82f6" },
-                    { label: "Resolved", value: counts.resolved, color: "#059669" }, { label: "Won't Fix", value: bugs.filter((b) => b.status === "WONT_FIX").length, color: "#94a3b8" },
+                    { label: "Open", value: counts.open, color: "#F97316" }, { label: "In Progress", value: counts.progress, color: "var(--chart-primary)" },
+                    { label: "Resolved", value: counts.resolved, color: "var(--color-indigo-600)" }, { label: "Won't Fix", value: bugs.filter((b) => b.status === "WONT_FIX").length, color: "var(--chart-neutral)" },
                   ]} /></div>
                 </div>
 
@@ -1078,8 +1014,8 @@ export default function QADashboard() {
                     <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">{taskCounts.total ? Math.round((taskCounts.done / taskCounts.total) * 100) : 0}% done</span>
                   </div>
                   <div className="p-5"><DistributionDonut centerLabel="tasks" data={[
-                    { label: "Todo", value: taskCounts.todo, color: "#94a3b8" }, { label: "In Progress", value: taskCounts.inProgress, color: "#3b82f6" },
-                    { label: "QA Testing", value: tasks.filter((t) => normalizeStatus(t.status) === "QA_TESTING").length, color: "#7c3aed" }, { label: "Done", value: taskCounts.done, color: "#059669" },
+                    { label: "Todo", value: taskCounts.todo, color: "var(--color-indigo-200)" }, { label: "In Progress", value: taskCounts.inProgress, color: "var(--color-indigo-400)" },
+                    { label: "QA Testing", value: tasks.filter((t) => normalizeStatus(t.status) === "QA_TESTING").length, color: "var(--color-indigo-600)" }, { label: "Done", value: taskCounts.done, color: "var(--color-indigo-800)" },
                   ]} /></div>
                 </div>
               </div>

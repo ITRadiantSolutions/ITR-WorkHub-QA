@@ -61,7 +61,7 @@ function SkeletonReports() {
 }
 
 // ── Donut chart ───────────────────────────────────────────────────────────────
-function Donut({ value, total, label, size = 80, stroke = "#00a21d" }) {
+function Donut({ value, total, label, size = 80, stroke = "var(--chart-success)" }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   const r = size * 0.4;
   const cx = size / 2;
@@ -111,11 +111,11 @@ function Donut({ value, total, label, size = 80, stroke = "#00a21d" }) {
 // ── Horizontal bar ────────────────────────────────────────────────────────────
 function StatusDonut({ metrics, size = 96 }) {
   const data = [
-    { label: "Done", value: metrics.done, color: "#10b981" },
-    { label: "In Progress", value: metrics.inProgress, color: "#4f46e5" },
-    { label: "QA Testing", value: metrics.qa, color: "#8b5cf6" },
-    { label: "On Hold", value: metrics.onHold, color: "#d97706" },
-    { label: "Todo", value: metrics.todo, color: "#cbd5e1" },
+    { label: "Done", value: metrics.done, color: "var(--chart-success)" },
+    { label: "In Progress", value: metrics.inProgress, color: "var(--chart-primary)" },
+    { label: "QA Testing", value: metrics.qa, color: "var(--chart-secondary)" },
+    { label: "On Hold", value: metrics.onHold, color: "var(--chart-warning)" },
+    { label: "Todo", value: metrics.todo, color: "var(--chart-neutral)" },
   ];
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const radius = size * 0.38;
@@ -537,7 +537,7 @@ function DeveloperReport({
       <div className="flex justify-end">
         <button
           onClick={exportMyTasksExcel}
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-2 rounded-lg text-sm font-semibold transition"
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-2 rounded-lg text-sm font-semibold transition"
         >
           <Icons.Download />
           Export My Tasks
@@ -553,30 +553,17 @@ function DeveloperReport({
           subtitle="Status & priority breakdown"
           icon={Icons.BarChart}
         >
-          <div className="flex items-center gap-4">
-            <StatusDonut metrics={m} />
-            <div className="space-y-2 flex-1">
-              {[
-                { label: "Done", val: m.done, color: "#0f172a" },
-                { label: "In Progress", val: m.inProgress, color: "#4f46e5" },
-                { label: "QA Testing", val: m.qa, color: "#7c3aed" },
-                { label: "On Hold", val: m.onHold, color: "#d97706" },
-                { label: "Todo", val: m.todo, color: "#cbd5e1" },
-                { label: "Overdue", val: m.overdue, color: "#ef4444" },
-              ].map((d, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-[11px]">
-                  <div
-                    className="w-2 h-2 rounded-sm shrink-0"
-                    style={{ backgroundColor: d.color }}
-                  />
-                  <span className="text-slate-500">{d.label}</span>
-                  <span className="ml-auto font-bold text-slate-700">
-                    {d.val}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <VBar
+            height={140}
+            data={[
+              { label: "Done", value: m.done, color: "var(--chart-success)" },
+              { label: "In Progress", value: m.inProgress, color: "var(--chart-primary)" },
+              { label: "QA Testing", value: m.qa, color: "var(--chart-secondary)" },
+              { label: "On Hold", value: m.onHold, color: "var(--chart-warning)" },
+              { label: "Todo", value: m.todo, color: "var(--chart-neutral)" },
+              { label: "Overdue", value: m.overdue, color: "var(--chart-danger)" },
+            ]}
+          />
 
           <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
@@ -586,19 +573,19 @@ function DeveloperReport({
               label="High"
               value={m.highPri}
               total={m.total}
-              color="#dc2626"
+              color="var(--priority-high-text)"
             />
             <HBar
               label="Medium"
               value={m.medPri}
               total={m.total}
-              color="#d97706"
+              color="var(--priority-medium-text)"
             />
             <HBar
               label="Low"
               value={m.lowPri}
               total={m.total}
-              color="#94a3b8"
+              color="var(--chart-neutral)"
             />
           </div>
         </Section>
@@ -693,17 +680,17 @@ function DeveloperReport({
               {
                 label: "Open",
                 v: bugs.filter((b) => b.status === "OPEN").length,
-                color: "#dc2626",
+                color: "var(--chart-danger)",
               },
               {
                 label: "In Progress",
                 v: bugs.filter((b) => b.status === "IN_PROGRESS").length,
-                color: "#4f46e5",
+                color: "var(--chart-primary)",
               },
               {
                 label: "Resolved",
                 v: bugs.filter((b) => b.status === "RESOLVED").length,
-                color: "#059669",
+                color: "var(--chart-success)",
               },
             ].map((d, i) => (
               <div
@@ -719,10 +706,10 @@ function DeveloperReport({
           </div>
           <div className="space-y-2.5">
             {[
-              { label: "Critical", color: "#dc2626", sev: "CRITICAL" },
-              { label: "High", color: "#ea580c", sev: "HIGH" },
-              { label: "Medium", color: "#d97706", sev: "MEDIUM" },
-              { label: "Low", color: "#22c55e", sev: "LOW" },
+              { label: "Critical", color: "var(--chart-danger)", sev: "CRITICAL" },
+              { label: "High", color: "var(--priority-high-text)", sev: "HIGH" },
+              { label: "Medium", color: "var(--priority-medium-text)", sev: "MEDIUM" },
+              { label: "Low", color: "var(--priority-low-text)", sev: "LOW" },
             ].map((row) => {
               const cnt = bugs.filter((b) => b.severity === row.sev).length;
               return (
@@ -940,7 +927,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
       <div className="flex justify-end">
         <button
           onClick={exportQAReportExcel}
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-2 rounded-lg text-sm font-semibold transition"
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-2 rounded-lg text-sm font-semibold transition"
         >
           <Icons.Download />
           Export QA Report
@@ -954,46 +941,43 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
           subtitle="Personal task breakdown"
           icon={Icons.Tasks}
         >
-          <div className="flex items-start gap-5 mb-4">
-            <StatusDonut metrics={m} size={88} />
-            <div className="flex-1 space-y-2.5">
-              <HBar
-                label="Done"
-                value={m.done}
-                total={m.total}
-                color="#0f172a"
-              />
-              <HBar
-                label="In Progress"
-                value={m.inProgress}
-                total={m.total}
-                color="#4f46e5"
-              />
-              <HBar
-                label="QA Testing"
-                value={m.qa}
-                total={m.total}
-                color="#7c3aed"
-              />
-              <HBar
-                label="On Hold"
-                value={m.onHold}
-                total={m.total}
-                color="#d97706"
-              />
-              <HBar
-                label="Todo"
-                value={m.todo}
-                total={m.total}
-                color="#94a3b8"
-              />
-              <HBar
-                label="Overdue"
-                value={m.overdue}
-                total={m.total}
-                color="#ef4444"
-              />
-            </div>
+          <div className="space-y-2.5 mb-4">
+            <HBar
+              label="Done"
+              value={m.done}
+              total={m.total}
+              color="var(--color-primary-600)"
+            />
+            <HBar
+              label="In Progress"
+              value={m.inProgress}
+              total={m.total}
+              color="var(--color-primary-500)"
+            />
+            <HBar
+              label="QA Testing"
+              value={m.qa}
+              total={m.total}
+              color="var(--color-primary-400)"
+            />
+            <HBar
+              label="On Hold"
+              value={m.onHold}
+              total={m.total}
+              color="var(--color-primary-300)"
+            />
+            <HBar
+              label="Todo"
+              value={m.todo}
+              total={m.total}
+              color="var(--color-primary-200)"
+            />
+            <HBar
+              label="Overdue"
+              value={m.overdue}
+              total={m.total}
+              color="var(--color-primary-900)"
+            />
           </div>
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2">
             <Icons.TrendUp />
@@ -1014,25 +998,25 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
               label="Open"
               value={bugCounts.open}
               total={bugCounts.total}
-              color="#dc2626"
+              color="var(--color-primary-900)"
             />
             <HBar
               label="In Progress"
               value={bugCounts.progress}
               total={bugCounts.total}
-              color="#4f46e5"
+              color="var(--color-primary-600)"
             />
             <HBar
               label="Resolved"
               value={bugCounts.resolved}
               total={bugCounts.total}
-              color="#059669"
+              color="var(--color-primary-400)"
             />
             <HBar
               label="Won't Fix"
               value={bugCounts.wontFix}
               total={bugCounts.total}
-              color="#94a3b8"
+              color="var(--color-primary-200)"
             />
           </div>
           <div className="border-t border-slate-100 pt-3 space-y-2">
@@ -1040,10 +1024,10 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
               Severity
             </p>
             {[
-              { label: "Critical", sev: "CRITICAL", color: "#dc2626" },
-              { label: "High", sev: "HIGH", color: "#ea580c" },
-              { label: "Medium", sev: "MEDIUM", color: "#d97706" },
-              { label: "Low", sev: "LOW", color: "#22c55e" },
+              { label: "Critical", sev: "CRITICAL", color: "var(--color-primary-900)" },
+              { label: "High", sev: "HIGH", color: "var(--color-primary-700)" },
+              { label: "Medium", sev: "MEDIUM", color: "var(--color-primary-500)" },
+              { label: "Low", sev: "LOW", color: "var(--color-primary-300)" },
             ].map((row) => (
               <HBar
                 key={row.sev}
@@ -1546,37 +1530,37 @@ function AdminReport({
               label="Done"
               value={gm.done}
               total={gm.total}
-              color="#059669"
+              color="var(--chart-success)"
             />
             <HBar
               label="In Progress"
               value={gm.inProgress}
               total={gm.total}
-              color="#4f46e5"
+              color="var(--chart-primary)"
             />
             <HBar
               label="QA Testing"
               value={gm.qa}
               total={gm.total}
-              color="#7c3aed"
+              color="var(--chart-secondary)"
             />
             <HBar
               label="On Hold"
               value={gm.onHold}
               total={gm.total}
-              color="#d97706"
+              color="var(--priority-medium-text)"
             />
             <HBar
               label="Todo"
               value={gm.todo}
               total={gm.total}
-              color="#94a3b8"
+              color="var(--chart-neutral)"
             />
             <HBar
               label="Overdue"
               value={gm.overdue}
               total={gm.total}
-              color="#ef4444"
+              color="var(--chart-danger)"
             />
           </div>
         </Section>
@@ -1643,10 +1627,10 @@ function AdminReport({
           </div>
           <div className="space-y-2">
             {[
-              { label: "Critical", sev: "CRITICAL", color: "#dc2626" },
-              { label: "High", sev: "HIGH", color: "#ea580c" },
-              { label: "Medium", sev: "MEDIUM", color: "#d97706" },
-              { label: "Low", sev: "LOW", color: "#22c55e" },
+              { label: "Critical", sev: "CRITICAL", color: "var(--chart-danger)" },
+              { label: "High", sev: "HIGH", color: "var(--priority-high-text)" },
+              { label: "Medium", sev: "MEDIUM", color: "var(--priority-medium-text)" },
+              { label: "Low", sev: "LOW", color: "var(--priority-low-text)" },
             ].map((row) => (
               <HBar
                 key={row.sev}
@@ -1936,7 +1920,7 @@ function AdminReport({
                 {canExportEmployeeReport && quickExportEmp && (
                   <button
                     onClick={() => exportEmployeeReportExcel(quickExportEmp)}
-                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition"
+                    className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition"
                     title={`Export ${quickExportEmp.name || "employee"} task report to Excel`}
                   >
                     <Icons.Download />

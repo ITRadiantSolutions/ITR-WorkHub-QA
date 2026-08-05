@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
  import getAuthAxios from "../../utils/authAxios";
 import Loader from "../components/Loader";
+import StatsCard from "../components/StatsCard";
+import FilterToolbar from "../components/FilterToolbar";
 import HeaderSwitch from "./HeaderSwitch";
 import EmployeeReviewView from "./EmployeeReviewView";
 import MyReportView from "./MyReportView";
@@ -42,9 +44,7 @@ export default function PMSReport() {
   const [sortBy, setSortBy] = useState("recent");
   const [page, setPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState("all");
-  const [cycles, setCycles] = useState([]);
   const [kraMap, setKraMap] = useState({});
-  const [cyclePendingCounts, setCyclePendingCounts] = useState({ current: null, previous: null });
 
   const [managerFeedback, setManagerFeedback] = useState("");
   const [managerRating, setManagerRating] = useState(0);
@@ -167,40 +167,12 @@ export default function PMSReport() {
           );
         }
 
-        const nsUrl = (cycleId) => {
-          const params = new URLSearchParams();
-          if (managerId) params.set("manager_id", managerId);
-          if (cycleId) params.set("cycleId", cycleId);
-          const qs = params.toString();
-          return `/reports/non-submitters${qs ? `?${qs}` : ""}`;
-        };
-
         try {
-          const nsRes = await api.get(nsUrl());
+          const nsUrl = managerId ? `/reports/non-submitters?manager_id=${managerId}` : `/reports/non-submitters`;
+          const nsRes = await api.get(nsUrl);
           setNonSubmitters(nsRes.data || []);
         } catch {
           setNonSubmitters([]);
-        }
-
-        try {
-          const cyclesRes = await api.get(`/cycles/`);
-          const allCycles = cyclesRes.data || [];
-          setCycles(allCycles);
-
-          const currentCycle = allCycles[0] || null;
-          const previousCycle = allCycles[1] || null;
-          const [curNsRes, prevNsRes] = await Promise.all([
-            currentCycle ? api.get(nsUrl(currentCycle.id)) : Promise.resolve({ data: null }),
-            previousCycle ? api.get(nsUrl(previousCycle.id)) : Promise.resolve({ data: null }),
-          ]);
-          setCyclePendingCounts({
-            current: currentCycle ? (curNsRes.data || []).length : null,
-            previous: previousCycle ? (prevNsRes.data || []).length : null,
-          });
-        } catch (err) {
-          console.error("Failed to load cycle-scoped stats", err);
-          setCycles([]);
-          setCyclePendingCounts({ current: null, previous: null });
         }
 
         try {
@@ -338,20 +310,6 @@ export default function PMSReport() {
 
     return matchesSearch && matchesTab && matchesRole;
   });
-
-  const currentCycleId = cycles[0]?.id || null;
-  const previousCycleId = cycles[1]?.id || null;
-
-  const cycleBreakdown = (status) => ({
-    current: currentCycleId
-      ? employees.filter((e) => getEmployeeReviewStatus(e) === status && e.cycleId === currentCycleId).length
-      : null,
-    previous: previousCycleId
-      ? employees.filter((e) => getEmployeeReviewStatus(e) === status && e.cycleId === previousCycleId).length
-      : null,
-  });
-  const submittedByCycle = cycleBreakdown("submitted");
-  const reviewedByCycle = cycleBreakdown("reviewed");
 
   // ✅ Update counts too
   const submittedCount = employees.filter(
@@ -689,170 +647,66 @@ export default function PMSReport() {
               user={user}
             />
 
-            {/* Right: Sort + Search + Export */}
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              {/* Sort */}
-              {reportTab !== "not-submitted" && (
-                <div className="relative shrink-0">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => {
-                      setSortBy(e.target.value);
-                      setPage(1);
-                    }}
-                    className="appearance-none rounded-lg border border-gray-300 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-gray-600 shadow-sm outline-none focus:border-violet-300 cursor-pointer"
-                  >
-                    <option value="recent">Sort by: Recently {reportTab === "reviewed" ? "reviewed" : "submitted"}</option>
-                    <option value="name">Sort by: Name A-Z</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                </div>
-              )}
-
-              {/* Search */}
-              <div className="relative w-full md:w-64">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Search name / email"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 pl-9 text-sm shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none"
-                />
-                <svg
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
-                  />
-                </svg>
-              </div>
-
-              {/* Export All */}
-              <motion.button
-                onClick={handleExportAll}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-purple-700"
-              >
-                <Download size={16} />
-                Export All
-              </motion.button>
-            </div>
+            {/* Right: Export */}
+            <motion.button
+              onClick={handleExportAll}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-purple-700 shrink-0"
+            >
+              <Download size={16} />
+              Export All
+            </motion.button>
           </div>
 
           {/* Stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <button
+            <StatsCard
+              icon={Send}
+              label="Submitted"
+              value={submittedCount}
+              accent="violet"
+              active={reportTab === "submitted"}
               onClick={() => {
                 setReportTab("submitted");
                 setPage(1);
               }}
-              className={`text-left rounded-2xl p-5 flex flex-col gap-4 bg-gradient-to-br from-violet-50 to-violet-100/50 border transition hover:shadow-md ${reportTab === "submitted" ? "border-violet-300 shadow-sm" : "border-violet-100"}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-11 h-11 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <Send className="w-5 h-5" />
-                </span>
-                <div>
-                  <p className="text-[11px] font-bold text-violet-700/70 uppercase tracking-wide">Submitted</p>
-                  <p className="text-2xl font-extrabold text-gray-900 leading-tight">{submittedCount}</p>
-                  {reportTab === "submitted" && <div className="h-0.5 w-8 bg-violet-600 rounded-full mt-1" />}
-                </div>
-              </div>
-              <div className="h-px bg-violet-200/70" />
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">This cycle</span>
-                  <span className="font-semibold text-gray-800">{submittedByCycle.current ?? "—"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Previous cycle</span>
-                  <span className="font-semibold text-gray-800">{submittedByCycle.previous ?? "—"}</span>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-violet-700 flex items-center gap-1">
-                View all submitted <ArrowRight className="w-3.5 h-3.5" />
-              </span>
-            </button>
-
-            <button
+            />
+            <StatsCard
+              icon={Eye}
+              label="Reviewed"
+              value={reviewedCount}
+              accent="emerald"
+              active={reportTab === "reviewed"}
               onClick={() => {
                 setReportTab("reviewed");
                 setPage(1);
               }}
-              className={`text-left rounded-2xl p-5 flex flex-col gap-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border transition hover:shadow-md ${reportTab === "reviewed" ? "border-emerald-300 shadow-sm" : "border-emerald-100"}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <Eye className="w-5 h-5" />
-                </span>
-                <div>
-                  <p className="text-[11px] font-bold text-emerald-700/70 uppercase tracking-wide">Reviewed</p>
-                  <p className="text-2xl font-extrabold text-gray-900 leading-tight">{reviewedCount}</p>
-                  {reportTab === "reviewed" && <div className="h-0.5 w-8 bg-emerald-600 rounded-full mt-1" />}
-                </div>
-              </div>
-              <div className="h-px bg-emerald-200/70" />
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">This cycle</span>
-                  <span className="font-semibold text-gray-800">{reviewedByCycle.current ?? "—"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Previous cycle</span>
-                  <span className="font-semibold text-gray-800">{reviewedByCycle.previous ?? "—"}</span>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
-                View all reviewed <ArrowRight className="w-3.5 h-3.5" />
-              </span>
-            </button>
-
-            <button
+            />
+            <StatsCard
+              icon={UserX}
+              label="Self Review Pending"
+              value={notSubmittedCount}
+              accent="amber"
+              active={reportTab === "not-submitted"}
               onClick={() => {
                 setReportTab("not-submitted");
                 setPage(1);
               }}
-              className={`text-left rounded-2xl p-5 flex flex-col gap-4 bg-gradient-to-br from-amber-50 to-amber-100/50 border transition hover:shadow-md ${reportTab === "not-submitted" ? "border-amber-300 shadow-sm" : "border-amber-100"}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <UserX className="w-5 h-5" />
-                </span>
-                <div>
-                  <p className="text-[11px] font-bold text-amber-700/70 uppercase tracking-wide">Self Review Pending</p>
-                  <p className="text-2xl font-extrabold text-gray-900 leading-tight">{notSubmittedCount}</p>
-                  {reportTab === "not-submitted" && <div className="h-0.5 w-8 bg-amber-600 rounded-full mt-1" />}
-                </div>
-              </div>
-              <div className="h-px bg-amber-200/70" />
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">This cycle</span>
-                  <span className="font-semibold text-gray-800">{cyclePendingCounts.current ?? "—"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Previous cycle</span>
-                  <span className="font-semibold text-gray-800">{cyclePendingCounts.previous ?? "—"}</span>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-amber-700 flex items-center gap-1">
-                View all pending <ArrowRight className="w-3.5 h-3.5" />
-              </span>
-            </button>
+            />
           </div>
 
           {/* Filters */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex items-center gap-2 flex-wrap">
+          <FilterToolbar
+            search={{
+              value: searchTerm,
+              onChange: (v) => {
+                setSearchTerm(v);
+                setPage(1);
+              },
+              placeholder: "Search name / email",
+            }}
+          >
             <button type="button" disabled title="Department grouping isn't available yet"
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed shrink-0">
               <Building2 className="w-3.5 h-3.5" />
@@ -895,7 +749,24 @@ export default function PMSReport() {
               <Filter className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             </div>
-          </div>
+
+            {reportTab !== "not-submitted" && (
+              <div className="relative shrink-0 ml-auto">
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setPage(1);
+                  }}
+                  className="appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-8 py-2 text-xs font-semibold text-gray-600 outline-none focus:border-violet-300 cursor-pointer"
+                >
+                  <option value="recent">Sort by: Recently {reportTab === "reviewed" ? "reviewed" : "submitted"}</option>
+                  <option value="name">Sort by: Name A-Z</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              </div>
+            )}
+          </FilterToolbar>
 
           {/* Employee List */}
           {pageItems.length === 0 ? (
