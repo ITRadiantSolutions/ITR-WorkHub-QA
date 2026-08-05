@@ -140,7 +140,7 @@ export default function EditTemplate() {
             <span>Back</span>
           </motion.button>
 
-          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-xl font-extrabold text-slate-900">
             Edit Template
           </h1>
 

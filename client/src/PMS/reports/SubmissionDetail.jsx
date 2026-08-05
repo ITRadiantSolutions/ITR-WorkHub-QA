@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { API } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import PmsSubnav from "../../components/PmsSubnav";
 import Icons from "../../components/Icons";
 
 const STATUS_LABELS = {
@@ -138,13 +137,10 @@ export default function SubmissionDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-purple-100">
-      <PmsSubnav />
-
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4">
-          <Icons.Back /> Back
-        </button>
+    <main className="max-w-3xl mx-auto px-6 py-8">
+      <button onClick={() => navigate("/pms/reviews")} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4">
+        <Icons.Back /> Back to Reviews
+      </button>
 
         {loading || !submission ? (
           <div className="p-12 text-center text-slate-500">Loading...</div>
@@ -268,7 +264,6 @@ export default function SubmissionDetail() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

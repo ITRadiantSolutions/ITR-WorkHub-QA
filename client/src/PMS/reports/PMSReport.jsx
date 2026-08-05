@@ -7,7 +7,7 @@ import Loader from "../components/Loader";
 import HeaderSwitch from "./HeaderSwitch";
 import EmployeeReviewView from "./EmployeeReviewView";
 import MyReportView from "./MyReportView";
-import { Users, FileText, Calendar, ArrowRight } from "lucide-react";
+import { Users, FileText, Calendar, ArrowRight, Send, Eye, UserX, ChevronDown, ChevronLeft, Building2, User as UserIcon, Filter } from "lucide-react";
 // import * as XLSX from "xlsx";
 import * as XLSX from "xlsx";
 
@@ -15,6 +15,15 @@ import * as XLSX from "xlsx";
 import { Download } from "lucide-react";
 import { isPMS_Employee, isPMS_HR, isPMS_Manager } from "../../utils/pmsrolecheck";
 
+const PAGE_SIZE = 9;
+const AVATAR_STYLES = [
+  "bg-violet-100 text-violet-700",
+  "bg-blue-100 text-blue-700",
+  "bg-pink-100 text-pink-700",
+  "bg-amber-100 text-amber-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-cyan-100 text-cyan-700",
+];
 
 export default function PMSReport() {
   const navigate = useNavigate();
@@ -30,6 +39,12 @@ export default function PMSReport() {
 
   const [loading, setLoading] = useState(true);
   const [reportTab, setReportTab] = useState("submitted");
+  const [sortBy, setSortBy] = useState("recent");
+  const [page, setPage] = useState(1);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [cycles, setCycles] = useState([]);
+  const [kraMap, setKraMap] = useState({});
+  const [cyclePendingCounts, setCyclePendingCounts] = useState({ current: null, previous: null });
 
   const [managerFeedback, setManagerFeedback] = useState("");
   const [managerRating, setManagerRating] = useState(0);
@@ -115,9 +130,9 @@ export default function PMSReport() {
         const api = await getAuthAxios();
 
         let res;
+        const managerId = isPMS_Manager(user) ? getUserId(user) : null;
 
         if (isPMS_Manager(user)) {
-          const managerId = getUserId(user);
           res = await api.get(`/reports/manager/${managerId}/employees`);
 
           setEmployees(
@@ -129,7 +144,8 @@ export default function PMSReport() {
               reviewedAt: r.reviewedAt,
               role: r.employeeRole,
               status: r.status,
-              managerResponse: r.managerResponse || null
+              managerResponse: r.managerResponse || null,
+              cycleId: r.cycleId || null,
             }))
           );
         } else if (isPMS_HR(user)) {
@@ -145,19 +161,58 @@ export default function PMSReport() {
               submittedAt: r.submittedAt,
               reviewedAt: r.reviewedAt,
               role: r.employeeRole,
-              managerResponse: r.managerResponse || null
+              managerResponse: r.managerResponse || null,
+              cycleId: r.cycleId || null,
             }))
           );
         }
+
+        const nsUrl = (cycleId) => {
+          const params = new URLSearchParams();
+          if (managerId) params.set("manager_id", managerId);
+          if (cycleId) params.set("cycleId", cycleId);
+          const qs = params.toString();
+          return `/reports/non-submitters${qs ? `?${qs}` : ""}`;
+        };
+
         try {
-          const managerId = isPMS_Manager(user) ? getUserId(user) : null;
-          const nsUrl = managerId
-            ? `/reports/non-submitters?manager_id=${managerId}`
-            : `/reports/non-submitters`;
-          const nsRes = await api.get(nsUrl);
+          const nsRes = await api.get(nsUrl());
           setNonSubmitters(nsRes.data || []);
         } catch {
           setNonSubmitters([]);
+        }
+
+        try {
+          const cyclesRes = await api.get(`/cycles/`);
+          const allCycles = cyclesRes.data || [];
+          setCycles(allCycles);
+
+          const currentCycle = allCycles[0] || null;
+          const previousCycle = allCycles[1] || null;
+          const [curNsRes, prevNsRes] = await Promise.all([
+            currentCycle ? api.get(nsUrl(currentCycle.id)) : Promise.resolve({ data: null }),
+            previousCycle ? api.get(nsUrl(previousCycle.id)) : Promise.resolve({ data: null }),
+          ]);
+          setCyclePendingCounts({
+            current: currentCycle ? (curNsRes.data || []).length : null,
+            previous: previousCycle ? (prevNsRes.data || []).length : null,
+          });
+        } catch (err) {
+          console.error("Failed to load cycle-scoped stats", err);
+          setCycles([]);
+          setCyclePendingCounts({ current: null, previous: null });
+        }
+
+        try {
+          const kraRes = await api.get(`/kpi-template/search-user`);
+          const map = {};
+          (kraRes.data || []).forEach((u) => {
+            map[u.id] = { hasKRA: !!u.hasKRA, managerName: u.manager_name || null };
+          });
+          setKraMap(map);
+        } catch (err) {
+          console.error("Failed to load KRA assignment data", err);
+          setKraMap({});
         }
       } catch (err) {
         console.error("Failed to load employees", err);
@@ -259,6 +314,8 @@ export default function PMSReport() {
     return "pending"; // not shown in either tab
   };
 
+  const availableRoles = [...new Set(employees.map((e) => e.role).filter(Boolean))];
+
   const filteredEmployees = employees.filter((emp) => {
     const term = searchTerm.toLowerCase();
 
@@ -277,8 +334,24 @@ export default function PMSReport() {
         ? status === "submitted"
         : status === "reviewed";
 
-    return matchesSearch && matchesTab;
+    const matchesRole = roleFilter === "all" || emp.role === roleFilter;
+
+    return matchesSearch && matchesTab && matchesRole;
   });
+
+  const currentCycleId = cycles[0]?.id || null;
+  const previousCycleId = cycles[1]?.id || null;
+
+  const cycleBreakdown = (status) => ({
+    current: currentCycleId
+      ? employees.filter((e) => getEmployeeReviewStatus(e) === status && e.cycleId === currentCycleId).length
+      : null,
+    previous: previousCycleId
+      ? employees.filter((e) => getEmployeeReviewStatus(e) === status && e.cycleId === previousCycleId).length
+      : null,
+  });
+  const submittedByCycle = cycleBreakdown("submitted");
+  const reviewedByCycle = cycleBreakdown("reviewed");
 
   // ✅ Update counts too
   const submittedCount = employees.filter(
@@ -288,6 +361,26 @@ export default function PMSReport() {
   const reviewedCount = employees.filter(
     (e) => getEmployeeReviewStatus(e) === "reviewed"
   ).length;
+
+  const notSubmittedList = nonSubmitters.filter(
+    (u) =>
+      !searchTerm.trim() ||
+      u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const displayList =
+    reportTab === "not-submitted"
+      ? [...notSubmittedList].sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+      : [...filteredEmployees].sort((a, b) => {
+          if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
+          const aDate = reportTab === "reviewed" ? a.reviewedAt : a.submittedAt;
+          const bDate = reportTab === "reviewed" ? b.reviewedAt : b.submittedAt;
+          return new Date(bDate || 0) - new Date(aDate || 0);
+        });
+
+  const totalPages = Math.max(1, Math.ceil(displayList.length / PAGE_SIZE));
+  const pageItems = displayList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // MANAGER SUBMIT
   const submitManagerReview = async (data) => {
@@ -568,33 +661,10 @@ export default function PMSReport() {
     user &&
     (isPMS_Manager(user) || isPMS_HR(user))
   ) {
-    const StatusBadge = ({ status }) => {
-      if (status === "completed") {
-        return (
-          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
-            Final Rating Completed
-          </span>
-        );
-      }
-
-      if (status === "manager_pending") {
-        return (
-          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
-            Manager Review Pending
-          </span>
-        );
-      }
-
-      return (
-        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
-          Self Review Pending
-        </span>
-      );
-    };
     const notSubmittedCount = nonSubmitters.length;
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 p-4 md:p-8">
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-[1400px] mx-auto space-y-6">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -602,10 +672,10 @@ export default function PMSReport() {
             className="flex items-center justify-between"
           >
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-xl font-extrabold text-slate-900 mb-1">
                 Performance Reports
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-slate-500">
                 Review and manage employee performance reports
               </p>
             </div>
@@ -619,14 +689,35 @@ export default function PMSReport() {
               user={user}
             />
 
-            {/* Right: Search + Export */}
+            {/* Right: Sort + Search + Export */}
             <div className="flex items-center gap-2 w-full md:w-auto">
+              {/* Sort */}
+              {reportTab !== "not-submitted" && (
+                <div className="relative shrink-0">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => {
+                      setSortBy(e.target.value);
+                      setPage(1);
+                    }}
+                    className="appearance-none rounded-lg border border-gray-300 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-gray-600 shadow-sm outline-none focus:border-violet-300 cursor-pointer"
+                  >
+                    <option value="recent">Sort by: Recently {reportTab === "reviewed" ? "reviewed" : "submitted"}</option>
+                    <option value="name">Sort by: Name A-Z</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                </div>
+              )}
+
               {/* Search */}
               <div className="relative w-full md:w-64">
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Search name / email"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 pl-9 text-sm shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none"
                 />
@@ -658,176 +749,284 @@ export default function PMSReport() {
             </div>
           </div>
 
-          <div className="flex items-center bg-gray-100 rounded-lg overflow-hidden w-fit">
-
+          {/* Stat cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <button
-              onClick={() => setReportTab("submitted")}
-              className={`px-5 py-2 text-sm font-semibold flex items-center gap-2
-      ${reportTab === "submitted"
-                  ? "bg-violet-600 text-white"
-                  : "text-gray-600 hover:bg-gray-200"}
-    `}
+              onClick={() => {
+                setReportTab("submitted");
+                setPage(1);
+              }}
+              className={`text-left rounded-2xl p-5 flex flex-col gap-4 bg-gradient-to-br from-violet-50 to-violet-100/50 border transition hover:shadow-md ${reportTab === "submitted" ? "border-violet-300 shadow-sm" : "border-violet-100"}`}
             >
-              Submitted
-              <span className={`text-xs px-2 py-0.5 rounded-full 
-      ${reportTab === "submitted"
-                  ? "bg-white text-violet-600"
-                  : "bg-gray-200"}
-    `}>
-                {submittedCount}
+              <div className="flex items-center gap-3">
+                <span className="w-11 h-11 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Send className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-bold text-violet-700/70 uppercase tracking-wide">Submitted</p>
+                  <p className="text-2xl font-extrabold text-gray-900 leading-tight">{submittedCount}</p>
+                  {reportTab === "submitted" && <div className="h-0.5 w-8 bg-violet-600 rounded-full mt-1" />}
+                </div>
+              </div>
+              <div className="h-px bg-violet-200/70" />
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">This cycle</span>
+                  <span className="font-semibold text-gray-800">{submittedByCycle.current ?? "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Previous cycle</span>
+                  <span className="font-semibold text-gray-800">{submittedByCycle.previous ?? "—"}</span>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-violet-700 flex items-center gap-1">
+                View all submitted <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </button>
 
             <button
-              onClick={() => setReportTab("reviewed")}
-              className={`px-5 py-2 text-sm font-semibold flex items-center gap-2
-      ${reportTab === "reviewed"
-                  ? "bg-violet-600 text-white"
-                  : "text-gray-600 hover:bg-gray-200"}
-    `}
+              onClick={() => {
+                setReportTab("reviewed");
+                setPage(1);
+              }}
+              className={`text-left rounded-2xl p-5 flex flex-col gap-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border transition hover:shadow-md ${reportTab === "reviewed" ? "border-emerald-300 shadow-sm" : "border-emerald-100"}`}
             >
-              Reviewed
-              <span className={`text-xs px-2 py-0.5 rounded-full 
-      ${reportTab === "reviewed"
-                  ? "bg-white text-violet-600"
-                  : "bg-gray-200"}
-    `}>
-                {reviewedCount}
-              </span>
-            </button>
-            <button
-              onClick={() => setReportTab("not-submitted")}
-              className={`px-5 py-2 text-sm font-semibold flex items-center gap-2
-    ${reportTab === "not-submitted"
-                  ? "bg-violet-600 text-white"
-                  : "text-gray-600 hover:bg-gray-200"}
-  `}
-            >
-              Self Review Pending
-              <span className={`text-xs px-2 py-0.5 rounded-full 
-    ${reportTab === "not-submitted"
-                  ? "bg-white text-violet-600"
-                  : "bg-gray-200"}
-  `}>
-                {notSubmittedCount}
+              <div className="flex items-center gap-3">
+                <span className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Eye className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-bold text-emerald-700/70 uppercase tracking-wide">Reviewed</p>
+                  <p className="text-2xl font-extrabold text-gray-900 leading-tight">{reviewedCount}</p>
+                  {reportTab === "reviewed" && <div className="h-0.5 w-8 bg-emerald-600 rounded-full mt-1" />}
+                </div>
+              </div>
+              <div className="h-px bg-emerald-200/70" />
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">This cycle</span>
+                  <span className="font-semibold text-gray-800">{reviewedByCycle.current ?? "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Previous cycle</span>
+                  <span className="font-semibold text-gray-800">{reviewedByCycle.previous ?? "—"}</span>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                View all reviewed <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </button>
 
+            <button
+              onClick={() => {
+                setReportTab("not-submitted");
+                setPage(1);
+              }}
+              className={`text-left rounded-2xl p-5 flex flex-col gap-4 bg-gradient-to-br from-amber-50 to-amber-100/50 border transition hover:shadow-md ${reportTab === "not-submitted" ? "border-amber-300 shadow-sm" : "border-amber-100"}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <UserX className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-bold text-amber-700/70 uppercase tracking-wide">Self Review Pending</p>
+                  <p className="text-2xl font-extrabold text-gray-900 leading-tight">{notSubmittedCount}</p>
+                  {reportTab === "not-submitted" && <div className="h-0.5 w-8 bg-amber-600 rounded-full mt-1" />}
+                </div>
+              </div>
+              <div className="h-px bg-amber-200/70" />
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">This cycle</span>
+                  <span className="font-semibold text-gray-800">{cyclePendingCounts.current ?? "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Previous cycle</span>
+                  <span className="font-semibold text-gray-800">{cyclePendingCounts.previous ?? "—"}</span>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-amber-700 flex items-center gap-1">
+                View all pending <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </button>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex items-center gap-2 flex-wrap">
+            <button type="button" disabled title="Department grouping isn't available yet"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed shrink-0">
+              <Building2 className="w-3.5 h-3.5" />
+              All Departments
+            </button>
+
+            {reportTab !== "not-submitted" && (
+              <div className="relative shrink-0">
+                <select
+                  value={roleFilter}
+                  onChange={(e) => {
+                    setRoleFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="appearance-none flex items-center gap-1.5 pl-8 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 outline-none focus:border-violet-300 cursor-pointer"
+                >
+                  <option value="all">All Roles</option>
+                  {availableRoles.map((r) => (
+                    <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                  ))}
+                </select>
+                <UserIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              </div>
+            )}
+
+            <div className="relative shrink-0">
+              <select
+                value={reportTab}
+                onChange={(e) => {
+                  setReportTab(e.target.value);
+                  setPage(1);
+                }}
+                className="appearance-none flex items-center gap-1.5 pl-8 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 outline-none focus:border-violet-300 cursor-pointer"
+              >
+                <option value="submitted">Submitted</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="not-submitted">Self Review Pending</option>
+              </select>
+              <Filter className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            </div>
           </div>
 
           {/* Employee List */}
-          <div className="space-y-3">
-            {reportTab === "not-submitted" ? (
-              nonSubmitters.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-lg"
-                >
-                  <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-600">All employees have submitted</p>
-                </motion.div>
-              ) : (
-                nonSubmitters
-                  .filter(u =>
-                    !searchTerm.trim() ||
-                    u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((u, index) => (
-                    <motion.div
-                      key={u.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="flex items-center gap-4 rounded-xl bg-white px-6 py-4 shadow-md border border-gray-200"
+          {pageItems.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm"
+            >
+              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-600">
+                {reportTab === "not-submitted" ? "All employees have submitted" : "No employees found"}
+              </p>
+              {reportTab !== "not-submitted" && (
+                <p className="text-sm text-gray-500 mt-2">Employee reports will appear here once submitted</p>
+              )}
+            </motion.div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pageItems.map((item, index) =>
+                  reportTab === "not-submitted" ? (
+                    <div
+                      key={item.id}
+                      className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex flex-col"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-100 to-orange-200 text-base font-bold text-red-700">
-                        {u.name?.charAt(0)?.toUpperCase() || "?"}
+                      <div className="flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 bg-red-100 text-red-700">
+                          {item.name?.charAt(0)?.toUpperCase() || "?"}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-gray-800 text-sm truncate">{item.name}</p>
+                          <p className="text-xs text-gray-400 truncate">{item.email || ""}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-800">{u.name}</p>
-                        {u.email && <p className="text-xs text-gray-500">{u.email}</p>}
-                      </div>
-                      <span className="ml-auto text-xs px-2 py-1 rounded-full bg-red-100 text-red-600 font-medium">
+                      <span className="mt-3 inline-block w-fit text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-600">
                         Self Review Pending
                       </span>
-                    </motion.div>
-                  ))
-              )
-            ) : (
-              filteredEmployees.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-lg"
-                >
-                  <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-600">
-                    No employees found
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Employee reports will appear here once submitted
-                  </p>
-                </motion.div>
-              ) : (
-                filteredEmployees.map((emp, index) => (
-
-                  <motion.div
-                    key={emp.id || `emp-${index}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => emp.id && navigate(`/reports/${emp.id}`)}
-                    className="group relative flex items-center justify-between rounded-xl bg-white px-6 py-4 cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200"
-                    whileHover={{ y: -2, scale: 1.01 }}
-                  >
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <motion.div
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-100 to-purple-200 text-lg font-bold text-violet-700 shadow-lg"
-                        transition={{ duration: 0.5 }}
-                      >
-                        {emp.name?.charAt(0)?.toUpperCase() || "?"}
-                      </motion.div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-base font-semibold text-gray-800 truncate">
-                          {emp.name}
-                        </p>
-                        {emp.email && (
-                          <p className="text-sm text-gray-500 truncate">
-                            {emp.email}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="hidden md:flex flex-col items-end gap-1 pl-4 border-l border-gray-200">
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                          <Calendar className="w-4 h-4" />
-                          <span className="uppercase tracking-wide">
-                            {emp.status === "final_manager_reviewed" ? "Reviewed" : "Submitted"}
+                    </div>
+                  ) : (
+                    <div
+                      key={item.id || `emp-${index}`}
+                      className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex flex-col hover:shadow-md hover:border-violet-200 transition"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${AVATAR_STYLES[index % AVATAR_STYLES.length]}`}>
+                            {item.name?.charAt(0)?.toUpperCase() || "?"}
                           </span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-800 text-sm truncate">{item.name}</p>
+                            <p className="text-xs text-gray-400 truncate">{item.email || ""}</p>
+                          </div>
                         </div>
-                        <span className="text-sm font-medium text-gray-700">
-                          {formatDateTime(
-                            emp.status === "final_manager_reviewed" ? emp.reviewedAt : emp.submittedAt
-                          )}
+                        <span className="flex flex-col items-end gap-0.5 text-xs text-gray-400 shrink-0 whitespace-nowrap">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {reportTab === "reviewed" ? "Reviewed" : "Submitted"}
+                          </span>
+                          <span>{formatDateTime(reportTab === "reviewed" ? item.reviewedAt : item.submittedAt)}</span>
                         </span>
                       </div>
-                    </div>
 
-                    <motion.div
-                      className="flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-lg ml-4"
-                      whileHover={{ gap: 8 }}
+                      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">KRA Assigned</p>
+                          <p className={`text-xs font-semibold mt-0.5 ${kraMap[item.id]?.hasKRA ? "text-emerald-600" : "text-gray-400"}`}>
+                            {kraMap[item.id]?.hasKRA ? "Yes" : "No"}
+                          </p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Reports To</p>
+                          <p className="text-xs font-semibold text-gray-700 mt-0.5 truncate">{kraMap[item.id]?.managerName || "—"}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Status</p>
+                          <p className="text-xs font-semibold text-violet-600 mt-0.5">
+                            {reportTab === "reviewed" ? "Reviewed" : "Submitted"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => item.id && navigate(`/reports/${item.id}`)}
+                        className="mt-3 w-full py-2 rounded-xl bg-violet-50 text-violet-700 text-xs font-bold hover:bg-violet-100 transition flex items-center justify-center gap-1.5"
+                      >
+                        View Report
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <p className="text-xs text-gray-400">
+                  Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, displayList.length)} of {displayList.length} reports
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-40 hover:bg-gray-50"
                     >
-                      <span>View Report</span>
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setPage(n)}
+                        className={`w-8 h-8 rounded-lg text-xs font-semibold ${
+                          n === page
+                            ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white shadow-sm"
+                            : "text-gray-500 hover:bg-gray-50 border border-gray-200"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-40 hover:bg-gray-50"
+                    >
                       <ArrowRight className="w-4 h-4" />
-                    </motion.div>
-                  </motion.div>
-                ))
-              )
-            )}
-          </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

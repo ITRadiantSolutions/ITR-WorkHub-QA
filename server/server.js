@@ -6,6 +6,7 @@ import { initSocket } from "./src/realtime/socket.js";
 import { startTimesheetReminderJobs } from "./src/jobs/timesheetReminders.js";
 import { startPmsCronJobs } from "./src/jobs/pmsCycleJobs.js";
 import { startNotificationCleanupJob } from "./src/jobs/notificationCleanup.js";
+import { startAzureUserSyncJob } from "./src/jobs/azureUserSync.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
@@ -35,6 +36,7 @@ connectDB()
       startPmsCronJobs();
     }
     startNotificationCleanupJob();
+    startAzureUserSyncJob();
   })
   .catch((error) => {
     console.error("Failed to connect to MongoDB:", error.message);

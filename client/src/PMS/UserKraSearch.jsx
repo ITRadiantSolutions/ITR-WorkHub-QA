@@ -37,6 +37,7 @@ const PIP_GOAL_STATUS_OPTIONS = [
     { value: "on_track", label: "In Progress" },
     { value: "met", label: "Completed" },
 ];
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 // ── PMS Role management (HR only) ──────────────────────────────────────────────
 const PMS_ROLE_META = {
@@ -97,12 +98,12 @@ const getWeightStatus = (weight) => {
 };
 
 const getPipSummary = (pip) => {
-    if (!pip) return { label: "PIP", tone: "bg-white text-slate-600 border-2 border-slate-300 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 shadow-sm", dot: "bg-slate-400" };
-    if (pip.status === "active") return { label: "Active PIP", tone: "bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-md", dot: "bg-amber-200" };
-    if (pip.status === "completed") return { label: "Completed", tone: "bg-white text-emerald-600 border-2 border-emerald-400 hover:bg-emerald-50 shadow-sm", dot: "bg-emerald-500" };
-    if (pip.status === "extended") return { label: "Extended", tone: "bg-white text-violet-600 border-2 border-violet-400 hover:bg-violet-50 shadow-sm", dot: "bg-violet-500" };
-    if (pip.status === "cancelled") return { label: "Cancelled", tone: "bg-white text-slate-500 border-2 border-slate-300 hover:bg-slate-50 shadow-sm", dot: "bg-slate-400" };
-    return { label: pip.status, tone: "bg-white text-slate-500 border-2 border-slate-300 shadow-sm", dot: "bg-slate-400" };
+    if (!pip) return { label: "PIP", hasPip: false, tone: "bg-white text-slate-600 border-2 border-slate-300 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 shadow-sm", dot: "bg-slate-400" };
+    if (pip.status === "active") return { label: "PIP", hasPip: true, tone: "bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 shadow-sm", dot: "bg-red-500" };
+    if (pip.status === "completed") return { label: "Completed", hasPip: true, tone: "bg-white text-emerald-600 border-2 border-emerald-400 hover:bg-emerald-50 shadow-sm", dot: "bg-emerald-500" };
+    if (pip.status === "extended") return { label: "Extended", hasPip: true, tone: "bg-white text-violet-600 border-2 border-violet-400 hover:bg-violet-50 shadow-sm", dot: "bg-violet-500" };
+    if (pip.status === "cancelled") return { label: "Cancelled", hasPip: true, tone: "bg-white text-slate-500 border-2 border-slate-300 hover:bg-slate-50 shadow-sm", dot: "bg-slate-400" };
+    return { label: pip.status, hasPip: true, tone: "bg-white text-slate-500 border-2 border-slate-300 shadow-sm", dot: "bg-slate-400" };
 };
 
 const initials = (name = "") =>
@@ -341,30 +342,32 @@ const UserRow = memo(({
     return (
         <tr className={`flex w-full items-center transition-colors ${isArchived ? "bg-slate-50 opacity-70 hover:opacity-90" : isChecked ? "bg-purple-50" : "hover:bg-slate-50"}`}>
             {filterStatus !== "archived" && pms_role === "hr" && (
-                <td className="px-4 py-4 w-[48px] flex items-center justify-center">
+                <td className="px-4 py-3 w-[48px] flex items-center justify-center">
                     <input type="checkbox" checked={isChecked} onChange={() => onToggleSelect(userData.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 rounded accent-purple-600 cursor-pointer" />
+                        className="w-3.5 h-3.5 rounded accent-purple-600 cursor-pointer" />
                 </td>
             )}
-            <td className={`px-6 py-4 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
-                <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-purple-500 to-purple-500"}`}>
+            <td className={`px-4 py-3 min-w-0 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[22%]" : "w-[28%]"}`}>
+                <div className="flex items-start gap-2.5">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-purple-500 to-purple-500"}`}>
                         {initials(userData.name)}
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                            <span className={`font-medium block truncate ${isArchived ? "text-slate-400 line-through" : "text-slate-800"}`}>{userData.name}</span>
-                            {isArchived && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-xs font-medium shrink-0">Archived</span>}
+                            <span className={`text-sm font-semibold block truncate ${isArchived ? "text-slate-400" : "text-slate-800"}`}>{userData.name}</span>
                         </div>
+                        {userData.email && (
+                            <span className="text-xs text-slate-400 truncate block">{userData.email}</span>
+                        )}
                         {!isArchived && userData.assignedBy && (
-                            <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                            <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                 <span className="text-slate-500 font-medium truncate">{userData.assignedBy}</span>
                             </span>
                         )}
                         {!isArchived && userData.assignedAt && (
-                            <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                            <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 <span>{date}, {time}</span>
                             </span>
@@ -372,23 +375,19 @@ const UserRow = memo(({
                     </div>
                 </div>
             </td>
-            <td className="px-6 py-4 text-center w-[13%]">
-                {isArchived ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-600 text-sm font-medium">
-                        <span className="w-2 h-2 rounded-full bg-orange-400" />Archived
-                    </span>
-                ) : userData.hasKra ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />Yes
+            <td className="px-4 py-3 text-center w-[11%]">
+                {userData.hasKra ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Yes
                     </span>
                 ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-sm font-medium">
-                        <span className="w-2 h-2 rounded-full bg-slate-400" />No
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />No
                     </span>
                 )}
             </td>
             {canManageReporting && (
-                <td className="px-4 py-4 text-center w-[13%]">
+                <td className="px-4 py-3 text-center w-[13%]">
                     {userData.managerName ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-medium border border-teal-200 max-w-full truncate">
                             <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
@@ -400,7 +399,7 @@ const UserRow = memo(({
                 </td>
             )}
             {canManageRoles && (
-                <td className="px-4 py-4 text-center w-[12%]">
+                <td className="px-4 py-3 text-center w-[12%]">
                     <RoleCell
                         userId={userData.id}
                         userName={userData.name}
@@ -411,47 +410,58 @@ const UserRow = memo(({
                     />
                 </td>
             )}
-            <td className="px-6 py-4 flex-1">
-                <div className="flex items-center justify-center gap-2 flex-wrap">
+            <td className="px-4 py-3 text-center w-[10%]">
+                {isArchived ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-100 text-orange-600 text-xs font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />Archived
+                    </span>
+                ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Active
+                    </span>
+                )}
+            </td>
+            <td className="px-4 py-3 flex-1 min-w-[260px]">
+                <div className="flex items-center justify-center gap-1.5 flex-nowrap">
                     {isArchived ? (
                         <button onClick={() => onArchive(userData.id, userData.name, true)}
-                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition active:scale-95">
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition active:scale-95">
                             Restore
                         </button>
                     ) : (
                         <>
                             <button onClick={() => onView(userData)} title="View KRA Details"
-                                className="w-9 h-9 rounded-lg flex items-center justify-center bg-purple-50 text-purple-600 hover:bg-purple-100 transition">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-50 text-purple-600 hover:bg-purple-100 transition shrink-0">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             </button>
-                            {canEditKra && userData.hasKra && (
-                                <button onClick={() => onEdit(userData)} title="Edit KRA Assignment"
-                                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-100 transition">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                </button>
-                            )}
-                            {canManageReporting && (
-                                <button onClick={() => onReporting(userData)} title="Manage Reporting Line"
-                                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-teal-50 text-teal-600 hover:bg-teal-100 transition">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                </button>
-                            )}
-                            {pms_role === "hr" && (
-                                <button onClick={() => onArchive(userData.id, userData.name, false)} title="Archive User"
-                                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-orange-50 text-orange-500 hover:bg-orange-100 hover:text-orange-700 transition">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M10 12v4m4-4v4" /></svg>
-                                </button>
-                            )}
+                            <button onClick={() => canEditKra && userData.hasKra && onEdit(userData)}
+                                disabled={!(canEditKra && userData.hasKra)}
+                                title={!canEditKra ? "You don't have permission to edit" : !userData.hasKra ? "No KRA assigned yet" : "Edit KRA Assignment"}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${canEditKra && userData.hasKra ? "bg-amber-50 text-amber-600 hover:bg-amber-100" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button onClick={() => canManageReporting && onReporting(userData)}
+                                disabled={!canManageReporting}
+                                title={canManageReporting ? "Manage Reporting Line" : "You don't have permission to manage reporting"}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${canManageReporting ? "bg-teal-50 text-teal-600 hover:bg-teal-100" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                            </button>
+                            <button onClick={() => pms_role === "hr" && onArchive(userData.id, userData.name, false)}
+                                disabled={pms_role !== "hr"}
+                                title={pms_role === "hr" ? "Archive User" : "Only HR can archive users"}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${pms_role === "hr" ? "bg-orange-50 text-orange-500 hover:bg-orange-100 hover:text-orange-700" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M10 12v4m4-4v4" /></svg>
+                            </button>
                             {canManagePip ? (
                                 <button onClick={() => onPip(userData)}
-                                    title={pipSummary.label === "PIP" ? "Start PIP" : "Manage PIP"}
-                                    className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap active:scale-95 ${pipSummary.tone}`}>
-                                    <span className={`w-2 h-2 rounded-full shrink-0 ${pipSummary.dot}`} />
+                                    title={pipSummary.hasPip ? "Manage PIP" : "Start PIP"}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap active:scale-95 ${pipSummary.tone}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pipSummary.dot}`} />
                                     {pipSummary.label}
                                 </button>
                             ) : (
-                                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold shrink-0 whitespace-nowrap ${pipSummary.tone}`}>
-                                    <span className={`w-2 h-2 rounded-full shrink-0 ${pipSummary.dot}`} />
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 whitespace-nowrap ${pipSummary.tone}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pipSummary.dot}`} />
                                     {pipSummary.label}
                                 </span>
                             )}
@@ -482,7 +492,10 @@ export default function UserKraSearch() {
     const [loading, setLoading] = useState(false);
     const [sortType, setSortType] = useState("name");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [roleFilter, setRoleFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [archivedUsers, setArchivedUsers] = useState([]);
     const [archivedLoading, setArchivedLoading] = useState(false);
     const [toast, setToast] = useState(null);
@@ -759,10 +772,27 @@ export default function UserKraSearch() {
         if (filterStatus === "assigned") users = users.filter((u) => u.hasKra);
         else if (filterStatus === "unassigned") users = users.filter((u) => !u.hasKra);
         else if (filterStatus === "pip") users = users.filter((u) => userPips[u.id]?.status === "active");
+        if (roleFilter !== "all") users = users.filter((u) => u.pms_role === roleFilter);
         if (sortType === "name") users.sort((a, b) => a.name.localeCompare(b.name));
         else if (sortType === "recent") users.sort((a, b) => new Date(b.assignedAt || 0) - new Date(a.assignedAt || 0));
         return users;
-    }, [allUsers, archivedUsers, searchQuery, filterStatus, sortType, myReportIds, pms_role, userPips]);
+    }, [allUsers, archivedUsers, searchQuery, filterStatus, roleFilter, sortType, myReportIds, pms_role, userPips]);
+
+    useEffect(() => setPage(1), [searchQuery, filterStatus, roleFilter, sortType, pageSize]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+    useEffect(() => {
+        if (page > totalPages) setPage(totalPages);
+    }, [page, totalPages]);
+    const pagedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
+
+    const baseScopeUsers = pms_role === "manager" && myReportIds !== null
+        ? allUsers.filter((u) => myReportIds.includes(u.id))
+        : allUsers;
+    const totalUsersCount = baseScopeUsers.length;
+    const kraAssignedCount = baseScopeUsers.filter((u) => u.hasKra).length;
+    const noKraCount = baseScopeUsers.filter((u) => !u.hasKra).length;
+    const pipActiveCount = baseScopeUsers.filter((u) => userPips[u.id]?.status === "active").length;
 
     const allFilteredSelected = filteredUsers.length > 0 && bulkSelected.size === filteredUsers.length;
 
@@ -1010,44 +1040,82 @@ export default function UserKraSearch() {
     // RENDER
     // ─────────────────────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-purple-100 p-4 md:p-8">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
+            <div className="space-y-5">
                 {/* ── Header ── */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 px-5 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <h1 className="text-lg font-bold text-slate-800 shrink-0">User KRA Assignments</h1>
-                            {filterStatus !== "archived" && (
-                                <div className={`hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs flex-wrap ${pms_role === "manager" ? "bg-violet-50 border border-violet-200 text-violet-700" : "bg-slate-50 border border-slate-200 text-slate-500"}`}>
-                                    <span>Total: <span className="font-bold text-slate-700">{pms_role === "manager" && myReportIds !== null ? myReportIds.length : filteredUsers.length}</span></span>
-                                    <span className="text-slate-300">·</span>
-                                    <span className="text-emerald-600">KRA: <span className="font-bold">{filteredUsers.filter((u) => u.hasKra).length}</span></span>
-                                    <span className="text-slate-300">·</span>
-                                    <span className="text-amber-500">No KRA: <span className="font-bold">{filteredUsers.filter((u) => !u.hasKra).length}</span></span>
-                                    <span className="text-slate-300">·</span>
-                                    <span className="text-red-500">PIP: <span className="font-bold">{filteredUsers.filter((u) => userPips[u.id]?.status === "active").length}</span></span>
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                            <button onClick={filterStatus === "archived" ? fetchArchivedUsers : fetchAllUsers}
-                                className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium hover:bg-slate-200 transition flex items-center gap-1.5">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                Refresh
-                            </button>
-                            <button onClick={downloadCSV} disabled={!filteredUsers.length}
-                                className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-medium hover:bg-purple-700 transition disabled:opacity-50 flex items-center gap-1.5">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                Export CSV
-                            </button>
-                        </div>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <h1 className="text-xl font-extrabold text-slate-900">User KRA Assignments</h1>
+                        <p className="text-sm text-slate-500 mt-0.5">Search and manage KRAs assigned to users</p>
                     </div>
-                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                        <div className="relative flex-1 min-w-[160px]">
-                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <div className="flex gap-2 shrink-0">
+                        <button onClick={filterStatus === "archived" ? fetchArchivedUsers : fetchAllUsers}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            Refresh
+                        </button>
+                        <button onClick={downloadCSV} disabled={!filteredUsers.length}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-violet-500 text-white text-sm font-semibold shadow-sm hover:opacity-90 transition disabled:opacity-50">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Export CSV
+                        </button>
+                    </div>
+                </div>
+
+                {/* ── Stat cards ── */}
+                {filterStatus !== "archived" && (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button onClick={() => setFilterStatus("all")}
+                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
+                            <span className="w-11 h-11 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-400">Total Users</p>
+                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{totalUsersCount}</p>
+                            </div>
+                        </button>
+                        <button onClick={() => setFilterStatus("assigned")}
+                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
+                            <span className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-400">KRA Assigned</p>
+                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{kraAssignedCount}</p>
+                            </div>
+                        </button>
+                        <button onClick={() => setFilterStatus("unassigned")}
+                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
+                            <span className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-400">No KRA Assigned</p>
+                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{noKraCount}</p>
+                            </div>
+                        </button>
+                        <button onClick={() => setFilterStatus("pip")}
+                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
+                            <span className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h2v-7h5l1 2h7V5h-6l-1-2H5z" /></svg>
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold text-slate-400">PIP Users</p>
+                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{pipActiveCount}</p>
+                            </div>
+                        </button>
+                    </div>
+                )}
+
+                {/* ── Search + filters ── */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className="relative flex-1 min-w-[220px]">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search users..."
-                                className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent" />
+                                placeholder="Search users by name or email..."
+                                className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100" />
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                             {[
@@ -1058,10 +1126,49 @@ export default function UserKraSearch() {
                                 ...(pms_role === "hr" ? [{ value: "archived", label: "Archived" }] : []),
                             ].map((opt) => (
                                 <button key={opt.value} onClick={() => setFilterStatus(opt.value)}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition border ${filterStatus === opt.value ? "bg-purple-600 text-white border-purple-600" : "bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-600"}`}>
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${filterStatus === opt.value ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white border-transparent shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600"}`}>
                                     {opt.label}
                                 </button>
                             ))}
+                        </div>
+
+                        <button type="button" disabled title="Department grouping isn't available yet"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed shrink-0">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" /></svg>
+                            All Departments
+                        </button>
+
+                        <div className="relative shrink-0">
+                            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}
+                                className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-600 outline-none focus:border-violet-300 cursor-pointer">
+                                <option value="all">All Roles</option>
+                                {PMS_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                            <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+
+                        {pms_role === "hr" && (
+                            <div className="relative shrink-0">
+                                <select value={filterStatus === "archived" ? "archived" : "active"}
+                                    onChange={(e) => setFilterStatus(e.target.value === "archived" ? "archived" : "all")}
+                                    className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-600 outline-none focus:border-violet-300 cursor-pointer">
+                                    <option value="active">All Status</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                                <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        )}
+
+                        <div className="relative ml-auto flex items-center gap-2 shrink-0">
+                            <span className="text-xs font-semibold text-slate-400 shrink-0">Sort by</span>
+                            <div className="relative">
+                                <select value={sortType} onChange={(e) => setSortType(e.target.value)}
+                                    className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-600 outline-none focus:border-violet-300 cursor-pointer">
+                                    <option value="name">User Name (A-Z)</option>
+                                    <option value="recent">Recently Assigned</option>
+                                </select>
+                                <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1128,20 +1235,19 @@ export default function UserKraSearch() {
                                                 </span>
                                             </button>
                                         </th>
-                                        <th className="px-6 py-3 text-center w-[13%] text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            {filterStatus === "archived" ? "Status" : "KRA"}
-                                        </th>
+                                        <th className="px-6 py-3 text-center w-[11%] text-xs font-semibold text-slate-600 uppercase tracking-wider">KRA Assigned</th>
                                         {canManageReporting && (
                                             <th className="px-4 py-3 text-center w-[13%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Reports To</th>
                                         )}
                                         {canManageRoles && (
                                             <th className="px-4 py-3 text-center w-[12%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Role</th>
                                         )}
+                                        <th className="px-4 py-3 text-center w-[10%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 flex-1 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 block max-h-[460px] overflow-y-auto">
-                                    {filteredUsers.map((userData) => (
+                                <tbody className="divide-y divide-slate-100 block">
+                                    {pagedUsers.map((userData) => (
                                         <UserRow
                                             key={userData.id}
                                             userData={userData}
@@ -1168,6 +1274,52 @@ export default function UserKraSearch() {
                         </div>
                     )}
                 </div>
+
+                {/* Pagination */}
+                {!tableLoading && filteredUsers.length > 0 && (
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                        <p className="text-xs text-slate-400">
+                            Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredUsers.length)} of {filteredUsers.length} users
+                        </p>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                                    className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                    .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                                    .reduce((acc, n) => {
+                                        if (acc.length && n - acc[acc.length - 1] > 1) acc.push("…");
+                                        acc.push(n);
+                                        return acc;
+                                    }, [])
+                                    .map((n, idx) =>
+                                        n === "…" ? (
+                                            <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-slate-400 text-xs">…</span>
+                                        ) : (
+                                            <button key={n} onClick={() => setPage(n)}
+                                                className={`w-8 h-8 rounded-lg text-xs font-semibold ${
+                                                    n === page ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 border border-slate-200"
+                                                }`}>
+                                                {n}
+                                            </button>
+                                        )
+                                    )}
+                                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                                    className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-40 hover:bg-slate-50">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            </div>
+                            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}
+                                className="text-xs font-semibold border border-slate-200 rounded-lg px-2 py-1.5 bg-white">
+                                {PAGE_SIZE_OPTIONS.map((n) => (
+                                    <option key={n} value={n}>{n} per page</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* ════ Bulk Action Modal ════ */}
@@ -1672,6 +1824,6 @@ export default function UserKraSearch() {
             )}
 
             <Toast toast={toast} onClose={() => setToast(null)} />
-        </div>
+        </main>
     );
 }

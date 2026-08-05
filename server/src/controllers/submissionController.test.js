@@ -104,14 +104,17 @@ describe("listSubmissions", () => {
     expect(Submission.find).toHaveBeenCalledWith({ cycleId, employeeId });
   });
 
-  it("populates employeeId name/email and returns the result", async () => {
+  it("populates employeeId name/email and managerId name, and returns the result", async () => {
     const populate = setupFind();
     const req = { query: {}, user: { _id: oid(), roles: { pms: "hr" } } };
     const res = mockRes();
 
     await listSubmissions(req, res);
 
-    expect(populate).toHaveBeenCalledWith("employeeId", "name email");
+    expect(populate).toHaveBeenCalledWith([
+      { path: "employeeId", select: "name email" },
+      { path: "managerId", select: "name" },
+    ]);
     expect(res.json).toHaveBeenCalled();
   });
 });

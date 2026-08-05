@@ -273,10 +273,10 @@ export default function MyReportView({ report, onBack, user }) {
             )}
 
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-xl font-extrabold text-slate-900 mb-1">
                 My Performance Review
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-slate-500">
                 {report.employeeName ||
                   report.username ||
                   report.mail ||
@@ -440,7 +440,7 @@ export default function MyReportView({ report, onBack, user }) {
             transition={{ delay: 0.3 }}
             className="space-y-4"
           >
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-lg font-bold text-slate-900">
               Performance Breakdown
             </h2>
 

@@ -30,11 +30,19 @@ export const listSubmissions = async (req, res) => {
     filter.employeeId = req.user._id;
   }
 
-  res.json(await Submission.find(filter).populate("employeeId", "name email"));
+  res.json(
+    await Submission.find(filter).populate([
+      { path: "employeeId", select: "name email" },
+      { path: "managerId", select: "name" },
+    ]),
+  );
 };
 
 export const getSubmission = async (req, res) => {
-  const submission = await Submission.findById(req.params.id).populate("employeeId", "name email");
+  const submission = await Submission.findById(req.params.id).populate([
+    { path: "employeeId", select: "name email" },
+    { path: "managerId", select: "name" },
+  ]);
   if (!submission) return res.status(404).json({ message: "Submission not found" });
   if (!canView(submission, req.user)) return res.status(403).json({ message: "Forbidden" });
   res.json(submission);

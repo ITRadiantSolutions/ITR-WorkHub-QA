@@ -554,7 +554,7 @@ export default function AssignIndividual() {
               Back
             </button>
             <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-lg font-bold text-slate-900">
                 Employee KPIs Studio
               </h1>
               <p className="text-gray-500 mt-0.5 text-xs">

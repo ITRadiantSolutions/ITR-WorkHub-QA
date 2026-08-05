@@ -14,6 +14,7 @@ const TABS = [
   { to: "/available_template", label: "KPI Templates", icon: "FolderLg", hrOnly: true },
   { to: "/assign-individual", label: "Assign KRAs", icon: "UserPlus", hrOnly: true },
   { to: "/pms/cycles", label: "Review Cycles", icon: "Calendar", managerOrHr: true },
+  { to: "/pms/reviews", label: "Reviews", icon: "CheckAll", managerOrHr: true },
   { to: "/PMS-userGroup", label: "User Groups", icon: "Users", managerOrHr: true },
   { to: "/user-kra-search", label: "User KRA Search", icon: "Search", managerOrHr: true },
   { to: "/PMS-reports", label: "Reports", icon: "Reports" },

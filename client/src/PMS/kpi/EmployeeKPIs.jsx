@@ -328,14 +328,14 @@ export function EmployeeKPIs() {
         <div className="max-w-6xl mx-auto space-y-8">
 
           {/* Header */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent">Employee KPIs Studio</h1>
-              <p className="text-gray-500 mt-1 text-sm">Design, assign, and manage Key Performance Indicators with precision.</p>
+              <h1 className="text-xl font-extrabold text-slate-900">Employee KPIs Studio</h1>
+              <p className="text-gray-500 mt-0.5 text-sm">Design, assign, and manage Key Performance Indicators with precision.</p>
             </div>
-            <div className="flex items-center gap-3 bg-purple-50 px-5 py-3 rounded-2xl border border-purple-100">
-              <span className="text-sm font-semibold text-purple-700">Remaining Weight</span>
-              <span className={`text-2xl font-bold ${remainingWeight === 0 ? 'text-emerald-500' : remainingWeight < 0 ? 'text-red-500' : 'text-purple-600'}`}>
+            <div className="flex items-center gap-3 bg-purple-50 px-4 py-2 rounded-xl border border-purple-100">
+              <span className="text-xs font-semibold text-purple-700">Remaining Weight</span>
+              <span className={`text-lg font-bold ${remainingWeight === 0 ? 'text-emerald-500' : remainingWeight < 0 ? 'text-red-500' : 'text-purple-600'}`}>
                 {remainingWeight}%
               </span>
             </div>

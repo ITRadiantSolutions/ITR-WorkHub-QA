@@ -19,7 +19,7 @@ export default function TemplateHeader({
       className="mb-6 px-4"
     >
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-xl font-extrabold text-slate-900">
           KPI Templates
         </h1>
       </div>

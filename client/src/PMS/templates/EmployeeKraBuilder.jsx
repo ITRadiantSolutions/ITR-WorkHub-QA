@@ -307,7 +307,7 @@ export default function EmployeeKraBuilder() {
             {"<-"} Back
           </motion.button>
 
-          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-xl font-extrabold text-slate-900">
             {isEditMode ? "Edit KRA" : "Create KRA"}
           </h2>
 

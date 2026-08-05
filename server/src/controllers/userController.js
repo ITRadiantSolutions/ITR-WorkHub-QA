@@ -226,17 +226,14 @@ export const setShift = async (req, res) => {
 // fetched via Graph (app-only auth, same credentials graphMailer.js already
 // uses) and any member without a matching local account is created with
 // default employee roles. Existing accounts are left untouched.
-export const syncUsersFromAzureGroups = async (req, res) => {
-  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
-
+// Shared by the HTTP route below and the daily cron job in jobs/azureUserSync.js.
+export async function runAzureGroupSync() {
   const groupIds = (process.env.AZURE_SYNC_GROUP_IDS || "")
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean);
   if (!groupIds.length) {
-    return res.status(400).json({
-      message: "No Azure AD groups configured for sync — set AZURE_SYNC_GROUP_IDS (comma-separated group object IDs) on the server.",
-    });
+    return { skipped: true, message: "No Azure AD groups configured — set AZURE_SYNC_GROUP_IDS on the server." };
   }
 
   const accessToken = await getGraphAccessToken();
@@ -253,7 +250,7 @@ export const syncUsersFromAzureGroups = async (req, res) => {
       );
       members = data.value || [];
     } catch (err) {
-      console.error(`syncUsersFromAzureGroups: failed to fetch group ${groupId}`, err.response?.data || err.message);
+      console.error(`runAzureGroupSync: failed to fetch group ${groupId}`, err.response?.data || err.message);
       continue; // one bad group shouldn't abort the whole sync
     }
 
@@ -282,5 +279,13 @@ export const syncUsersFromAzureGroups = async (req, res) => {
     }
   }
 
-  res.json({ message: `Group sync complete. New users: ${newAdded}`, totalUsers: synced.length, newAdded, users: synced });
+  return { skipped: false, message: `Group sync complete. New users: ${newAdded}`, totalUsers: synced.length, newAdded, users: synced };
+}
+
+export const syncUsersFromAzureGroups = async (req, res) => {
+  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
+
+  const result = await runAzureGroupSync();
+  if (result.skipped) return res.status(400).json({ message: result.message });
+  res.json(result);
 };

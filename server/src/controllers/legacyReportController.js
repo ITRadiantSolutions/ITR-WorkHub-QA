@@ -132,6 +132,7 @@ const rowFor = (submission) => ({
   submittedAt: submission.updatedAt,
   reviewedAt: submission.finalReport.oneOnOneDate,
   managerResponse: submission.finalReport.managerOverallResponse || null,
+  cycleId: submission.cycleId,
 });
 
 export const listManagerEmployees = async (req, res) => {
@@ -156,7 +157,10 @@ export const listNonSubmitters = async (req, res) => {
   const userFilter = managerId ? { managerId } : {};
   const users = await User.find(userFilter).select("name email");
 
-  const submitted = new Set((await Submission.find({}).select("employeeId")).map((s) => s.employeeId.toString()));
+  // Optionally scope "submitted" to a single cycle so callers can ask
+  // "who hasn't submitted for cycle X" instead of "who has never submitted".
+  const submissionFilter = req.query.cycleId ? { cycleId: req.query.cycleId } : {};
+  const submitted = new Set((await Submission.find(submissionFilter).select("employeeId")).map((s) => s.employeeId.toString()));
   const nonSubmitters = users.filter((u) => !submitted.has(u._id.toString()));
   res.json(nonSubmitters.map((u) => ({ id: u._id, name: u.name, email: u.email })));
 };

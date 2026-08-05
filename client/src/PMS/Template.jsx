@@ -724,14 +724,14 @@ export default function TemplatePage({ mode = "my", lockedView = false }) {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               {templateView === "my" && (
-                <h1 className="text-2xl font-extrabold text-slate-900">
+                <h1 className="text-xl font-extrabold text-slate-900">
                   My KRA & KPI's
                 </h1>
               )}
               {(isPMS_HR(loggedInUser) || isPMS_Manager(loggedInUser)) &&
                 templateView === "employees" && (
                   <>
-                    <h1 className="text-2xl font-extrabold text-slate-900">
+                    <h1 className="text-xl font-extrabold text-slate-900">
                       Define KRA & KPI's
                     </h1>
                     <p className="text-sm text-slate-500 mt-0.5">

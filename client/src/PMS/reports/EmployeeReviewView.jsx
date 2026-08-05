@@ -355,7 +355,7 @@ export default function EmployeeReviewView({
               </motion.button>
 
               <div>
-                <h1 className="text-3xl font-bold text-slate-800">
+                <h1 className="text-xl font-extrabold text-slate-900">
                   Performance Review
                 </h1>
 

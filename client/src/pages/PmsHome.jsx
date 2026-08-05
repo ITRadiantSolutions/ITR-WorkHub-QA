@@ -18,6 +18,14 @@ const SUBMISSION_STYLES = {
 
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
 
+const SORT_OPTIONS = [
+  { value: "recent", label: "Sort by: Recently Submitted" },
+  { value: "oldest", label: "Sort by: Oldest First" },
+  { value: "rating_high", label: "Sort by: Rating High to Low" },
+  { value: "rating_low", label: "Sort by: Rating Low to High" },
+  { value: "name", label: "Sort by: Name A-Z" },
+];
+
 export default function PmsHome() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +35,9 @@ export default function PmsHome() {
   const [error, setError] = useState("");
   const [reviewPage, setReviewPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
+  const [cycleFilter, setCycleFilter] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
+  const [viewMode, setViewMode] = useState("grid");
 
   useEffect(() => {
     let cancelled = false;
@@ -50,10 +61,29 @@ export default function PmsHome() {
 
   const cycleForSubmission = (s) => cycles.find((c) => String(c._id) === String(s.cycleId));
 
-  const totalReviewPages = Math.max(1, Math.ceil(submissions.length / pageSize));
-  const pagedSubmissions = submissions.slice((reviewPage - 1) * pageSize, reviewPage * pageSize);
+  const visibleSubmissions = submissions
+    .filter((s) => !cycleFilter || String(s.cycleId) === cycleFilter)
+    .slice()
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.updatedAt || a.createdAt) - new Date(b.updatedAt || b.createdAt);
+        case "rating_high":
+          return (b.finalReport?.overallRating ?? -1) - (a.finalReport?.overallRating ?? -1);
+        case "rating_low":
+          return (a.finalReport?.overallRating ?? Infinity) - (b.finalReport?.overallRating ?? Infinity);
+        case "name":
+          return (a.employeeId?.name || "").localeCompare(b.employeeId?.name || "");
+        case "recent":
+        default:
+          return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+      }
+    });
 
-  useEffect(() => setReviewPage(1), [pageSize, submissions.length]);
+  const totalReviewPages = Math.max(1, Math.ceil(visibleSubmissions.length / pageSize));
+  const pagedSubmissions = visibleSubmissions.slice((reviewPage - 1) * pageSize, reviewPage * pageSize);
+
+  useEffect(() => setReviewPage(1), [pageSize, cycleFilter, sortBy, submissions.length]);
 
   const statCards = [
     {
@@ -146,41 +176,131 @@ export default function PmsHome() {
                 <div className="p-8 text-center text-slate-400 text-sm">No reviews yet.</div>
               ) : (
                 <>
-                  <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {pagedSubmissions.map((s) => {
-                      const cycle = cycleForSubmission(s);
-                      return (
-                        <button
-                          key={s._id}
-                          onClick={() => navigate(`/pms/submissions/${s._id}`)}
-                          className="text-left rounded-xl border border-slate-100 p-3.5 hover:border-violet-200 hover:shadow-sm transition"
-                        >
-                          <div className="flex items-center justify-between gap-2">
+                  <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+                    <div className="relative">
+                      <select
+                        value={cycleFilter}
+                        onChange={(e) => setCycleFilter(e.target.value)}
+                        className="appearance-none text-xs font-semibold border border-slate-200 rounded-xl pl-3 pr-8 py-2 bg-white text-slate-700 hover:border-slate-300 transition cursor-pointer"
+                      >
+                        <option value="">All Review Cycles</option>
+                        {cycles.map((c) => (
+                          <option key={c._id} value={c._id}>{c.name}</option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Icons.ChevronDown />
+                      </span>
+                    </div>
+
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="appearance-none text-xs font-semibold border border-slate-200 rounded-xl pl-3 pr-8 py-2 bg-white text-slate-700 hover:border-slate-300 transition cursor-pointer"
+                      >
+                        {SORT_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Icons.ChevronDown />
+                      </span>
+                    </div>
+
+                    <div className="ml-auto flex items-center gap-1 bg-slate-50 rounded-xl p-1">
+                      <button
+                        onClick={() => setViewMode("grid")}
+                        aria-label="Grid view"
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${
+                          viewMode === "grid" ? "bg-violet-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"
+                        }`}
+                      >
+                        <Icons.Grid />
+                      </button>
+                      <button
+                        onClick={() => setViewMode("list")}
+                        aria-label="List view"
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${
+                          viewMode === "list" ? "bg-violet-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"
+                        }`}
+                      >
+                        <Icons.List />
+                      </button>
+                    </div>
+                  </div>
+
+                  {!visibleSubmissions.length ? (
+                    <div className="p-8 text-center text-slate-400 text-sm">No reviews match this filter.</div>
+                  ) : viewMode === "grid" ? (
+                    <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {pagedSubmissions.map((s) => {
+                        const cycle = cycleForSubmission(s);
+                        return (
+                          <button
+                            key={s._id}
+                            onClick={() => navigate(`/pms/submissions/${s._id}`)}
+                            className="text-left rounded-xl border border-slate-100 p-3.5 hover:border-violet-200 hover:shadow-sm transition"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                                <Icons.File />
+                              </span>
+                              {s.finalReport?.overallRating != null && (
+                                <span className="text-sm font-bold text-violet-700 tabular-nums shrink-0">{s.finalReport.overallRating}/5</span>
+                              )}
+                            </div>
+                            <p className="font-semibold text-slate-800 text-sm mt-2 truncate">{s.employeeId?.name || "You"}</p>
+                            <span className={`inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${SUBMISSION_STYLES[s.status] || "bg-slate-100 text-slate-600"}`}>
+                              {s.status.replace(/_/g, " ")}
+                            </span>
+                            {cycle && (
+                              <p className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-2">
+                                <Icons.Calendar />
+                                {fmtDate(cycle.start)} – {fmtDate(cycle.end)}
+                              </p>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-5 flex flex-col gap-2">
+                      {pagedSubmissions.map((s) => {
+                        const cycle = cycleForSubmission(s);
+                        return (
+                          <button
+                            key={s._id}
+                            onClick={() => navigate(`/pms/submissions/${s._id}`)}
+                            className="text-left rounded-xl border border-slate-100 p-3 flex items-center gap-3 hover:border-violet-200 hover:shadow-sm transition"
+                          >
                             <span className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
                               <Icons.File />
                             </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-slate-800 text-sm truncate">{s.employeeId?.name || "You"}</p>
+                              {cycle && (
+                                <p className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                                  <Icons.Calendar />
+                                  {fmtDate(cycle.start)} – {fmtDate(cycle.end)}
+                                </p>
+                              )}
+                            </div>
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${SUBMISSION_STYLES[s.status] || "bg-slate-100 text-slate-600"}`}>
+                              {s.status.replace(/_/g, " ")}
+                            </span>
                             {s.finalReport?.overallRating != null && (
-                              <span className="text-sm font-bold text-violet-700 tabular-nums shrink-0">{s.finalReport.overallRating}/5</span>
+                              <span className="text-sm font-bold text-violet-700 tabular-nums shrink-0 w-12 text-right">{s.finalReport.overallRating}/5</span>
                             )}
-                          </div>
-                          <p className="font-semibold text-slate-800 text-sm mt-2 truncate">{s.employeeId?.name || "You"}</p>
-                          <span className={`inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${SUBMISSION_STYLES[s.status] || "bg-slate-100 text-slate-600"}`}>
-                            {s.status.replace(/_/g, " ")}
-                          </span>
-                          {cycle && (
-                            <p className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-2">
-                              <Icons.Calendar />
-                              {fmtDate(cycle.start)} – {fmtDate(cycle.end)}
-                            </p>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
                     <span className="text-xs text-slate-500">
-                      Showing {(reviewPage - 1) * pageSize + 1} to {Math.min(reviewPage * pageSize, submissions.length)} of {submissions.length} reviews
+                      Showing {visibleSubmissions.length === 0 ? 0 : (reviewPage - 1) * pageSize + 1} to {Math.min(reviewPage * pageSize, visibleSubmissions.length)} of {visibleSubmissions.length} reviews
                     </span>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">

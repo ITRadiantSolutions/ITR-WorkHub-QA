@@ -142,7 +142,7 @@ export default function AvailableTemplatesPage() {
               Back
             </button>
             <div>
-              <h2 className="text-2xl font-bold text-slate-800">Available Templates</h2>
+              <h2 className="text-xl font-extrabold text-slate-900">Available Templates</h2>
               <p className="text-sm text-slate-500 mt-1">
                 Browse, edit, assign, and manage KRA templates.
               </p>
