@@ -15,7 +15,10 @@ import {
   submitEmployeeReview,
   saveActual,
   searchUserWithKra,
+  getKpiTemplateHistory,
+  searchUserSuggestions,
 } from "../controllers/legacyKraController.js";
+import { getActiveTemplate, listTemplates } from "../controllers/legacyCycleController.js";
 import {
   getProofUrl,
   listEmployeePips,
@@ -23,6 +26,9 @@ import {
   listAllPips,
   createPip,
   updatePipLegacy,
+  getPipLegacy,
+  deletePipLegacy,
+  getPipEmployeeManager,
 } from "../controllers/legacyPipController.js";
 import { assignPmsRoleLegacy, archivePmsUserLegacy } from "../controllers/userController.js";
 
@@ -39,10 +45,12 @@ router.get("/managers", listPmsManagers);
 router.get("/kpi-template/my-manager/:employeeId", getEmployeeManager);
 router.get("/kpi-template/assigned/:employeeId", listAssignedTemplates);
 
+router.get("/templates/active", getActiveTemplate);
 router.get("/templates/single/:id", getAssignmentSingle);
 router.put("/templates/:id", updateAssignmentWeights);
 router.delete("/templates/:id", deleteAssignment);
 router.post("/templates/assign", assignTemplatesToSelf);
+router.get("/templates", listTemplates);
 
 router.get("/kra/by-template/:templateId/:employeeId", getByTemplate);
 router.post("/kra/draft", saveKraDraft);
@@ -53,12 +61,17 @@ router.post("/reports/employee-submit", submitEmployeeReview);
 
 router.get("/pips/proof-url", getProofUrl);
 router.get("/pips/employee/:employeeId", listEmployeePips);
+router.get("/pips/my-manager/:employeeId", getPipEmployeeManager);
 router.patch("/pips/:id/employee-update", upload.any(), employeeUpdatePip);
 router.get("/pips", listAllPips);
 router.post("/pips", createPip);
 router.put("/pips/:id", updatePipLegacy);
+router.get("/pips/:id", getPipLegacy);
+router.delete("/pips/:id", deletePipLegacy);
 
 router.get("/kpi-template/search-user", searchUserWithKra);
+router.get("/kpi-template/search-user-suggestions", searchUserSuggestions);
+router.get("/kpi-template/history", getKpiTemplateHistory);
 
 router.post("/assign-pms-role", assignPmsRoleLegacy);
 router.patch("/pms/users/:id/archive", archivePmsUserLegacy);

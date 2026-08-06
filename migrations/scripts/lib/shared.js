@@ -14,6 +14,13 @@ export async function migrateUsers({ timeflowDb, flowtrackerDb, targetDb, report
   const userIdMap = new Map(); // "timeflow:<oldId>" | "flowtracker:<oldId>" -> new ObjectId
   const byEmail = new Map(); // normalized email -> merged unified user doc (with _id already assigned)
 
+  // Re-running must reuse whatever _id an already-migrated user has in the
+  // target — replaceOne rejects changing an existing doc's _id, and a fresh
+  // ObjectId per run would also silently break every other collection's
+  // userId references across re-runs.
+  const existingUsers = await targetDb.collection("users").find({}, { projection: { email: 1 } }).toArray();
+  const existingIdByEmail = new Map(existingUsers.map((u) => [normEmail(u.email), u._id]));
+
   const timeflowUsers = await timeflowDb.collection("users").find({}).toArray();
   const flowtrackerUsers = await flowtrackerDb.collection("users").find({}).toArray();
 
@@ -22,7 +29,7 @@ export async function migrateUsers({ timeflowDb, flowtrackerDb, targetDb, report
     if (!email) continue;
     const profile = tf.profile || {};
     byEmail.set(email, {
-      _id: new ObjectId(),
+      _id: existingIdByEmail.get(email) || new ObjectId(),
       name: tf.username || tf.name || email,
       email,
       password: tf.hashed_password || tf.password || null,
@@ -73,7 +80,7 @@ export async function migrateUsers({ timeflowDb, flowtrackerDb, targetDb, report
       }
     } else {
       byEmail.set(email, {
-        _id: new ObjectId(),
+        _id: existingIdByEmail.get(email) || new ObjectId(),
         name: ft.name || email,
         email,
         password: ft.password || null,
@@ -126,6 +133,11 @@ export async function migrateProjects({ timeflowDb, flowtrackerDb, targetDb, use
   const projectIdMap = new Map();
   const projectNameToId = new Map(); // normalized name -> new ObjectId (timesheet rows reference projects by name)
 
+  // Same re-run hazard as users: reuse an already-migrated project's real _id
+  // instead of generating a new one every run.
+  const existingProjects = await targetDb.collection("projects").find({}, { projection: { name: 1 } }).toArray();
+  const existingIdByName = new Map(existingProjects.map((p) => [normName(p.name), p._id]));
+
   const timeflowProjects = await timeflowDb.collection("projects").find({}).toArray();
   const flowtrackerProjects = await flowtrackerDb.collection("projects").find({}).toArray();
   const teamMembers = await timeflowDb.collection("team_members").find({}).toArray();
@@ -134,7 +146,7 @@ export async function migrateProjects({ timeflowDb, flowtrackerDb, targetDb, use
     const key = normName(tf.name || tf.projectName);
     if (!key) continue;
     byName.set(key, {
-      _id: new ObjectId(),
+      _id: existingIdByName.get(key) || new ObjectId(),
       name: tf.name || tf.projectName,
       description: tf.description || tf.projectDescription || "",
       status: "Planning",
@@ -173,7 +185,7 @@ export async function migrateProjects({ timeflowDb, flowtrackerDb, targetDb, use
       report.projectsMerged += 1;
     } else {
       byName.set(key, {
-        _id: new ObjectId(),
+        _id: existingIdByName.get(key) || new ObjectId(),
         name: ft.name,
         description: ft.description || "",
         status: ft.status || "Planning",

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   listCycles,
+  getCycleLegacy,
   createCycle,
   updateCycle,
   deleteCycle,
@@ -18,6 +19,7 @@ router.use(protect);
 
 router.get("/", listCycles);
 router.post("/", createCycle);
+router.get("/:id", getCycleLegacy);
 router.put("/:id", updateCycle);
 router.delete("/:id", deleteCycle);
 router.patch("/:id/toggle-response", toggleResponse);

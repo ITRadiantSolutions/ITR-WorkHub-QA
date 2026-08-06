@@ -149,6 +149,28 @@ export const listAllEmployeeReports = async (req, res) => {
   res.json(submissions.map(rowFor));
 };
 
+// HR's "finished reports" list — only fully manager-reviewed submissions,
+// unlike listAllEmployeeReports which returns every status.
+export const listHrSubmittedReports = async (req, res) => {
+  if (req.user.roles.pms !== "hr") return res.status(403).json({ message: "PMS HR access required" });
+  const submissions = await Submission.find({ status: "final_manager_reviewed" })
+    .populate("employeeId", "name email roles")
+    .populate("managerId", "name");
+  res.json(
+    submissions.map((s) => ({
+      employeeId: s.employeeId?._id,
+      employeeName: s.employeeId?.name,
+      employeeEmail: s.employeeId?.email,
+      employeeRole: s.employeeId?.roles?.pms,
+      managerName: s.managerId?.name || null,
+      overallRating: s.finalReport.overallRating,
+      overallResponse: s.finalReport.managerOverallResponse,
+      submittedAt: s.updatedAt,
+      status: s.status,
+    })),
+  );
+};
+
 export const listNonSubmitters = async (req, res) => {
   if (!["manager", "hr"].includes(req.user.roles.pms)) return res.status(403).json({ message: "Forbidden" });
   // A manager only ever gets their own team, regardless of what manager_id
@@ -204,6 +226,28 @@ export const submitManagerReview = async (req, res) => {
     await assignment.save();
   }
   res.json({ message: "Manager review submitted" });
+};
+
+// Employee explicitly routes their (already-drafted) submission to a chosen
+// manager, distinct from /kra/submit which just moves status forward without
+// picking who reviews it.
+export const sendToManager = async (req, res) => {
+  const { templateId, employeeId, managerId } = req.body;
+  if (req.user.roles.pms === "employee" && req.user._id.toString() !== employeeId) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  const assignment = await KraAssignment.findById(templateId);
+  if (!assignment) return res.status(404).json({ message: "Template not found" });
+
+  await Submission.findOneAndUpdate(
+    { assignmentId: templateId, employeeId },
+    { $set: { cycleId: assignment.cycleId, assignmentId: templateId, employeeId, managerId, status: "pending_manager_approval" } },
+    { upsert: true },
+  );
+  assignment.status = "pending_manager_approval";
+  await assignment.save();
+  res.json({ message: "Sent to manager for approval" });
 };
 
 export const saveDraftReview = async (req, res) => {

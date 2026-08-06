@@ -25,6 +25,7 @@ const activityLogSchema = new mongoose.Schema(
     actorName: { type: String, trim: true, index: true },
     actorEmail: { type: String, trim: true, lowercase: true },
     actorRole: { type: String, trim: true, index: true },
+    actorPmsRole: { type: String, trim: true, index: true },
 
     ip: String,
     userAgent: String,
@@ -34,6 +35,9 @@ const activityLogSchema = new mongoose.Schema(
     projectId: { type: String, trim: true, default: "" },
     projectName: { type: String, trim: true, default: "" },
     ticketNo: { type: String, trim: true, default: "" },
+    targetId: { type: String, trim: true, index: true },
+    oldValue: mongoose.Schema.Types.Mixed,
+    newValue: mongoose.Schema.Types.Mixed,
     changes: mongoose.Schema.Types.Mixed,
     error: { name: String, message: String, code: mongoose.Schema.Types.Mixed },
     provider: String,

@@ -1,9 +1,41 @@
 import Pip from "../models/Pip.js";
+import Timesheet from "../models/Timesheet.js";
+import User from "../models/User.js";
 import { createReadUrl, uploadAttachment } from "../config/blobStorage.js";
+
+const canAccessEmployee = (req, employeeId) =>
+  req.params.employeeId === req.user._id.toString() || ["hr", "manager"].includes(req.user.roles.pms);
+
+// Resolves an employee's manager the same way ITR_TimeFlow_Production did for
+// PIPs specifically: via their most recently submitted timesheet, not
+// User.managerId (the two can disagree — a timesheet's manager reflects who
+// actually approved their hours).
+export const getPipEmployeeManager = async (req, res) => {
+  if (!canAccessEmployee(req, req.params.employeeId)) {
+    return res.status(403).json({ message: "Not authorized to view this employee's manager" });
+  }
+  const timesheet = await Timesheet.findOne({ userId: req.params.employeeId, managerId: { $ne: null } }).sort({ submittedAt: -1 });
+  if (!timesheet?.managerId) {
+    return res.status(404).json({ message: "No manager relationship found. Ask the employee to submit a timesheet first." });
+  }
+  const manager = await User.findById(timesheet.managerId).select("name email");
+  if (!manager) return res.status(404).json({ message: "No manager relationship found. Ask the employee to submit a timesheet first." });
+  res.json({ id: manager._id, name: manager.name, email: manager.email });
+};
 
 export const getProofUrl = async (req, res) => {
   const blobName = req.query.blob_name;
   if (!blobName) return res.status(400).json({ message: "blob_name is required" });
+
+  // Confirm the blob actually belongs to a PIP goal before signing a URL for
+  // it, and that the requester can access that PIP (self, or manager/hr).
+  const pip = await Pip.findOne({ "goals.proofDocuments.blobName": blobName });
+  if (!pip) return res.status(404).json({ message: "Proof document not found" });
+  const isSelf = pip.employeeId.equals(req.user._id);
+  if (!isSelf && !["hr", "manager"].includes(req.user.roles.pms)) {
+    return res.status(403).json({ message: "Not authorized to view this document" });
+  }
+
   res.json({ url: createReadUrl(blobName) });
 };
 
@@ -30,6 +62,23 @@ export const listAllPips = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
   const pips = await Pip.find({}).sort({ createdAt: -1 });
   res.json(pips.map((p) => ({ ...p.toObject(), id: p._id, employee_id: p.employeeId })));
+};
+
+export const getPipLegacy = async (req, res) => {
+  const pip = await Pip.findById(req.params.id);
+  if (!pip) return res.status(404).json({ message: "PIP not found" });
+  const isSelf = pip.employeeId.equals(req.user._id);
+  if (!isSelf && !["hr", "manager"].includes(req.user.roles.pms)) {
+    return res.status(403).json({ message: "Not authorized to view this PIP" });
+  }
+  res.json({ ...pip.toObject(), id: pip._id });
+};
+
+export const deletePipLegacy = async (req, res) => {
+  if (req.user.roles.pms !== "hr") return res.status(403).json({ message: "PMS HR access required" });
+  const pip = await Pip.findByIdAndDelete(req.params.id);
+  if (!pip) return res.status(404).json({ message: "PIP not found" });
+  res.status(204).send();
 };
 
 export const createPip = async (req, res) => {

@@ -35,6 +35,39 @@ export const listCycles = async (req, res) => {
   res.json(cycles.map(toLegacyCycle));
 };
 
+export const getCycleLegacy = async (req, res) => {
+  const cycle = await Cycle.findById(req.params.id);
+  if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+  res.json(toLegacyCycle(cycle));
+};
+
+// The old system's `templates` collection (per-cycle form config) was folded
+// into Cycle.formConfig (see Cycle.js) — there's no independent "selected"
+// template anymore, so "active" here means the cycle currently in its date
+// window, and "all templates" means every cycle's formConfig.
+const toLegacyTemplate = (cycle) => ({
+  id: cycle._id,
+  cycleId: cycle._id,
+  employeeWeightLimit: cycle.formConfig.employeeWeightLimit,
+  kras: cycle.formConfig.kras,
+  selectedQuarters: cycle.formConfig.selectedQuarters,
+  autoCreated: cycle.formConfig.autoCreated,
+  createdAt: cycle.createdAt,
+});
+
+export const getActiveTemplate = async (req, res) => {
+  const now = new Date();
+  const cycle = await Cycle.findOne({ start: { $lte: now }, end: { $gte: now } }).sort({ start: -1 });
+  if (!cycle) return res.json({ active: false });
+  const template = toLegacyTemplate(cycle);
+  res.json({ active: true, template, quarters: template.selectedQuarters, assignedAt: template.createdAt });
+};
+
+export const listTemplates = async (req, res) => {
+  const cycles = await Cycle.find({}).sort({ start: -1 });
+  res.json(cycles.map(toLegacyTemplate));
+};
+
 export const createCycle = async (req, res) => {
   if (!requirePmsHr(req, res)) return;
   const { name, type, start, end } = req.body;

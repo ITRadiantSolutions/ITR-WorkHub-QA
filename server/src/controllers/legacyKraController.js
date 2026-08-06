@@ -129,6 +129,39 @@ export const listAssignedTemplates = async (req, res) => {
   );
 };
 
+// Raw list of assignment docs for a cycle (HR/manager view of "who's been
+// assigned what" for that cycle), as opposed to listAssignedTemplates which
+// is scoped to one employee.
+export const getKpiTemplateHistory = async (req, res) => {
+  if (!requirePmsHrOrManager(req, res)) return;
+  const { cycleId } = req.query;
+  if (!cycleId) return res.status(400).json({ message: "cycleId is required" });
+
+  const assignments = await KraAssignment.find({ cycleId });
+  res.json(
+    assignments.map((a) => ({
+      id: a._id,
+      cycleId: a.cycleId,
+      assignedToId: a.assignedTo,
+      assignedToType: "user",
+      createdBy: a.createdBy,
+      status: a.status,
+      submittedAt: a.submittedAt,
+      kras: a.kras,
+    })),
+  );
+};
+
+// Username autocomplete for the assign-KRA search box.
+export const searchUserSuggestions = async (req, res) => {
+  if (!requirePmsHrOrManager(req, res)) return;
+  const { name } = req.query;
+  const users = await User.find({ name: { $regex: name || "", $options: "i" }, "archived.pms": { $ne: true } })
+    .select("name")
+    .limit(20);
+  res.json(users.map((u) => u.name));
+};
+
 export const deleteAssignment = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
   const assignment = await KraAssignment.findByIdAndDelete(req.params.id);

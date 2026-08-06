@@ -96,8 +96,13 @@ async function migrateSprints({ flowtrackerDb, targetDb, userIdMap, projectIdMap
   const sprintIdMap = new Map();
   const docs = [];
 
+  // Reuse an already-migrated sprint's real _id on re-run (see migrateUsers).
+  const existing = await targetDb.collection("sprints").find({}, { projection: { _legacyId: 1 } }).toArray();
+  const existingIdByLegacyId = new Map(existing.map((d) => [d._legacyId, d._id]));
+
   for (const s of sprints) {
-    const newId = new ObjectId();
+    const legacyId = `flowtracker:${s._id}`;
+    const newId = existingIdByLegacyId.get(legacyId) || new ObjectId();
     sprintIdMap.set(s._id.toString(), newId);
     docs.push({
       _id: newId,
@@ -128,8 +133,13 @@ async function migrateTasks({ flowtrackerDb, targetDb, userIdMap, projectIdMap, 
   const taskIdMap = new Map();
   const docs = [];
 
+  // Reuse an already-migrated task's real _id on re-run (see migrateUsers).
+  const existing = await targetDb.collection("tasks").find({}, { projection: { _legacyId: 1 } }).toArray();
+  const existingIdByLegacyId = new Map(existing.map((d) => [d._legacyId, d._id]));
+
   for (const t of tasks) {
-    const newId = new ObjectId();
+    const legacyId = `flowtracker:${t._id}`;
+    const newId = existingIdByLegacyId.get(legacyId) || new ObjectId();
     taskIdMap.set(t._id.toString(), newId);
     docs.push({
       _id: newId,
@@ -191,8 +201,13 @@ async function migrateBugs({ flowtrackerDb, targetDb, userIdMap, taskIdMap, repo
   const bugIdMap = new Map();
   const docs = [];
 
+  // Reuse an already-migrated bug's real _id on re-run (see migrateUsers).
+  const existing = await targetDb.collection("bugs").find({}, { projection: { _legacyId: 1 } }).toArray();
+  const existingIdByLegacyId = new Map(existing.map((d) => [d._legacyId, d._id]));
+
   for (const b of bugs) {
-    const newId = new ObjectId();
+    const legacyId = `flowtracker:${b._id}`;
+    const newId = existingIdByLegacyId.get(legacyId) || new ObjectId();
     bugIdMap.set(b._id.toString(), newId);
     docs.push({
       _id: newId,
@@ -293,8 +308,15 @@ async function migratePmsCycles({ timeflowDb, targetDb, userIdMap, report }) {
   const cycleIdMap = new Map();
   const docs = [];
 
+  // Reuse an already-migrated cycle's real _id on re-run (see migrateUsers) —
+  // kra_assignments/submissions reference cycleId by value, so a drifting id
+  // here would silently orphan those references on every re-run too.
+  const existing = await targetDb.collection("cycles").find({}, { projection: { _legacyId: 1 } }).toArray();
+  const existingIdByLegacyId = new Map(existing.map((d) => [d._legacyId, d._id]));
+
   for (const c of cycles) {
-    const newId = new ObjectId();
+    const legacyId = `timeflow:${c._id}`;
+    const newId = existingIdByLegacyId.get(legacyId) || new ObjectId();
     cycleIdMap.set(c._id.toString(), newId);
     const mapUsers = (ids) => (ids || []).map((id) => userIdMap.get(`timeflow:${id}`)).filter(Boolean);
     docs.push({

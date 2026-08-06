@@ -34,6 +34,7 @@ import legacyPmsMiscRoutes from "./routes/legacyPmsMisc.routes.js";
 import legacyReportsRoutes from "./routes/legacyReports.routes.js";
 import legacyUsersGroupRoutes from "./routes/legacyUsersGroup.routes.js";
 import legacyKraMasterTemplateRoutes from "./routes/legacyKraMasterTemplate.routes.js";
+import legacyKraDraftRoutes from "./routes/legacyKraDraft.routes.js";
 
 // Express app only — no listen(), no DB connect, no cron jobs. Kept separate
 // from server.js so tests (supertest) can import and exercise it directly
@@ -75,6 +76,7 @@ app.use("/api", legacyPmsMiscRoutes);
 app.use("/api/reports", legacyReportsRoutes);
 app.use("/api/usersgroup", legacyUsersGroupRoutes);
 app.use("/api", legacyKraMasterTemplateRoutes);
+app.use("/api/kras", legacyKraDraftRoutes);
 
 // Serve the built React client, when present — the deploy workflow copies
 // client/dist here so one App Service can host both API and frontend on

@@ -80,72 +80,99 @@ function DonutChart({ completed, total }) {
   );
 }
 
-// Small radial ring — just the overall completion %, no per-status segments.
-function RadialProgress({ value, size = 88, stroke = 8, color = "#4f46e5" }) {
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.min(100, Math.max(0, value)) / 100) * circumference;
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" role="img" aria-label="Overall completion">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 0.7s ease" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-lg font-extrabold leading-none text-slate-900">{value}%</span>
-      </div>
-    </div>
-  );
-}
-
 function TaskStatusPie({ metrics }) {
-  const data = [
-    { label: "Completed", value: metrics.done, bar: "bg-emerald-500" },
-    { label: "In Progress", value: metrics.inProgress, bar: "bg-gradient-to-r from-indigo-500 to-indigo-600" },
-    { label: "QA Testing", value: metrics.qaTesting, bar: "bg-violet-600" },
-    { label: "On Hold", value: metrics.onHold, bar: "bg-amber-500" },
-    { label: "Todo", value: metrics.todo, bar: "bg-slate-500" },
+  const other = metrics.qaTesting + metrics.onHold + metrics.todo;
+  const segments = [
+    { label: "Completed", value: metrics.done, color: "url(#taskDonutPrimary)", legendColor: "linear-gradient(135deg,#1d4ed8,#3b82f6)" },
+    { label: "In Progress", value: metrics.inProgress, color: "#60a5fa", legendColor: "#60a5fa" },
+    { label: "Other", value: other, color: "#e2e8f0", legendColor: "#e2e8f0" },
   ];
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const total = segments.reduce((sum, s) => sum + s.value, 0);
+  const r = 80,
+    cx = 110,
+    cy = 110,
+    circ = 2 * Math.PI * r,
+    gap = 3; // degrees of visual gap between segments
+  const [hovered, setHovered] = useState(null);
+
+  const arcs = segments.reduce((acc, s) => {
+    const cursor = acc.length ? acc[acc.length - 1].cursor : 0;
+    const pct = total > 0 ? s.value / total : 0;
+    const length = Math.max(pct * circ - gap, 0);
+    acc.push({ ...s, pct: Math.round(pct * 100), dasharray: `${length} ${circ - length}`, dashoffset: circ - cursor, cursor: cursor + pct * circ });
+    return acc;
+  }, []);
 
   const footerStats = [
-    { label: "Total Tasks", value: metrics.total, cls: "bg-violet-50 text-violet-600", Icon: Icons.Tasks },
-    { label: "Completed", value: metrics.done, cls: "bg-emerald-50 text-emerald-600", Icon: Icons.CheckCircle },
-    { label: "In Progress", value: metrics.inProgress, cls: "bg-indigo-50 text-indigo-600", Icon: Icons.Clock },
+    { label: "Total Tasks", value: metrics.total, cls: "bg-blue-50 text-blue-600", Icon: Icons.Tasks },
+    { label: "Completed", value: metrics.done, cls: "bg-blue-50 text-blue-700", Icon: Icons.CheckCircle },
+    { label: "In Progress", value: metrics.inProgress, cls: "bg-sky-50 text-sky-600", Icon: Icons.Clock },
     { label: "Overdue", value: metrics.overdue, cls: "bg-red-50 text-red-600", Icon: Icons.Alert },
   ];
 
   return (
     <div>
-      <div className="flex flex-col items-center gap-1.5 mb-5">
-        <RadialProgress value={metrics.rate} />
-        <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Overall Completion</p>
-      </div>
-
-      <div className="space-y-3">
-        {data.map((item) => {
-          const pct = total ? Math.round((item.value / total) * 100) : 0;
-          return (
-            <div key={item.label} className="flex items-center gap-3">
-              <span className="w-24 shrink-0 text-xs font-semibold text-slate-700">{item.label}</span>
-              <span className="h-2 flex-1 overflow-hidden rounded-full bg-[#E5E7EB]">
-                <span className={`block h-full rounded-full transition-all duration-700 ${item.bar}`} style={{ width: `${pct}%` }} />
-              </span>
-              <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-slate-700">{item.value}</span>
-            </div>
-          );
-        })}
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative shrink-0" style={{ width: 220, height: 220 }}>
+          <svg width="220" height="220" viewBox="0 0 220 220">
+            <defs>
+              <linearGradient id="taskDonutPrimary" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#1d4ed8" />
+                <stop offset="100%" stopColor="#3b82f6" />
+              </linearGradient>
+            </defs>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eff6ff" strokeWidth="24" />
+            {arcs.map((a, i) => (
+              <circle
+                key={i}
+                cx={cx}
+                cy={cy}
+                r={r}
+                fill="none"
+                stroke={a.color}
+                strokeWidth="24"
+                strokeDasharray={a.dasharray}
+                strokeDashoffset={a.dashoffset}
+                strokeLinecap="round"
+                transform={`rotate(-90 ${cx} ${cy})`}
+                style={{
+                  transition: "stroke-dasharray 0.6s ease, opacity 0.15s ease",
+                  cursor: "pointer",
+                  opacity: hovered && hovered.label !== a.label ? 0.35 : 1,
+                }}
+                onMouseEnter={() => setHovered(a)}
+                onMouseLeave={() => setHovered(null)}
+              />
+            ))}
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            {hovered ? (
+              <>
+                <span className="text-2xl font-bold text-slate-800 tabular-nums">{hovered.value}</span>
+                <span className="mt-1 max-w-[120px] truncate text-xs font-semibold text-slate-500">{hovered.label}</span>
+                <span className="text-xs font-semibold text-slate-400">{hovered.pct}%</span>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl font-bold text-slate-800 tabular-nums">{metrics.rate}%</span>
+                <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Completion</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+          {arcs.map((a, i) => (
+            <span
+              key={i}
+              className="flex items-center gap-1.5 cursor-pointer"
+              onMouseEnter={() => setHovered(a)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.legendColor }} />
+              <span className="text-sm font-semibold text-slate-700">{a.label} ({a.value})</span>
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-4">
