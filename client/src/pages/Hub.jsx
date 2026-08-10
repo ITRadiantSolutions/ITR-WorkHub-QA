@@ -80,7 +80,7 @@ const TILES = [
     icon: "UserPlus",
     accent: "rose",
     tags: [
-      { icon: "UserPlus", label: "Check-in" },
+      { icon: "UserPlus", label: "Check-in/out" },
       { icon: "Calendar", label: "Appointments" },
       { icon: "Shield", label: "Badges" },
     ],
@@ -192,13 +192,13 @@ const ACCENTS = {
 // card copy in the empty space toward the right edge.
 function FlowTrackDecor() {
   return (
-    <div className="pointer-events-none absolute right-2 top-24 w-28 h-24" aria-hidden>
-      <div className="absolute right-0 top-2 w-20 h-20 rounded-xl bg-indigo-100/70 rotate-6" />
-      <div className="absolute right-3 top-0 w-20 h-20 rounded-xl bg-white border border-indigo-100 shadow-md -rotate-3 p-2.5">
-        <div className="w-4 h-4 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500">
+    <div className="pointer-events-none absolute right-2 top-14 w-24 h-20" aria-hidden>
+      <div className="absolute right-0 top-1.5 w-16 h-16 rounded-xl bg-indigo-100/70 rotate-6" />
+      <div className="absolute right-2 top-0 w-16 h-16 rounded-xl bg-white border border-indigo-100 shadow-md -rotate-3 p-2">
+        <div className="w-3.5 h-3.5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500">
           <Icons.Check />
         </div>
-        <svg width="52" height="20" viewBox="0 0 52 20" className="mt-2 overflow-visible">
+        <svg width="42" height="16" viewBox="0 0 52 20" className="mt-1.5 overflow-visible">
           <polyline
             points="1,17 11,10 20,13 30,5 41,8 51,1"
             fill="none"
@@ -215,18 +215,18 @@ function FlowTrackDecor() {
 
 function TimesheetDecor() {
   return (
-    <div className="pointer-events-none absolute right-2 top-20 w-28 h-28" aria-hidden>
-      <div className="absolute right-1 top-1 w-20 h-20 rounded-2xl bg-emerald-100/70 border border-emerald-100 rotate-2 p-2.5">
+    <div className="pointer-events-none absolute right-2 top-12 w-24 h-24" aria-hidden>
+      <div className="absolute right-1 top-1 w-16 h-16 rounded-2xl bg-emerald-100/70 border border-emerald-100 rotate-2 p-2">
         <div className="flex gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="w-2 h-2 rounded-full bg-emerald-300" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
         </div>
-        <div className="mt-3 space-y-1.5">
-          <div className="h-1.5 w-12 rounded-full bg-emerald-300/70" />
-          <div className="h-1.5 w-8 rounded-full bg-emerald-300/70" />
+        <div className="mt-2 space-y-1">
+          <div className="h-1 w-10 rounded-full bg-emerald-300/70" />
+          <div className="h-1 w-7 rounded-full bg-emerald-300/70" />
         </div>
       </div>
-      <div className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-white border border-emerald-200 shadow-md flex items-center justify-center text-emerald-500">
+      <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white border border-emerald-200 shadow-md flex items-center justify-center text-emerald-500">
         <Icons.Clock />
       </div>
     </div>
@@ -235,12 +235,12 @@ function TimesheetDecor() {
 
 function PmsDecor() {
   return (
-    <div className="pointer-events-none absolute right-4 top-24 flex items-end gap-1.5 h-20" aria-hidden>
-      <div className="w-3.5 rounded-t-md bg-purple-200" style={{ height: "35%" }} />
-      <div className="w-3.5 rounded-t-md bg-purple-300" style={{ height: "60%" }} />
-      <div className="w-3.5 rounded-t-md bg-purple-400" style={{ height: "48%" }} />
-      <div className="relative w-3.5 rounded-t-md bg-purple-600" style={{ height: "85%" }}>
-        <span className="absolute -top-4 -right-1 text-purple-500">
+    <div className="pointer-events-none absolute right-4 top-14 flex items-end gap-1 h-16" aria-hidden>
+      <div className="w-3 rounded-t-md bg-purple-200" style={{ height: "35%" }} />
+      <div className="w-3 rounded-t-md bg-purple-300" style={{ height: "60%" }} />
+      <div className="w-3 rounded-t-md bg-purple-400" style={{ height: "48%" }} />
+      <div className="relative w-3 rounded-t-md bg-purple-600" style={{ height: "85%" }}>
+        <span className="absolute -top-3.5 -right-1 text-purple-500">
           <Icons.Star />
         </span>
       </div>
@@ -266,15 +266,13 @@ export default function Hub() {
   }, []);
 
   return (
-    <div className="h-screen overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col">
       <header className="flex items-center justify-between px-6 sm:px-10 py-2.5 bg-white border-b border-slate-100 shrink-0">
         <WorkHubLogo size="sm" subtitle />
 
-        <div className="hidden md:block text-center">
-          <p className="text-sm font-bold text-slate-900">
-            Welcome back, {user?.name || "there"} <span aria-hidden>👋</span>
-          </p>
-          {/* <p className="text-xs text-slate-500">Choose a workspace to continue</p> */}
+        <div className="hidden md:flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-900 whitespace-nowrap">
+          <span className="text-blue-600"><Icons.Sparkle /></span>
+          Hello {user?.name?.split(" ")[0] || "there"}, choose a workspace
         </div>
 
         <div className="flex items-center gap-4">
@@ -300,12 +298,9 @@ export default function Hub() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 py-3 min-h-0">
-        <h1 className="w-full max-w-5xl text-2xl sm:text-[1.7rem] font-black text-slate-900 mb-4 flex items-center justify-center gap-2">
-          <Icons.Sparkle /> Choose a workspace
-        </h1>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px] w-full max-w-[921px]">
+      <main className="flex-1 overflow-hidden flex px-6 py-4 min-h-0">
+        <div className="m-auto flex flex-col items-center w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] w-full max-w-[980px] mb-6">
           {TILES.map((tile) => {
             const Icon = Icons[tile.icon];
             const a = ACCENTS[tile.accent];
@@ -319,39 +314,39 @@ export default function Hub() {
                     ? toast.error(`You don't have access to ${tile.title}. Contact your administrator.`)
                     : tile.go(user, navigate)
                 }
-                className={`group relative text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-[18px] pb-0 overflow-hidden transition-all duration-200 focus:outline-none focus-visible:ring-4 ${a.ring} ${
+                className={`group relative text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-4 pb-0 overflow-hidden transition-all duration-200 focus:outline-none focus-visible:ring-4 ${a.ring} ${
                   archived ? "grayscale opacity-60 cursor-not-allowed" : `hover:-translate-y-1 hover:shadow-xl ${a.hoverBorder}`
                 }`}
               >
                 {Decor && <Decor />}
 
                 {tile.comingSoon && (
-                  <span className="absolute top-[14px] right-[14px] z-10 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                  <span className="absolute top-3 right-3 z-10 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                     Coming Soon
                   </span>
                 )}
                 {archived && (
-                  <span className="absolute top-[14px] right-[14px] z-10 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                  <span className="absolute top-3 right-3 z-10 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                     No Access
                   </span>
                 )}
 
                 <div
-                  className={`relative z-10 w-[41px] h-[41px] rounded-xl ${a.iconBg} flex items-center justify-center text-white shadow-lg mb-[11px]`}
+                  className={`relative z-10 w-9 h-9 rounded-xl ${a.iconBg} flex items-center justify-center text-white shadow-lg mb-2.5`}
                 >
                   {Icon ? <Icon /> : null}
                 </div>
 
-                <h3 className="relative z-10 text-[14px] font-bold text-slate-900 mb-[5px]">{tile.title}</h3>
-                <p className="relative z-10 text-[11px] text-slate-600 mb-[11px] leading-relaxed max-w-[80%] line-clamp-2">{tile.description}</p>
+                <h3 className="relative z-10 text-[15px] font-bold text-slate-900 mb-1">{tile.title}</h3>
+                <p className="relative z-10 text-[12px] text-slate-600 mb-2.5 leading-snug max-w-[85%] line-clamp-2">{tile.description}</p>
 
-                <div className="relative z-10 flex flex-wrap gap-[5px] mb-[11px]">
+                <div className="relative z-10 flex flex-wrap gap-1.5 mb-2.5">
                   {tile.tags.map((tag) => {
                     const TagIcon = Icons[tag.icon];
                     return (
                       <span
                         key={tag.label}
-                        className="inline-flex items-center gap-[5px] rounded-full bg-slate-50 border border-slate-200 px-[9px] py-[3px] text-[10px] font-medium text-slate-600"
+                        className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600"
                       >
                         {TagIcon ? <span className={a.tagIcon}><TagIcon /></span> : null}
                         {tag.label}
@@ -361,20 +356,20 @@ export default function Hub() {
                 </div>
 
                 <div
-                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-lg font-bold text-[11px] py-[9px] mb-[11px] group-hover:gap-2.5 transition-all ${
+                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-lg font-bold text-[12px] py-2 mb-2.5 group-hover:gap-2.5 transition-all ${
                     tile.filled ? `${a.solidBg} text-white` : `border ${a.border} ${a.text}`
                   }`}
                 >
                   {archived ? "No Access" : tile.comingSoon ? "Coming Soon" : <>Open {tile.title} <Icons.ArrowRight /></>}
                 </div>
 
-                <div className={`relative z-10 h-1 -mx-[18px] ${a.iconBg}`} />
+                <div className={`relative z-10 h-1 -mx-4 ${a.iconBg}`} />
               </button>
             );
           })}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 w-full max-w-5xl mt-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-5xl">
           {FEATURES.map((f) => {
             const FIcon = Icons[f.icon];
             const a = ACCENTS[f.accent];
@@ -384,8 +379,8 @@ export default function Hub() {
                   {FIcon ? <FIcon /> : null}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-900">{f.title}</p>
-                  <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                  <p className="text-sm font-bold text-slate-900">{f.title}</p>
+                  <p className="text-xs text-slate-500 flex items-center gap-1">
                     {f.description}
                     <span className="text-emerald-500"><Icons.CheckCircle /></span>
                   </p>
@@ -394,10 +389,7 @@ export default function Hub() {
             );
           })}
         </div>
-
-        <p className="text-center text-xs text-slate-400 mt-4 mb-1">
-          © {new Date().getFullYear()} <span className="font-semibold text-slate-500">ITR One</span>. All rights reserved.
-        </p>
+        </div>
       </main>
     </div>
   );

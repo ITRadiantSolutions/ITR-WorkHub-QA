@@ -207,23 +207,26 @@ export async function verifyOtp(req, res) {
 
     const before = { status: visitor.status, otpAttempts: visitor.otpAttempts };
     const valid = isOtpValid(visitor, code);
-    const updates = { otpAttempts: visitor.otpAttempts + 1 };
 
+    // Wrong day but otherwise a correct, unexpired code — not a guessing
+    // attempt, so it shouldn't burn one of the visitor's 3 tries.
     if (valid && visitor.visitDate) {
       const sameDay = new Date().toDateString() === new Date(visitor.visitDate).toDateString();
       if (!sameDay) {
-        await Visitor.findByIdAndUpdate(visitorId, updates);
-        await createAudit(req, visitor._id, "VISIT_DATE_INVALID", before, updates);
+        await createAudit(req, visitor._id, "VISIT_DATE_INVALID", before, before);
         return res.status(400).json({ error: "Visit date not valid" });
       }
     }
 
     if (!valid) {
-      await Visitor.findByIdAndUpdate(visitorId, updates);
-      await createAudit(req, visitor._id, "OTP_FAILED", before, updates);
+      // Atomic increment — avoids a lost-update race if two verify requests
+      // for the same visitor land concurrently.
+      const failed = await Visitor.findByIdAndUpdate(visitorId, { $inc: { otpAttempts: 1 } }, { new: true }).lean();
+      await createAudit(req, visitor._id, "OTP_FAILED", before, { status: failed.status, otpAttempts: failed.otpAttempts });
       return res.status(400).json({ error: "OTP invalid or expired" });
     }
 
+    const updates = { otpAttempts: visitor.otpAttempts + 1 };
     let updated;
     if (visitor.visitorType === "Invited") {
       updates.status = VISIT_STATUS.APPROVED;
@@ -328,6 +331,18 @@ export async function verifyInvitedOtpByCode(req, res) {
       return res.status(400).json({ error: "OTP invalid or expired" });
     }
 
+    // otpExpiresAt extends through the end of the scheduled visitDate (see
+    // otpExpiresAt()), so without this check the code stays "valid" — and
+    // usable at the kiosk — from the moment it's issued until that date,
+    // not just on the day itself. verifyOtp (the by-visitorId path) already
+    // enforces this; this code-only path was missing it.
+    if (matched.visitDate) {
+      const sameDay = new Date().toDateString() === new Date(matched.visitDate).toDateString();
+      if (!sameDay) {
+        return res.status(400).json({ error: "Visit date not valid" });
+      }
+    }
+
     const before = { status: matched.status, otpAttempts: matched.otpAttempts };
 
     await Visitor.findByIdAndUpdate(matched._id, { status: VISIT_STATUS.APPROVED, otpCode: "", otpAttempts: 0 });
@@ -420,7 +435,9 @@ export async function approvalAction(req, res) {
   let statusUpdate;
   let approvalRole = "receptionist";
   if (action === "approve") {
-    statusUpdate = visitor.status === VISIT_STATUS.ESCALATED ? VISIT_STATUS.SECURITY_APPROVED : VISIT_STATUS.RECEPTION_APPROVED;
+    const isEscalationResolution = visitor.status === VISIT_STATUS.ESCALATED;
+    statusUpdate = isEscalationResolution ? VISIT_STATUS.SECURITY_APPROVED : VISIT_STATUS.RECEPTION_APPROVED;
+    if (isEscalationResolution) approvalRole = "admin";
   } else if (action === "escalate") {
     statusUpdate = VISIT_STATUS.ESCALATED;
     approvalRole = "admin";

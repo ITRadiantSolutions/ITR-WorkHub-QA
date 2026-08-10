@@ -72,7 +72,10 @@ import hrmsDashboardRoutes from "./routes/hrms/dashboard.routes.js";
 const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
-app.use(express.json());
+// Default 100kb is too small for the VMS kiosk's base64 photoDataUrl
+// (a full-res webcam capture easily exceeds it); everywhere else that
+// uploads binary data goes through multer instead, so this only affects VMS.
+app.use(express.json({ limit: "5mb" }));
 app.use(apiResponseCache);
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));

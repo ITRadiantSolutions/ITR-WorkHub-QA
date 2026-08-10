@@ -5,7 +5,6 @@ import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 import WorkHubLogo from "../components/WorkHubLogo";
-import LoginDashboardPreview from "../components/LoginDashboardPreview";
 
 // Icons.jsx has no EyeOff variant — a small local fallback for the
 // hide-password toggle.
@@ -18,13 +17,13 @@ function EyeOffIcon() {
   );
 }
 
-// Icons.jsx has no pie/donut chart variant — a small local fallback for the
-// "Insights & Reports" feature icon.
-function PieChartIcon() {
+// Icons.jsx has no headset/support variant — a small local fallback for the
+// "Need help?" pill.
+function HeadsetIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
-      <path d="M22 12A10 10 0 0 0 12 2v10z" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
     </svg>
   );
 }
@@ -57,32 +56,53 @@ function InputField({ label, type = "text", placeholder, value, onChange, disabl
   );
 }
 
-const FEATURES = [
-  {
-    Ic: Icons.Folder,
-    bg: "bg-blue-600",
-    title: "Project Management",
-    desc: "Plan, track and deliver projects efficiently.",
-  },
-  {
-    Ic: Icons.Clock,
-    bg: "bg-teal-500",
-    title: "Time Tracking",
-    desc: "Log hours, timesheets and stay productive.",
-  },
-  {
-    Ic: Icons.BarChart,
-    bg: "bg-orange-500",
-    title: "Performance Management",
-    desc: "Set goals, review performance and grow together.",
-  },
-  {
-    Ic: PieChartIcon,
-    bg: "bg-violet-500",
-    title: "Insights & Reports",
-    desc: "Real-time insights to make smarter decisions.",
-  },
+// Mirrors the module palette used on the Hub workspace grid, so the login
+// marketing panel reads as the same product.
+const MODULES = [
+  { key: "flowtrack", Ic: Icons.Zap, bg: "bg-indigo-600", bar: "bg-indigo-500", title: "FlowTrack", desc: "Plan projects, manage sprints, tasks and milestones." },
+  { key: "timeflow", Ic: Icons.Clock, bg: "bg-emerald-500", bar: "bg-emerald-500", title: "Time Flow", desc: "Track work hours, submit timesheets and manage approvals." },
+  { key: "pms", Ic: Icons.Star, bg: "bg-violet-500", bar: "bg-violet-500", title: "PMS", desc: "Set goals, manage KPIs, reviews, feedback and performance." },
+  { key: "lms", Ic: Icons.Book, bg: "bg-orange-500", bar: "bg-orange-500", title: "LMS", desc: "Access courses, track certifications and monitor learning progress." },
+  { key: "vms", Ic: Icons.UserPlus, bg: "bg-rose-500", bar: "bg-rose-500", title: "VMS", desc: "Manage visitors, appointments, check-ins and host approvals." },
+  { key: "hrms", Ic: Icons.Briefcase, bg: "bg-sky-600", bar: "bg-sky-600", title: "HRMS", desc: "Manage employees, job openings, referrals and organization details." },
 ];
+
+const TRUST = [
+  { Ic: Icons.Shield, fg: "text-blue-600", bg: "bg-blue-100", title: "Secure & Reliable", desc: "Enterprise grade security you can trust" },
+  { Ic: Icons.TrendUp, fg: "text-emerald-600", bg: "bg-emerald-100", title: "Better Productivity", desc: "Track, analyze and improve team performance" },
+  { Ic: Icons.Bell, fg: "text-orange-500", bg: "bg-orange-100", title: "Real-time Updates", desc: "Stay informed with instant alerts and notifications" },
+  { Ic: Icons.Users, fg: "text-violet-500", bg: "bg-violet-100", title: "One Platform", desc: "All your work in one place, seamlessly connected" },
+];
+
+// Decorative mockup of a progress widget for the hero area — static, not real data.
+function HeroWidget() {
+  return (
+    <div className="hidden md:flex flex-col gap-3 w-56 shrink-0" aria-hidden>
+      <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-3.5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-bold text-slate-700">Project Progress</span>
+          <span className="text-[11px] font-bold text-emerald-500">+18%</span>
+        </div>
+        <svg viewBox="0 0 100 36" className="w-full h-10" preserveAspectRatio="none">
+          <polyline points="0,28 15,24 30,27 45,14 60,19 75,7 100,11" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-3.5 flex items-center gap-3">
+        <div
+          className="relative w-12 h-12 rounded-full grid place-items-center shrink-0"
+          style={{ background: "conic-gradient(#2563eb 270deg, #e2e8f0 0deg)" }}
+        >
+          <div className="w-9 h-9 rounded-full bg-white grid place-items-center text-[10px] font-extrabold text-slate-800">75%</div>
+        </div>
+        <div>
+          <p className="text-[11px] font-bold text-slate-700 leading-tight">Completed</p>
+          <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">Across all active projects</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
@@ -147,80 +167,93 @@ export default function Login() {
   };
 
   return (
-    <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }} className="h-screen w-screen overflow-hidden flex flex-col lg:flex-row">
+    <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }} className="h-screen w-screen overflow-hidden flex flex-col lg:flex-row relative">
+      {/* Floating "Need help?" pill — sits over both panels */}
+      <a
+        href="mailto:support@itradiant.com?subject=ITR%20One%20-%20Help%20Request"
+        className="absolute top-5 right-5 z-30 flex items-center gap-2 bg-white rounded-full pl-3 pr-4 py-2 shadow-sm border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
+      >
+        <span className="text-slate-400">
+          <HeadsetIcon />
+        </span>
+        Need help? <span className="font-bold text-blue-600">Contact Admin</span>
+      </a>
+
       {/* ── Left panel — brand side ─────────────────────────────────────── */}
       <div
-        className="hidden lg:flex lg:w-[52%] flex-col gap-5 px-10 xl:px-14 py-6 relative overflow-y-auto"
+        className="hidden lg:flex lg:w-[54%] h-full flex-col gap-3 px-10 xl:px-14 py-5 relative overflow-hidden"
         style={{ background: "linear-gradient(150deg, #eff6ff 0%, #dbeafe 60%, #bfdbfe 100%)" }}
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
           <div
-            className="absolute top-0 right-0 w-64 h-64 opacity-50"
-            style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1.5px, transparent 1.5px)", backgroundSize: "16px 16px" }}
+            className="absolute top-0 right-0 w-80 h-80 opacity-50"
+            style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1.5px, transparent 1.5px)", backgroundSize: "18px 18px" }}
           />
-          <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-blue-300/30 blur-3xl" />
+          <div className="absolute -bottom-32 -left-24 w-80 h-80 rounded-full bg-blue-300/30 blur-3xl" />
         </div>
 
-        <div className="relative z-10">
+        <div className="relative z-10 shrink-0">
           <WorkHubLogo size="lg" />
-          <p className="text-slate-600 text-xs mt-2 font-medium">One Platform. All Your Work.</p>
+          <p className="text-slate-500 text-xs mt-1 font-medium">One Platform. All Your Work.</p>
         </div>
 
-        <div className="relative z-10">
-          <h1 className="font-extrabold text-slate-900 leading-[1.15] tracking-tight mb-2" style={{ fontSize: "2rem" }}>
-            Manage Projects, Track Time.
-            <br />
-            <span className="text-blue-600">Drive Performance.</span>
-          </h1>
-          <p className="text-slate-500 text-sm max-w-md">
-            Streamline projects, track productivity, manage performance and achieve more together.
-          </p>
+        <div className="relative z-10 flex items-start justify-between gap-6 shrink-0">
+          <div>
+            <span className="inline-block text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1 mb-2">
+              Everything your team needs in one place
+            </span>
+            <h1 className="font-extrabold text-slate-900 leading-[1.1] tracking-tight" style={{ fontSize: "2.1rem" }}>
+              One Platform.
+              <br />
+              <span className="text-blue-600">All Your Work.</span>
+            </h1>
+            <p className="text-slate-500 text-sm max-w-sm mt-2 leading-relaxed">
+              Manage projects, track time, improve performance, develop skills, manage visitors, and streamline HR — all from one platform.
+            </p>
+          </div>
+          <HeroWidget />
         </div>
 
-        <div className="relative z-10 grid grid-cols-4 gap-3">
-          {FEATURES.map(({ Ic, bg, title, desc }) => (
+        <div className="relative z-10 grid grid-cols-3 gap-3 shrink-0">
+          {MODULES.map(({ key, Ic, bg, bar, title, desc }) => (
+            <div key={key} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-3 flex flex-col">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0 mb-2 ${bg}`}>
+                <Ic />
+              </div>
+              <p className="text-slate-900 text-[13px] font-bold leading-tight">{title}</p>
+              <p className="text-slate-500 text-[11px] mt-1 leading-snug flex-1">{desc}</p>
+              <div className={`h-[3px] w-6 rounded-full mt-2 ${bar}`} />
+            </div>
+          ))}
+        </div>
+
+        <div className="relative z-10 grid grid-cols-4 gap-3 border-t border-slate-200/70 pt-3 pb-2 mt-2 shrink-0">
+          {TRUST.map(({ Ic, fg, bg, title, desc }) => (
             <div key={title} className="flex items-start gap-2">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 ${bg}`}>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg} ${fg}`}>
                 <Ic />
               </div>
               <div>
-                <p className="text-slate-800 text-xs font-bold leading-tight">{title}</p>
+                <p className="text-slate-800 text-[11px] font-bold leading-tight">{title}</p>
                 <p className="text-slate-500 text-[10px] mt-0.5 leading-snug">{desc}</p>
               </div>
             </div>
           ))}
         </div>
-
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex-1 h-px bg-slate-300/70" />
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap">Our Integrated Modules</span>
-          <div className="flex-1 h-px bg-slate-300/70" />
-        </div>
-
-        <div className="relative z-10">
-          <LoginDashboardPreview />
-        </div>
-
-        <div className="relative z-10 flex items-center justify-center gap-2.5 bg-white/70 border border-slate-200 rounded-xl px-4 py-2.5 mt-auto">
-          <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-            <Icons.Shield />
-          </div>
-          <div>
-            <p className="text-slate-800 text-xs font-bold leading-tight">Secure &nbsp;•&nbsp; Reliable &nbsp;•&nbsp; Trusted by Teams</p>
-          </div>
-        </div>
       </div>
 
       {/* ── Right panel — sign-in form ───────────────────────────────────── */}
-      <div className="flex-1 h-full bg-white relative overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col items-center justify-center">
-        <div className="relative z-10 w-full max-w-[430px]">
+      <div className="flex-1 h-full relative overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 flex bg-white">
+        <div className="relative z-10 w-full max-w-[430px] m-auto">
           <div className="flex justify-center mb-6 lg:hidden">
             <WorkHubLogo size="lg" />
           </div>
 
           <div className="bg-white border border-slate-200 rounded-3xl shadow-xl px-5 sm:px-7 py-6 sm:py-7">
             <div className="mb-5">
-              <h2 className="text-[24px] sm:text-[28px] font-extrabold text-slate-900 leading-tight">Welcome Back!</h2>
+              <h2 className="text-[24px] sm:text-[28px] font-extrabold text-slate-900 leading-tight">
+                Welcome <span className="text-blue-600">Back!</span>
+              </h2>
               <p className="text-slate-500 text-sm mt-1">Sign in to continue to ITR One</p>
             </div>
 
@@ -239,7 +272,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
-                IconComp={Icons.User}
+                IconComp={Icons.Mail}
               />
 
               <InputField
@@ -288,7 +321,7 @@ export default function Login() {
                   </>
                 ) : (
                   <>
-                    <Icons.Lock /> Sign In
+                    Sign In <Icons.ArrowRight />
                   </>
                 )}
               </button>
@@ -321,7 +354,7 @@ export default function Login() {
           </div>
 
           <div className="text-center mt-6">
-            <p className="text-[11px] font-semibold text-slate-400 tracking-wide">Secure &nbsp;•&nbsp; Reliable &nbsp;•&nbsp; Trusted</p>
+            <p className="text-[11px] font-semibold text-slate-400 tracking-wide">Secure &nbsp;•&nbsp; Reliable &nbsp;•&nbsp; Trusted by Teams</p>
             <p className="text-[11px] text-slate-400 mt-1">© {new Date().getFullYear()} ITRadiant Solutions Pvt. Ltd. All rights reserved.</p>
             <p className="text-[10px] text-slate-300 mt-1">Version 1.0.0</p>
           </div>

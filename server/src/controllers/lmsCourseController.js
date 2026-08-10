@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 import Course from "../models/Course.js";
 import Lecture from "../models/Lecture.js";
 import CourseAssessment from "../models/CourseAssessment.js";
+import CourseProgress from "../models/CourseProgress.js";
+import CourseAssignment from "../models/CourseAssignment.js";
+import CourseReview from "../models/CourseReview.js";
+import LmsLearningReport from "../models/LmsLearningReport.js";
 import { uploadAttachment, deleteAttachments, createReadUrl } from "../config/blobStorage.js";
 
 // Ported from the standalone LMS project's courseController.js + adminCourseController.js
@@ -107,9 +111,13 @@ export const getCreatorCourses = async (req, res) => {
   res.json(courses.map(resolveCourse));
 };
 
+// Draft (unpublished) courses may contain half-finished material uploads and
+// aren't meant to be visible outside their creator/managers — an employee
+// who guesses or is handed a courseId shouldn't be able to read it early.
 export const getCourseById = async (req, res) => {
   const course = await Course.findById(req.params.courseId).populate("lectures reviews").lean();
   if (!course) return res.status(404).json({ message: "Course not found" });
+  if (!course.isPublished && !isManager(req.user)) return res.status(404).json({ message: "Course not found" });
   res.json(resolveCourse(course));
 };
 
@@ -117,7 +125,9 @@ export const getCoursesByIds = async (req, res) => {
   const { ids } = req.query;
   if (!ids) return res.status(400).json({ message: "ids parameter is required" });
 
-  const courses = await Course.find({ _id: { $in: ids.split(",") } }).lean();
+  const filter = { _id: { $in: ids.split(",") } };
+  if (!isManager(req.user)) filter.isPublished = true;
+  const courses = await Course.find(filter).lean();
   res.json(courses.map(resolveCourse));
 };
 
@@ -203,7 +213,17 @@ export const removeCourse = async (req, res) => {
     ...(course.lectures || []).flatMap((lecture) => (lecture.materials || []).map((material) => material.fileUrl)),
   ].filter(Boolean);
 
-  await Lecture.deleteMany({ _id: { $in: course.lectures } });
+  // Nothing else cascades from a course delete — clean up every collection
+  // that references this course so it doesn't leave dangling progress,
+  // assignment, and review records behind.
+  await Promise.all([
+    Lecture.deleteMany({ _id: { $in: course.lectures } }),
+    CourseAssessment.deleteMany({ course: course._id }),
+    CourseProgress.deleteMany({ course: course._id }),
+    CourseAssignment.deleteMany({ course: course._id }),
+    CourseReview.deleteMany({ course: course._id }),
+    LmsLearningReport.updateMany({}, { $pull: { courses: { courseId: course._id } } }),
+  ]);
   await course.deleteOne();
   await deleteAttachments(blobNames);
 
@@ -213,7 +233,7 @@ export const removeCourse = async (req, res) => {
 export const createLecture = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
   const { courseId } = req.params;
-  const { chapterTitle, lectureTitle, materials, isPreviewFree, test } = req.body;
+  const { chapterTitle, lectureTitle, materials, isPreviewFree } = req.body;
   if (!lectureTitle) return res.status(400).json({ message: "lectureTitle is required" });
 
   const course = await Course.findById(courseId);
@@ -227,7 +247,6 @@ export const createLecture = async (req, res) => {
     lectureTitle,
     materials: uploadedMaterials,
     isPreviewFree: isPreviewFree === "true" || isPreviewFree === true,
-    test: test ? (typeof test === "string" ? JSON.parse(test) : test) : { enabled: false, questions: [] },
   });
 
   if (!course.lectures.some((id) => String(id) === String(lecture._id))) {
@@ -241,13 +260,14 @@ export const createLecture = async (req, res) => {
 export const getCourseLecture = async (req, res) => {
   const course = await Course.findById(req.params.courseId).populate("lectures").lean();
   if (!course) return res.status(404).json({ message: "Course not found" });
+  if (!course.isPublished && !isManager(req.user)) return res.status(404).json({ message: "Course not found" });
   res.json(resolveCourse(course));
 };
 
 export const editLecture = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
   const { lectureId } = req.params;
-  const { lectureTitle, chapterTitle, materials, isPreviewFree, test } = req.body;
+  const { lectureTitle, chapterTitle, materials, isPreviewFree } = req.body;
 
   const lecture = await Lecture.findById(lectureId);
   if (!lecture) return res.status(404).json({ message: "Lecture not found" });
@@ -261,7 +281,6 @@ export const editLecture = async (req, res) => {
   if (chapterTitle !== undefined) lecture.chapterTitle = chapterTitle;
   if (materials !== undefined) lecture.materials = uploadedMaterials;
   if (isPreviewFree !== undefined) lecture.isPreviewFree = isPreviewFree === "true" || isPreviewFree === true;
-  if (test !== undefined) lecture.test = typeof test === "string" ? JSON.parse(test) : test;
 
   await lecture.save();
 

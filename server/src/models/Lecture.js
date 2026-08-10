@@ -18,10 +18,6 @@ const lectureSchema = new mongoose.Schema(
     lectureTitle: { type: String, required: true, trim: true },
     materials: { type: [materialSchema], default: [] },
     isPreviewFree: { type: Boolean, default: false },
-    test: {
-      enabled: { type: Boolean, default: false },
-      questions: { type: mongoose.Schema.Types.Mixed, default: [] },
-    },
   },
   { timestamps: true },
 );

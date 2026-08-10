@@ -17,8 +17,11 @@ export const validateCreateVisitor = [
     .isString()
     .trim()
     .customSanitizer((v) => v.replace(/\D/g, ""))
-    .isLength({ min: 7, max: 15 })
-    .withMessage("Mobile number must be 7-15 digits"),
+    // Must match what sms.js's formatPhoneNumber can actually dispatch to —
+    // a 10-digit Indian number, or one already in +91 form — otherwise the
+    // visitor gets created but the OTP SMS fails right after.
+    .custom((v) => v.length === 10 || (v.length === 12 && v.startsWith("91")))
+    .withMessage("Mobile number must be a valid 10-digit Indian mobile number"),
   body("email").optional({ checkFalsy: true }).isString().trim().isEmail().withMessage("Email must be a valid email address"),
   body("address").optional({ checkFalsy: true }).isString().trim().isLength({ max: 500 }).withMessage("Address must be under 500 characters"),
   body("purpose").optional({ checkFalsy: true }).isString().trim().isLength({ max: 300 }).withMessage("Purpose must be under 300 characters"),
