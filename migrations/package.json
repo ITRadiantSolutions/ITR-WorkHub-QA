@@ -7,7 +7,9 @@
     "migrate:users-projects": "node scripts/migrateUsersAndProjects.js",
     "migrate:users-projects:commit": "node scripts/migrateUsersAndProjects.js --commit",
     "migrate:all": "node scripts/migrateAll.js",
-    "migrate:all:commit": "node scripts/migrateAll.js --commit"
+    "migrate:all:commit": "node scripts/migrateAll.js --commit",
+    "migrate:vms": "node scripts/migrateVms.js",
+    "migrate:vms:commit": "node scripts/migrateVms.js --commit"
   },
   "dependencies": {
     "dotenv": "^17.4.1",

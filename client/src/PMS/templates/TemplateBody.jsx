@@ -411,7 +411,7 @@ export default function TemplateBody({
     // await fetch(`/api/kra/draft/${temp.id}/${employeeId}`, {
     const krasPayload = temp.kras.map((kra, index) => {
       const currentKraId =
-        kra._id || kra.id || `${temp.id}-base-${index}`;
+        kra.kraId || kra._id || kra.id || `${temp.id}-base-${index}`;
 
       return {
         ...kra,
@@ -545,7 +545,7 @@ export default function TemplateBody({
     });
   };
   const allHrKrasFilled = (temp.kras || []).every((kra, kIndex) => {
-    const kraId = kra._id || kra.id || `${temp.id}-base-${kIndex}`;
+    const kraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${kIndex}`;
     const response = kraResponses[getResponseKey(kraId)]?.trim();
     const rating = kraRatings[getResponseKey(kraId)];
     return response && rating && rating > 0;
@@ -558,13 +558,13 @@ export default function TemplateBody({
       const ratingsPayload = {};
 
       temp.kras.forEach((kra, index) => {
-        const currentKraId = kra._id || kra.id || `${temp.id}-base-${index}`;
+        const currentKraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${index}`;
         responsesPayload[currentKraId] = kraResponses[getResponseKey(currentKraId)] || "";
         ratingsPayload[currentKraId] = kraRatings[getResponseKey(currentKraId)] || null;
       });
 
       const krasPayload = temp.kras.map((kra, index) => {
-        const currentKraId = kra._id || kra.id || `${temp.id}-base-${index}`;
+        const currentKraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${index}`;
         return {
           ...kra,
           kpis: (kra.kpis || []).map((kpi, i) => ({
@@ -597,7 +597,7 @@ export default function TemplateBody({
       setSavedKraKeys(prev => {
         const next = new Set(prev);
         temp.kras.forEach((kra, index) => {
-          const kraId = kra._id || kra.id || `${temp.id}-base-${index}`;
+          const kraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${index}`;
           next.add(getResponseKey(kraId));
         });
         return next;
@@ -653,7 +653,7 @@ export default function TemplateBody({
             </div>
           );
         }
-        const kraId = kra._id || kra.id || `${temp.id}-base-${kIndex}`;
+        const kraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${kIndex}`;
         const managerResponseDisabled = isManagerResponseDisabledForKra(kraId);
         const canRespond = canRespondForKra(kraId);
         //console.log({

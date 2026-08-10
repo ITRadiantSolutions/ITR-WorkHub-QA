@@ -335,18 +335,27 @@ async function upsertSubmissionFromPayload({ templateId, employeeId, managerId, 
     };
   });
 
+  const setFields = {
+    cycleId: assignment.cycleId,
+    assignmentId: templateId,
+    employeeId,
+    managerId: managerId || undefined,
+    kraResponses,
+  };
+
+  // Draft saves must not clobber a submission's real status (e.g.
+  // "manager_approved") — only default new submissions to "draft".
+  // Explicit status transitions (submit/approve/etc.) still set it directly,
+  // and — since every non-draft status here represents the employee actually
+  // submitting — stamp submittedAt so the reviews list can show a real date.
+  const update =
+    status === "draft"
+      ? { $set: setFields, $setOnInsert: { status: "draft" } }
+      : { $set: { ...setFields, status, submittedAt: new Date() } };
+
   const submission = await Submission.findOneAndUpdate(
     { assignmentId: templateId, employeeId },
-    {
-      $set: {
-        cycleId: assignment.cycleId,
-        assignmentId: templateId,
-        employeeId,
-        managerId: managerId || undefined,
-        status,
-        kraResponses,
-      },
-    },
+    update,
     { new: true, upsert: true },
   );
 
@@ -415,7 +424,21 @@ export const searchUserWithKra = async (req, res) => {
         email: u.email,
         role: u.roles.pms,
         hasKRA: userAssignments.length > 0,
-        kras: userAssignments.map((a) => ({ assignedAt: a.createdAt, assignedBy: a.createdBy?.name || null })),
+        kras: userAssignments.flatMap((a) =>
+          (a.kras || []).map((k) => ({
+            name: k.name,
+            weight: k.weight,
+            type: k.type,
+            kpis: (k.kpis || []).map((kpi) => ({
+              name: kpi.title || kpi.name,
+              weight: kpi.weight,
+              target: kpi.target,
+              actual: kpi.actual,
+            })),
+            assignedAt: a.createdAt,
+            assignedBy: a.createdBy?.name || null,
+          })),
+        ),
         manager_id: u.managerId?._id || null,
         manager_name: u.managerId?.name || null,
       };

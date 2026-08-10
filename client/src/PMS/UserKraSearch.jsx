@@ -201,8 +201,15 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                 </div>
                 <div>
                     <label className="text-xs text-slate-500 font-medium block mb-1">Checkpoint Date</label>
-                    <input type="date" value={goal.checkpointDate}
-                        onChange={(e) => onUpdate(index, "checkpointDate", e.target.value)}
+                    <input type="date" value={goal.checkpointDate} max="2100-12-31"
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            // Native date inputs don't clamp the year segment while typing —
+                            // without this, keying digits straight through can leave a
+                            // value like "11-11-111111" in state (see bug report).
+                            if (v && Number(v.slice(0, 4)) > 2100) return;
+                            onUpdate(index, "checkpointDate", v);
+                        }}
                         className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                 </div>
                 <div>
@@ -681,6 +688,10 @@ export default function UserKraSearch() {
             await api.patch(`/pms/users/${userId}/archive`, { is_archived: !restore });
             if (restore) {
                 setArchivedUsers((prev) => prev.filter((u) => u.id !== userId));
+                // Restoring only removes the user from the archived list above —
+                // they also need to reappear in the active list, which is only
+                // ever populated by this fetch (on mount), not patched locally.
+                await fetchAllUsers();
                 toast.success(`${userName} has been restored.`);
             } else {
                 setAllUsers((prev) => prev.filter((u) => u.id !== userId));
@@ -689,7 +700,7 @@ export default function UserKraSearch() {
         } catch {
             toast.error(`Failed to ${restore ? "restore" : "archive"} user.`);
         }
-    }, []);
+    }, [fetchAllUsers]);
 
     // ── Role management ──────────────────────────────────────────────────────
     const handleChangeRole = useCallback(async (userId, userName, newRole) => {

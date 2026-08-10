@@ -709,9 +709,15 @@ describe("saveKraDraft", () => {
     // The new KRA (no matching id) is pushed as employee-added.
     expect(assignment.kras.some((k) => k.name === "Brand new self KRA" && k.isEmployeeAdded)).toBe(true);
     expect(assignment.save).toHaveBeenCalledTimes(1); // status stays "draft" -> no second save
+    // Status is only defaulted via $setOnInsert (new submissions start as
+    // "draft") and is never in $set, so draft saves can't regress an
+    // existing submission's status (e.g. "manager_approved") back to draft.
     expect(Submission.findOneAndUpdate).toHaveBeenCalledWith(
       { assignmentId: assignment._id.toString(), employeeId },
-      expect.objectContaining({ $set: expect.objectContaining({ status: "draft" }) }),
+      expect.objectContaining({
+        $set: expect.not.objectContaining({ status: expect.anything() }),
+        $setOnInsert: { status: "draft" },
+      }),
       { new: true, upsert: true },
     );
     expect(res.json).toHaveBeenCalledWith({ message: "Draft saved" });
@@ -807,8 +813,14 @@ describe("searchUserWithKra", () => {
     const selectMock = vi.fn().mockReturnValue({ populate: vi.fn().mockResolvedValue([user1]) });
     User.find.mockReturnValue({ select: selectMock });
     const createdBy = { name: "Helen HR" };
+    const kra = {
+      name: "Delivery",
+      weight: 40,
+      type: "functional",
+      kpis: [{ title: "Ship on time", weight: 100, target: "5", actual: "4" }],
+    };
     const populateMock = vi.fn().mockReturnValue({ sort: vi.fn().mockResolvedValue([
-      { assignedTo: user1._id, createdAt: "2026-01-01", createdBy },
+      { assignedTo: user1._id, createdAt: "2026-01-01", createdBy, kras: [kra] },
     ]) });
     KraAssignment.find.mockReturnValue({ populate: populateMock });
 
@@ -828,7 +840,16 @@ describe("searchUserWithKra", () => {
         email: "alice@co.com",
         role: "employee",
         hasKRA: true,
-        kras: [{ assignedAt: "2026-01-01", assignedBy: "Helen HR" }],
+        kras: [
+          {
+            name: "Delivery",
+            weight: 40,
+            type: "functional",
+            kpis: [{ name: "Ship on time", weight: 100, target: "5", actual: "4" }],
+            assignedAt: "2026-01-01",
+            assignedBy: "Helen HR",
+          },
+        ],
         manager_id: user1.managerId._id,
         manager_name: "Boss",
       },

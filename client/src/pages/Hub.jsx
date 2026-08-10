@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 import WorkHubLogo from "../components/WorkHubLogo";
@@ -59,6 +60,46 @@ const TILES = [
     ],
     go: (user, navigate) => navigate("/pms"),
   },
+  {
+    key: "lms",
+    title: "LMS",
+    description: "Access courses, track certifications and grow your skills.",
+    icon: "Book",
+    accent: "amber",
+    tags: [
+      { icon: "Book", label: "Courses" },
+      { icon: "CheckCircle", label: "Certifications" },
+      { icon: "BarChart", label: "Progress" },
+    ],
+    go: (user, navigate) => navigate("/lms"),
+  },
+  {
+    key: "visitors",
+    title: "VMS",
+    description: "Approve visitors, review host requests and manage check-ins.",
+    icon: "UserPlus",
+    accent: "rose",
+    tags: [
+      { icon: "UserPlus", label: "Check-in" },
+      { icon: "Calendar", label: "Appointments" },
+      { icon: "Shield", label: "Badges" },
+    ],
+    go: (user, navigate) => navigate("/vms"),
+  },
+  {
+    key: "hrms",
+    title: "HRMS",
+    description: "Handle employee records, onboarding and HR documents.",
+    icon: "Briefcase",
+    accent: "cyan",
+    comingSoon: true,
+    tags: [
+      { icon: "Briefcase", label: "Employees" },
+      { icon: "Team", label: "Onboarding" },
+      { icon: "File", label: "Documents" },
+    ],
+    go: () => toast.info("HRMS is coming soon."),
+  },
 ];
 
 const FEATURES = [
@@ -114,8 +155,37 @@ const ACCENTS = {
     featureFg: "text-violet-600",
   },
   amber: {
+    iconBg: "bg-gradient-to-br from-amber-500 to-orange-500",
+    text: "text-amber-700",
+    tagIcon: "text-amber-500",
+    border: "border-amber-600",
+    hoverBorder: "hover:border-amber-300",
+    ring: "focus-visible:ring-amber-500/40",
+    solidBg: "bg-amber-600 hover:bg-amber-700",
     featureBg: "bg-amber-50",
     featureFg: "text-amber-600",
+  },
+  rose: {
+    iconBg: "bg-gradient-to-br from-rose-600 to-pink-600",
+    text: "text-rose-700",
+    tagIcon: "text-rose-500",
+    border: "border-rose-600",
+    hoverBorder: "hover:border-rose-300",
+    ring: "focus-visible:ring-rose-500/40",
+    solidBg: "bg-rose-600 hover:bg-rose-700",
+    featureBg: "bg-rose-50",
+    featureFg: "text-rose-600",
+  },
+  cyan: {
+    iconBg: "bg-gradient-to-br from-cyan-600 to-sky-600",
+    text: "text-cyan-700",
+    tagIcon: "text-cyan-500",
+    border: "border-cyan-600",
+    hoverBorder: "hover:border-cyan-300",
+    ring: "focus-visible:ring-cyan-500/40",
+    solidBg: "bg-cyan-600 hover:bg-cyan-700",
+    featureBg: "bg-cyan-50",
+    featureFg: "text-cyan-600",
   },
 };
 
@@ -199,8 +269,15 @@ export default function Hub() {
 
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col">
-      <header className="flex items-center justify-between px-6 sm:px-10 py-3 bg-white border-b border-slate-100 shrink-0">
+      <header className="flex items-center justify-between px-6 sm:px-10 py-2.5 bg-white border-b border-slate-100 shrink-0">
         <WorkHubLogo size="sm" subtitle />
+
+        <div className="hidden md:block text-center">
+          <p className="text-sm font-bold text-slate-900">
+            Welcome back, {user?.name || "there"} <span aria-hidden>👋</span>
+          </p>
+          {/* <p className="text-xs text-slate-500">Choose a workspace to continue</p> */}
+        </div>
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
@@ -225,23 +302,12 @@ export default function Hub() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-4 min-h-0">
-        <div className="w-full max-w-5xl mb-3">
-          <p className="text-sm text-slate-500">Welcome back,</p>
-          <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-            {user?.name || "there"} <span aria-hidden>👋</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Let's continue building amazing things today.</p>
-        </div>
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-3 min-h-0">
+        <h1 className="w-full max-w-5xl text-2xl sm:text-[1.7rem] font-black text-slate-900 mb-4 flex items-center justify-center gap-2">
+          <Icons.Sparkle /> Choose a workspace
+        </h1>
 
-        <div className="flex items-center gap-3 text-blue-300 mb-1">
-          <Icons.Sparkle />
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 text-center">Choose a workspace</h2>
-          <Icons.Sparkle />
-        </div>
-        <p className="text-sm text-slate-600 mb-6 text-center">Select a workspace to continue your work</p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-5xl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px] w-full max-w-[921px]">
           {visibleTiles.map((tile) => {
             const Icon = Icons[tile.icon];
             const a = ACCENTS[tile.accent];
@@ -250,26 +316,32 @@ export default function Hub() {
               <button
                 key={tile.key}
                 onClick={() => tile.go(user, navigate)}
-                className={`group relative text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-5 pb-0 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-200 ${a.hoverBorder} focus:outline-none focus-visible:ring-4 ${a.ring}`}
+                className={`group relative text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-[18px] pb-0 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-200 ${a.hoverBorder} focus:outline-none focus-visible:ring-4 ${a.ring}`}
               >
                 {Decor && <Decor />}
 
+                {tile.comingSoon && (
+                  <span className="absolute top-[14px] right-[14px] z-10 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                    Coming Soon
+                  </span>
+                )}
+
                 <div
-                  className={`relative z-10 w-12 h-12 rounded-2xl ${a.iconBg} flex items-center justify-center text-white shadow-lg mb-3`}
+                  className={`relative z-10 w-[41px] h-[41px] rounded-xl ${a.iconBg} flex items-center justify-center text-white shadow-lg mb-[11px]`}
                 >
                   {Icon ? <Icon /> : null}
                 </div>
 
-                <h3 className="relative z-10 text-base font-bold text-slate-900 mb-1">{tile.title}</h3>
-                <p className="relative z-10 text-xs text-slate-600 mb-3 leading-relaxed max-w-[75%]">{tile.description}</p>
+                <h3 className="relative z-10 text-[14px] font-bold text-slate-900 mb-[5px]">{tile.title}</h3>
+                <p className="relative z-10 text-[11px] text-slate-600 mb-[11px] leading-relaxed max-w-[80%] line-clamp-2">{tile.description}</p>
 
-                <div className="relative z-10 flex flex-wrap gap-1.5 mb-3">
+                <div className="relative z-10 flex flex-wrap gap-[5px] mb-[11px]">
                   {tile.tags.map((tag) => {
                     const TagIcon = Icons[tag.icon];
                     return (
                       <span
                         key={tag.label}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600"
+                        className="inline-flex items-center gap-[5px] rounded-full bg-slate-50 border border-slate-200 px-[9px] py-[3px] text-[10px] font-medium text-slate-600"
                       >
                         {TagIcon ? <span className={a.tagIcon}><TagIcon /></span> : null}
                         {tag.label}
@@ -279,26 +351,26 @@ export default function Hub() {
                 </div>
 
                 <div
-                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-xl font-bold text-xs py-2.5 mb-3 group-hover:gap-2.5 transition-all ${
+                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-lg font-bold text-[11px] py-[9px] mb-[11px] group-hover:gap-2.5 transition-all ${
                     tile.filled ? `${a.solidBg} text-white` : `border ${a.border} ${a.text}`
                   }`}
                 >
-                  Open {tile.title} <Icons.ArrowRight />
+                  {tile.comingSoon ? "Coming Soon" : <>Open {tile.title} <Icons.ArrowRight /></>}
                 </div>
 
-                <div className={`relative z-10 h-1 -mx-5 ${a.iconBg}`} />
+                <div className={`relative z-10 h-1 -mx-[18px] ${a.iconBg}`} />
               </button>
             );
           })}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-5xl mt-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 w-full max-w-5xl mt-5">
           {FEATURES.map((f) => {
             const FIcon = Icons[f.icon];
             const a = ACCENTS[f.accent];
             return (
               <div key={f.title} className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 rounded-full ${a.featureBg} ${a.featureFg} flex items-center justify-center shrink-0`}>
+                <div className={`w-8 h-8 rounded-full ${a.featureBg} ${a.featureFg} flex items-center justify-center shrink-0`}>
                   {FIcon ? <FIcon /> : null}
                 </div>
                 <div>
@@ -313,7 +385,7 @@ export default function Hub() {
           })}
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-8 mb-2">
+        <p className="text-center text-xs text-slate-400 mt-4 mb-1">
           © {new Date().getFullYear()} <span className="font-semibold text-slate-500">ITR One</span>. All rights reserved.
         </p>
       </main>

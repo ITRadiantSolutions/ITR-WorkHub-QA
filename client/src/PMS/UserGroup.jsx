@@ -83,12 +83,30 @@ export default function UserGroups() {
       mounted = false;
     };
   }, []);
+  /* ---------------- ONE GROUP PER USER ---------------- */
+  // Members already sitting in some OTHER group aren't eligible here — a
+  // user can only belong to one group at a time. The group currently being
+  // edited is excluded so its own existing members stay selectable.
+  const memberIdOf = (m) => String(typeof m === "object" && m !== null ? getUserId(m) : m);
+  const alreadyGroupedUserIds = useMemo(() => {
+    const ids = new Set();
+    groups.forEach((g) => {
+      if (editMode && getGroupId(g) === editingGroupId) return;
+      (g.members || []).forEach((m) => ids.add(memberIdOf(m)));
+    });
+    return ids;
+  }, [groups, editMode, editingGroupId]);
+
   /* ---------------- SEARCH USERS ---------------- */
   const filteredUsers = useMemo(() => {
-    return users.filter((u) =>
-      u.name?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [users, search]);
+    return users.filter((u) => {
+      if (!u.name?.toLowerCase().includes(search.toLowerCase())) return false;
+      const id = String(getUserId(u));
+      // Still show/allow a user already selected in this session's form.
+      if (alreadyGroupedUserIds.has(id) && !selectedUsers.includes(id)) return false;
+      return true;
+    });
+  }, [users, search, alreadyGroupedUserIds, selectedUsers]);
 
 
   /* ---------------- SELECT USER ---------------- */
@@ -149,7 +167,7 @@ export default function UserGroups() {
     } catch (err) {
       console.error(err);
 
-      toast.error("Unable to save group. Please try again.");
+      toast.error(err.response?.data?.message || "Unable to save group. Please try again.");
     }
   };
 

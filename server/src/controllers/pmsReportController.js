@@ -15,6 +15,7 @@ const rowsForCycle = async (cycleId) => {
     Employee: s.employeeId?.name,
     Email: s.employeeId?.email,
     Status: s.status,
+    SubmittedOn: s.submittedAt ? s.submittedAt.toISOString().slice(0, 16).replace("T", " ") : "",
     OverallRating: s.finalReport.overallRating,
     ManagerAvg: s.finalReport.managerAvg,
     OneOnOneDate: s.finalReport.oneOnOneDate ? s.finalReport.oneOnOneDate.toISOString().slice(0, 10) : "",

@@ -4,37 +4,59 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { apiResponseCache } from "./middleware/apiResponseCache.js";
+// Shared/cross-module infrastructure — not owned by any single product.
 import authRoutes from "./routes/auth.routes.js";
 import approvalRoutes from "./routes/approval.routes.js";
 import userRoutes from "./routes/user.routes.js";
-import projectRoutes from "./routes/project.routes.js";
-import timesheetRoutes from "./routes/timesheet.routes.js";
-import companyHolidayRoutes from "./routes/companyHoliday.routes.js";
-import entriesRoutes from "./routes/entries.routes.js";
-import hrRoutes from "./routes/hr.routes.js";
-import timesheetFaqRoutes from "./routes/timesheetFaq.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import userIssueRoutes from "./routes/userIssue.routes.js";
+import activityLogRoutes from "./routes/activityLog.routes.js";
+import adminLogsRoutes from "./routes/adminLogs.routes.js";
+
+// FlowTrack (project/task/sprint/story/bug tracker)
+import projectRoutes from "./routes/flowtrack/project.routes.js";
+import taskRoutes from "./routes/flowtrack/task.routes.js";
+import sprintRoutes from "./routes/flowtrack/sprint.routes.js";
+import storyRoutes from "./routes/flowtrack/story.routes.js";
+import bugRoutes from "./routes/flowtrack/bug.routes.js";
+import clientGroupRoutes from "./routes/flowtrack/clientGroup.routes.js";
+
+// Timeflow (Timesheet)
+import timesheetRoutes from "./routes/timeflow/timesheet.routes.js";
+import companyHolidayRoutes from "./routes/timeflow/companyHoliday.routes.js";
+import entriesRoutes from "./routes/timeflow/entries.routes.js";
+import hrRoutes from "./routes/timeflow/hr.routes.js";
+import timesheetFaqRoutes from "./routes/timeflow/timesheetFaq.routes.js";
+
+// PMS (performance management, including the legacy ITR_TimeFlow_Production-
+// compatible routes)
 import pmsCycleRoutes from "./routes/pms/cycle.routes.js";
 import pmsKraRoutes from "./routes/pms/kra.routes.js";
 import pmsSubmissionRoutes from "./routes/pms/submission.routes.js";
 import pmsPipRoutes from "./routes/pms/pip.routes.js";
 import pmsUsersGroupRoutes from "./routes/pms/usersGroup.routes.js";
 import pmsReportRoutes from "./routes/pms/report.routes.js";
-import taskRoutes from "./routes/task.routes.js";
-import sprintRoutes from "./routes/sprint.routes.js";
-import storyRoutes from "./routes/story.routes.js";
-import bugRoutes from "./routes/bug.routes.js";
-import clientGroupRoutes from "./routes/clientGroup.routes.js";
-import notificationRoutes from "./routes/notification.routes.js";
-import userIssueRoutes from "./routes/userIssue.routes.js";
-import activityLogRoutes from "./routes/activityLog.routes.js";
-import adminLogsRoutes from "./routes/adminLogs.routes.js";
-import legacyCycleRoutes from "./routes/legacyCycle.routes.js";
-import legacyKraLibraryRoutes from "./routes/legacyKraLibrary.routes.js";
-import legacyPmsMiscRoutes from "./routes/legacyPmsMisc.routes.js";
-import legacyReportsRoutes from "./routes/legacyReports.routes.js";
-import legacyUsersGroupRoutes from "./routes/legacyUsersGroup.routes.js";
-import legacyKraMasterTemplateRoutes from "./routes/legacyKraMasterTemplate.routes.js";
-import legacyKraDraftRoutes from "./routes/legacyKraDraft.routes.js";
+import legacyCycleRoutes from "./routes/pms/legacyCycle.routes.js";
+import legacyKraLibraryRoutes from "./routes/pms/legacyKraLibrary.routes.js";
+import legacyPmsMiscRoutes from "./routes/pms/legacyPmsMisc.routes.js";
+import legacyReportsRoutes from "./routes/pms/legacyReports.routes.js";
+import legacyUsersGroupRoutes from "./routes/pms/legacyUsersGroup.routes.js";
+import legacyKraMasterTemplateRoutes from "./routes/pms/legacyKraMasterTemplate.routes.js";
+import legacyKraDraftRoutes from "./routes/pms/legacyKraDraft.routes.js";
+
+// VMS (Visitor Management System)
+import vmsVisitorRoutes from "./routes/vms/visitor.routes.js";
+import vmsAdminRoutes from "./routes/vms/admin.routes.js";
+
+// LMS (Learning Management System)
+import lmsCourseRoutes from "./routes/lms/course.routes.js";
+import lmsProgressRoutes from "./routes/lms/progress.routes.js";
+import lmsAssignmentRoutes from "./routes/lms/assignment.routes.js";
+import lmsBadgeRoutes from "./routes/lms/badge.routes.js";
+import lmsSkillRoutes from "./routes/lms/skill.routes.js";
+import lmsReviewRoutes from "./routes/lms/review.routes.js";
+import lmsReportsRoutes from "./routes/lms/reports.routes.js";
+import lmsProfileRoutes from "./routes/lms/profile.routes.js";
 
 // Express app only — no listen(), no DB connect, no cron jobs. Kept separate
 // from server.js so tests (supertest) can import and exercise it directly
@@ -77,6 +99,16 @@ app.use("/api/reports", legacyReportsRoutes);
 app.use("/api/usersgroup", legacyUsersGroupRoutes);
 app.use("/api", legacyKraMasterTemplateRoutes);
 app.use("/api/kras", legacyKraDraftRoutes);
+app.use("/api/vms/visitors", vmsVisitorRoutes);
+app.use("/api/vms/admin", vmsAdminRoutes);
+app.use("/api/lms/courses", lmsCourseRoutes);
+app.use("/api/lms/progress", lmsProgressRoutes);
+app.use("/api/lms/assignments", lmsAssignmentRoutes);
+app.use("/api/lms/badges", lmsBadgeRoutes);
+app.use("/api/lms/skills", lmsSkillRoutes);
+app.use("/api/lms/reviews", lmsReviewRoutes);
+app.use("/api/lms/reports", lmsReportsRoutes);
+app.use("/api/lms/profile", lmsProfileRoutes);
 
 // Serve the built React client, when present — the deploy workflow copies
 // client/dist here so one App Service can host both API and frontend on

@@ -284,7 +284,7 @@ describe("listUnassignedAssignees", () => {
     await listUnassignedAssignees(req, res);
 
     expect(User.find).toHaveBeenCalledWith({ "archived.pms": false });
-    expect(res.json).toHaveBeenCalledWith([{ id: users[0]._id, name: "Ann", type: "user" }]);
+    expect(res.json).toHaveBeenCalledWith([{ id: users[0]._id, name: "Ann", type: "user", role: "employee" }]);
   });
 });
 

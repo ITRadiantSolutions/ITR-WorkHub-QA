@@ -145,6 +145,7 @@ export const employeeSubmit = async (req, res) => {
 
   const isFinal = submission.status === "manager_reviewed";
   submission.status = isFinal ? "final_employee_submitted" : "employee_submitted";
+  submission.submittedAt = new Date();
   for (const response of submission.kraResponses) {
     response.status = "employee_submitted";
     response.employeeSubmittedAt = new Date();

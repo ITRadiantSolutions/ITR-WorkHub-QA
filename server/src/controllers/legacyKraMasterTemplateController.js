@@ -94,7 +94,7 @@ export const deleteMasterTemplate = async (req, res) => {
 export const listUnassignedAssignees = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
   const users = await User.find({ "archived.pms": false }).select("name roles");
-  res.json(users.map((u) => ({ id: u._id, name: u.name, type: "user" })));
+  res.json(users.map((u) => ({ id: u._id, name: u.name, type: "user", role: u.roles?.pms || "employee" })));
 };
 
 const buildAssignmentKras = (kras = []) =>

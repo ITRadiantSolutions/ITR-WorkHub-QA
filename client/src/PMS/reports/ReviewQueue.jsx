@@ -43,6 +43,17 @@ const formatDate = (date) =>
     ? new Date(date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
 
+const formatDateTime = (date) =>
+  date
+    ? new Date(date).toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+
 export default function ReviewQueue() {
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
@@ -125,7 +136,7 @@ export default function ReviewQueue() {
       toast.info("No reviews to export");
       return;
     }
-    const header = ["Employee Name", "Employee Email", "Cycle", "KRA Assigned", "Reports To", "Status", "Last Updated"];
+    const header = ["Employee Name", "Employee Email", "Cycle", "KRA Assigned", "Reports To", "Status", "Submitted On", "Last Updated"];
     const rows = filtered.map((s) => [
       s.employeeId?.name || "",
       s.employeeId?.email || "",
@@ -133,10 +144,11 @@ export default function ReviewQueue() {
       s.assignmentId ? "Yes" : "No",
       s.managerId?.name || "",
       STATUS_LABELS[s.status] || (s.status || "").replace(/_/g, " "),
+      formatDateTime(s.submittedAt),
       formatDate(s.updatedAt || s.createdAt),
     ]);
     const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
-    sheet["!cols"] = [{ wch: 24 }, { wch: 28 }, { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 14 }];
+    sheet["!cols"] = [{ wch: 24 }, { wch: 28 }, { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, tab === "pending" ? "Needs Review" : "Completed");
     XLSX.writeFile(wb, `PMS_Reviews_${tab === "pending" ? "Needs_Review" : "Completed"}.xlsx`);
@@ -253,7 +265,8 @@ export default function ReviewQueue() {
                 dateLine={
                   <>
                     <Calendar className="w-3.5 h-3.5" />
-                    {tab === "pending" ? "Submitted" : "Reviewed"} — {formatDate(s.updatedAt || s.createdAt)}
+                    {tab === "pending" ? "Submitted" : "Reviewed"} —{" "}
+                    {formatDateTime(tab === "pending" ? s.submittedAt || s.updatedAt || s.createdAt : s.updatedAt || s.createdAt)}
                   </>
                 }
                 meta={[

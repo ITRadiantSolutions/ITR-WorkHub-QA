@@ -80,6 +80,7 @@ describe("getCycleReport", () => {
         Employee: "Alice",
         Email: "a@corp.com",
         Status: "final_manager_reviewed",
+        SubmittedOn: "",
         OverallRating: 4,
         ManagerAvg: 4.5,
         OneOnOneDate: "2026-07-10",
@@ -95,6 +96,18 @@ describe("getCycleReport", () => {
     await getCycleReport(req, res);
 
     expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ OneOnOneDate: "" })]);
+  });
+
+  it("formats submittedAt as SubmittedOn", async () => {
+    Submission.find.mockReturnValue(
+      findPopulateChain([buildSubmission({ submittedAt: new Date("2026-07-10T14:30:00.000Z") })]),
+    );
+    const req = { query: { cycleId: oid().toString() }, user: hrUser() };
+    const res = mockRes();
+
+    await getCycleReport(req, res);
+
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ SubmittedOn: "2026-07-10 14:30" })]);
   });
 });
 

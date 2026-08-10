@@ -133,6 +133,7 @@ describe("createGroup", () => {
     const hrId = oid();
     const memberIds = [oid(), oid(), oid()];
     const created = { _id: oid(), name: "QA", members: memberIds };
+    UsersGroup.find.mockReturnValue({ populate: vi.fn().mockResolvedValue([]) });
     UsersGroup.create.mockResolvedValue(created);
 
     const req = { body: { name: "QA", members: memberIds }, user: hrUser(hrId) };
@@ -143,6 +144,24 @@ describe("createGroup", () => {
     expect(UsersGroup.create).toHaveBeenCalledWith(
       expect.objectContaining({ name: "QA", members: memberIds, createdBy: hrId }),
     );
+  });
+
+  it("400s and does not create when a member already belongs to another group", async () => {
+    const hrId = oid();
+    const takenMember = oid();
+    const populate = vi.fn().mockResolvedValue([
+      { _id: oid(), members: [{ _id: takenMember, name: "Ann" }] },
+    ]);
+    UsersGroup.find.mockReturnValue({ populate });
+
+    const req = { body: { name: "QA", members: [takenMember] }, user: hrUser(hrId) };
+    const res = mockRes();
+
+    await createGroup(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "Already in another group: Ann" });
+    expect(UsersGroup.create).not.toHaveBeenCalled();
   });
 });
 
@@ -205,6 +224,7 @@ describe("updateGroup", () => {
   it("replaces members wholesale when members is provided", async () => {
     const group = buildGroup({ members: [oid()] });
     UsersGroup.findById.mockResolvedValue(group);
+    UsersGroup.find.mockReturnValue({ populate: vi.fn().mockResolvedValue([]) });
     const newMembers = [oid(), oid()];
     const req = { params: { id: group._id }, body: { members: newMembers }, user: hrUser() };
     const res = mockRes();
@@ -213,6 +233,41 @@ describe("updateGroup", () => {
 
     expect(group.members).toBe(newMembers);
     expect(group.save).toHaveBeenCalled();
+  });
+
+  it("excludes the group being edited from the conflict check (its own current members don't block re-saving)", async () => {
+    const group = buildGroup({ members: [oid()] });
+    UsersGroup.findById.mockResolvedValue(group);
+    const populate = vi.fn().mockResolvedValue([]);
+    UsersGroup.find.mockReturnValue({ populate });
+    const req = { params: { id: group._id }, body: { members: [oid()] }, user: hrUser() };
+    const res = mockRes();
+
+    await updateGroup(req, res);
+
+    expect(UsersGroup.find).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: { $ne: group._id } }),
+    );
+    expect(group.save).toHaveBeenCalled();
+  });
+
+  it("400s and does not save when a member already belongs to a different group", async () => {
+    const group = buildGroup();
+    UsersGroup.findById.mockResolvedValue(group);
+    const takenMember = oid();
+    const populate = vi.fn().mockResolvedValue([
+      { _id: oid(), members: [{ _id: takenMember, name: "Ben" }] },
+    ]);
+    UsersGroup.find.mockReturnValue({ populate });
+
+    const req = { params: { id: group._id }, body: { members: [takenMember] }, user: hrUser() };
+    const res = mockRes();
+
+    await updateGroup(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "Already in another group: Ben" });
+    expect(group.save).not.toHaveBeenCalled();
   });
 });
 

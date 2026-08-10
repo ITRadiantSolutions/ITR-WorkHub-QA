@@ -5,7 +5,14 @@ const goalSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     successMeasure: { type: String, trim: true, default: "" },
     progressStatus: { type: String, default: "not_started" },
-    checkpointDate: { type: Date, default: null },
+    checkpointDate: {
+      type: Date,
+      default: null,
+      validate: {
+        validator: (v) => v === null || v.getFullYear() <= 2100,
+        message: "checkpointDate year is out of range",
+      },
+    },
     proofDocuments: [{ blobName: String, fileName: String, uploadedAt: { type: Date, default: Date.now } }],
     notes: { type: String, trim: true, default: "" },
   },

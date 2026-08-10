@@ -94,7 +94,7 @@ export default function TemplateSubmit({
   ========================================= */
 
   const hasIncompleteSelfReview = (temp?.kras || []).some((kra, index) => {
-    const kraId = kra._id || kra.id || `${temp.id}-base-${index}`;
+    const kraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${index}`;
     const key = `${temp.id}::${employeeId}::${kraId}`;
 
     const response = kraResponses?.[key];
@@ -107,7 +107,7 @@ export default function TemplateSubmit({
 
   // ── NEW: only require actual if that KPI has a non-empty target ──────────
   const hasIncompleteActuals = (temp?.kras || []).some((kra, index) => {
-    const kraId = kra._id || kra.id || `${temp.id}-base-${index}`;
+    const kraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${index}`;
 
     // actuals keyed by kraId (as returned by /kra/by-template)
     const kraActuals = actuals?.[kraId] || [];
@@ -131,7 +131,7 @@ export default function TemplateSubmit({
 
   // ← NEW: every HR KRA must have been explicitly saved
   const hasUnsavedKras = (temp?.kras || []).some((kra, index) => {
-    const kraId = kra._id || kra.id || `${temp.id}-base-${index}`;
+    const kraId = kra.kraId || kra._id || kra.id || `${temp.id}-base-${index}`;
     const key = `${temp.id}::${employeeId}::${kraId}`;
     return !savedKraKeys?.has(key);
   });

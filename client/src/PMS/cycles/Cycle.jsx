@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, FileText, X, Search, Users, Eye, EyeOff, UserCheck } from "lucide-react";
 import CycleTable from "./CycleTable";
@@ -353,6 +353,11 @@ export default function Cycle() {
   });
 
   const [errors, setErrors] = useState({});
+  // Set right before openCreate/openEdit programmatically loads `form` so the
+  // auto-end-date effect below (which reacts to form.type/form.start) skips
+  // that one load instead of immediately overwriting a just-loaded, possibly
+  // custom `end` with its own start+type formula.
+  const skipAutoEndCalc = useRef(false);
 
   useEffect(() => {
     setLoggedInUser(JSON.parse(localStorage.getItem("user")));
@@ -408,6 +413,10 @@ export default function Cycle() {
 
   useEffect(() => {
     if (!form.start) return;
+    if (skipAutoEndCalc.current) {
+      skipAutoEndCalc.current = false;
+      return;
+    }
     const months = form.type === "Quarterly" ? 3 : form.type === "Yearly" ? 12 : 6;
     setForm((p) => ({ ...p, end: addMonthsMinusOneDay(form.start, months) }));
   }, [form.type, form.start]);
@@ -431,6 +440,7 @@ export default function Cycle() {
     setEditingId(null);
     setErrors({});
     setApiError("");
+    skipAutoEndCalc.current = true;
     setForm({ name: "", type: "Half-Yearly", start: "", end: "" });
     setShowModal(true);
   };
@@ -439,6 +449,7 @@ export default function Cycle() {
     setEditingId(cycle.id);
     setErrors({});
     setApiError("");
+    skipAutoEndCalc.current = true;
     setForm({ name: cycle.name, type: cycle.type, start: cycle.start, end: cycle.end });
     setShowModal(true);
   };
@@ -461,8 +472,8 @@ export default function Cycle() {
         editingId ? prev.map((c) => (c.id === editingId ? data : c)) : [...prev, data]
       );
       closeModal();
-    } catch {
-      setApiError("Something went wrong. Please try again.");
+    } catch (err) {
+      setApiError(err.response?.data?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

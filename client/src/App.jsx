@@ -42,6 +42,22 @@ import UserKraSearch from "./PMS/UserKraSearch";
 import PmsLayout from "./PMS/PmsLayout";
 import ReviewQueue from "./PMS/reports/ReviewQueue";
 import SubmissionDetail from "./PMS/reports/SubmissionDetail";
+import VmsVisitorKiosk from "./VMS/pages/VisitorKiosk";
+import VmsHome from "./VMS/pages/VmsHome";
+import VmsLayout from "./VMS/VmsLayout";
+import VmsHostDashboard from "./VMS/pages/HostDashboard";
+import VmsAdminPanel from "./VMS/pages/AdminPanel";
+import LmsLayout from "./LMS/LmsLayout";
+import LmsHome from "./LMS/pages/LmsHome";
+import CourseCatalog from "./LMS/pages/CourseCatalog";
+import CoursePlayer from "./LMS/pages/CoursePlayer";
+import AssessmentPlayer from "./LMS/pages/AssessmentPlayer";
+import MyLearning from "./LMS/pages/MyLearning";
+import ManageCourses from "./LMS/pages/ManageCourses";
+import CourseBuilder from "./LMS/pages/CourseBuilder";
+import AssignCourses from "./LMS/pages/AssignCourses";
+import BadgesSkills from "./LMS/pages/BadgesSkills";
+import LmsReports from "./LMS/pages/Reports";
 import { Toaster } from "sonner";
 import { ConfirmDialogHost } from "./components/ConfirmDialog";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -59,6 +75,8 @@ function App() {
             <Route path="/waiting" element={<WaitingApproval />} />
             <Route path="/waiting-approval" element={<WaitingApproval />} />
             <Route path="/rejected" element={<Rejected />} />
+            {/* Public kiosk — no ItrOne login; runs on an unattended reception device */}
+            <Route path="/vms/kiosk" element={<VmsVisitorKiosk />} />
 
             {/* 🔐 Protected Routes */}
             <Route
@@ -215,6 +233,140 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SubmissionDetail />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+
+            <Route element={<VmsLayout />}>
+              <Route
+                path="/vms"
+                element={
+                  <ProtectedRoute>
+                    <VmsHome />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vms/host"
+                element={
+                  <ProtectedRoute>
+                    <VmsHostDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vms/host/visitors"
+                element={
+                  <ProtectedRoute>
+                    <VmsHostDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vms/admin"
+                element={
+                  <ProtectedRoute>
+                    <VmsAdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vms/admin/visitors"
+                element={
+                  <ProtectedRoute>
+                    <VmsAdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vms/admin/audit"
+                element={
+                  <ProtectedRoute>
+                    <VmsAdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+
+            <Route element={<LmsLayout />}>
+              <Route
+                path="/lms"
+                element={
+                  <ProtectedRoute>
+                    <LmsHome />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/courses"
+                element={
+                  <ProtectedRoute>
+                    <CourseCatalog />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/courses/:courseId"
+                element={
+                  <ProtectedRoute>
+                    <CoursePlayer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/courses/:courseId/assessment/:type"
+                element={
+                  <ProtectedRoute>
+                    <AssessmentPlayer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/my-learning"
+                element={
+                  <ProtectedRoute>
+                    <MyLearning />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/manage"
+                element={
+                  <ProtectedRoute>
+                    <ManageCourses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/manage/:courseId"
+                element={
+                  <ProtectedRoute>
+                    <CourseBuilder />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/assign"
+                element={
+                  <ProtectedRoute>
+                    <AssignCourses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/badges-skills"
+                element={
+                  <ProtectedRoute>
+                    <BadgesSkills />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/reports"
+                element={
+                  <ProtectedRoute>
+                    <LmsReports />
                   </ProtectedRoute>
                 }
               />

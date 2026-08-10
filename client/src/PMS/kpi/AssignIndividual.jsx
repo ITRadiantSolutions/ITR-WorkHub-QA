@@ -849,7 +849,11 @@ export default function AssignIndividual() {
                                     : "bg-emerald-100 text-emerald-700"
                                     }`}
                                 >
-                                  {item.type === "user" ? "User" : "Group"}
+                                  {item.type === "user"
+                                    ? item.role
+                                      ? item.role.charAt(0).toUpperCase() + item.role.slice(1)
+                                      : "Employee"
+                                    : "Group"}
                                 </span>
                               </div>
                             );

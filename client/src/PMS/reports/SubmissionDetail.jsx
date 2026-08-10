@@ -79,10 +79,10 @@ export default function SubmissionDetail() {
   const isManagerOrHr = submission && (String(submission.managerId) === String(user?._id || user?.id) || user?.roles?.pms === "hr");
   const canEditResponses = isEmployee && ["draft", "manager_reviewed"].includes(submission?.status);
 
-  const updateResponse = (kraId, field, value) => {
+  const updateResponse = (index, field, value) => {
     setSubmission((prev) => ({
       ...prev,
-      kraResponses: prev.kraResponses.map((r) => (r.kraId === kraId ? { ...r, [field]: value } : r)),
+      kraResponses: prev.kraResponses.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
     }));
   };
 
@@ -169,11 +169,11 @@ export default function SubmissionDetail() {
               />
             </div>
 
-            {(submission.kraResponses || []).map((r) => {
+            {(submission.kraResponses || []).map((r, index) => {
               const kpis = (r.kpis || []).filter((k) => k.title?.trim() || k.description?.trim());
               const showManagerCol = isManagerOrHr || r.managerResponse;
               return (
-                <div key={r.kraId} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                <div key={index} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-bold text-slate-900 text-sm">{r.kraName}</h3>
                     <span className="text-xs font-semibold text-slate-400 shrink-0">Weight: {r.weight}%</span>
@@ -194,11 +194,11 @@ export default function SubmissionDetail() {
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Your response</label>
-                        {isEmployee && <RatingPicker value={r.rating} onChange={(v) => updateResponse(r.kraId, "rating", v)} disabled={!canEditResponses} />}
+                        {isEmployee && <RatingPicker value={r.rating} onChange={(v) => updateResponse(index, "rating", v)} disabled={!canEditResponses} />}
                       </div>
                       <textarea
                         value={r.response || ""}
-                        onChange={(e) => updateResponse(r.kraId, "response", e.target.value)}
+                        onChange={(e) => updateResponse(index, "response", e.target.value)}
                         disabled={!canEditResponses}
                         rows={2}
                         placeholder={canEditResponses ? "Describe your progress against this KRA..." : "No response yet"}
@@ -210,11 +210,11 @@ export default function SubmissionDetail() {
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="text-[11px] font-bold text-violet-600 uppercase tracking-wide">Manager response</label>
-                          {isManagerOrHr && <RatingPicker value={r.managerRating} onChange={(v) => updateResponse(r.kraId, "managerRating", v)} disabled={!isManagerOrHr} />}
+                          {isManagerOrHr && <RatingPicker value={r.managerRating} onChange={(v) => updateResponse(index, "managerRating", v)} disabled={!isManagerOrHr} />}
                         </div>
                         <textarea
                           value={r.managerResponse || ""}
-                          onChange={(e) => updateResponse(r.kraId, "managerResponse", e.target.value)}
+                          onChange={(e) => updateResponse(index, "managerResponse", e.target.value)}
                           disabled={!isManagerOrHr}
                           rows={2}
                           placeholder={isManagerOrHr ? "Add your feedback..." : "No manager feedback yet"}

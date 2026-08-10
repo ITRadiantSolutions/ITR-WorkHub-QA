@@ -33,12 +33,18 @@ const userSchema = new mongoose.Schema(
         enum: ["ADMIN", "PM", "DEVELOPER", "QA", "BUSINESS_USER"],
         default: "BUSINESS_USER",
       },
+      // Every employee can receive visitors ("host") by default; only a
+      // handful get elevated to staff the front desk or administer the module.
+      vms: { type: String, enum: ["host", "receptionist", "admin"], default: "host" },
+      lms: { type: String, enum: ["employee", "manager", "admin"], default: "employee" },
     },
 
     // Independent per-module archive flags, plus a full-account deactivation flag.
     archived: {
       timesheet: { type: Boolean, default: false },
       pms: { type: Boolean, default: false },
+      vms: { type: Boolean, default: false },
+      lms: { type: Boolean, default: false },
       account: { type: Boolean, default: false },
     },
 
@@ -63,6 +69,8 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ "roles.timesheet": 1 });
 userSchema.index({ "roles.pms": 1 });
 userSchema.index({ "roles.tracker": 1 });
+userSchema.index({ "roles.vms": 1 });
+userSchema.index({ "roles.lms": 1 });
 
 // Keep password hashing in one place so every creation/update path is safe.
 userSchema.pre("save", async function () {

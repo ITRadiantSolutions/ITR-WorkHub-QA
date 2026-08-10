@@ -277,14 +277,14 @@ export default function TemplateCard({
         const employeeId = loggedInUser._id || loggedInUser.id;
         const res = await api.get(`/kpi-template/my-manager/${employeeId}`);
 
-        if (res.data?.managerId) {
+        if (res.data?.id) {
           setAssignedManager({
-            id: res.data.managerId,
-            name: res.data.managerName,
-            email: res.data.managerEmail,
+            id: res.data.id,
+            name: res.data.name,
+            email: res.data.email,
           });
-          setSelectedManager(res.data.managerId);
-          setSelectedPipManager(res.data.managerEmail);
+          setSelectedManager(res.data.id);
+          setSelectedPipManager(res.data.email);
         }
       } catch (err) {
         console.error("Failed to load manager", err);

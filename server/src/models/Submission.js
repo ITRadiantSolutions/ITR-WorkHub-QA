@@ -49,6 +49,12 @@ const submissionSchema = new mongoose.Schema(
 
     kraResponses: { type: [kraResponseSchema], default: [] },
 
+    // When the employee last submitted this review (set on the
+    // pending_manager_approval / employee_submitted / final_employee_submitted
+    // transitions). Distinct from `updatedAt`, which also moves on unrelated
+    // edits like a manager's draft review notes.
+    submittedAt: { type: Date, default: null },
+
     finalReport: {
       managerSubmitted: { type: Boolean, default: false },
       managerOverallResponse: { type: String, default: "" },
@@ -63,5 +69,27 @@ const submissionSchema = new mongoose.Schema(
 
 submissionSchema.index({ cycleId: 1, employeeId: 1 }, { unique: true });
 submissionSchema.index({ cycleId: 1, managerId: 1 });
+
+// Legacy/migrated submissions can carry data that predates this schema —
+// an out-of-enum kraResponses[].status string, or a null cycleId (the old
+// write paths used findOneAndUpdate, which skips validation). Those only
+// surface as a crash the first time the document goes through a full
+// Document#save() (e.g. a manager completing a review), so normalize them
+// here instead of failing on someone else's stale data.
+const KRA_RESPONSE_STATUSES = kraResponseSchema.path("status").enumValues;
+submissionSchema.pre("save", async function (next) {
+  for (const response of this.kraResponses) {
+    if (!KRA_RESPONSE_STATUSES.includes(response.status)) {
+      response.status = "pending";
+    }
+  }
+
+  if (!this.cycleId && this.assignmentId) {
+    const assignment = await mongoose.model("KraAssignment").findById(this.assignmentId).select("cycleId");
+    if (assignment?.cycleId) this.cycleId = assignment.cycleId;
+  }
+
+  next();
+});
 
 export default mongoose.model("Submission", submissionSchema);
