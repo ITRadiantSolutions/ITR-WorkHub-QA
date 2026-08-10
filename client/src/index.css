@@ -344,6 +344,22 @@
   background-color: #27364b !important;
 }
 
+/* bg-gradient-to-* utilities (e.g. "bg-gradient-to-r from-gray-50 to-white")
+   compile their light stops to `from-gray-50`/`to-white` class tokens, which
+   the plain bg-white/bg-gray-50 rules above don't match as a substring — so
+   these panels kept their original light gradient in dark mode while the
+   text inside them still got dark-ified to a pale color, becoming illegible
+   light-on-light. Flatten any such gradient to the same dark surface. */
+.dark [class*="bg-gradient-to-"][class*="from-gray-50"],
+.dark [class*="bg-gradient-to-"][class*="from-slate-50"],
+.dark [class*="bg-gradient-to-"][class*="from-white"],
+.dark [class*="bg-gradient-to-"][class*="to-white"],
+.dark [class*="bg-gradient-to-"][class*="to-gray-50"],
+.dark [class*="bg-gradient-to-"][class*="to-slate-50"] {
+  background-image: none !important;
+  background-color: #111b2d !important;
+}
+
 .dark [class*="border-slate-100"],
 .dark [class*="border-slate-200"],
 .dark [class*="border-slate-300"],

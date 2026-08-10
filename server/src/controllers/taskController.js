@@ -78,7 +78,7 @@ export const createTask = async (req, res) => {
 };
 
 export const updateTask = async (req, res) => {
-  const { title, description, priority, dueDate, assignees } = req.body;
+  const { title, description, priority, dueDate, assignees, status } = req.body;
   const task = await Task.findById(req.params.id);
   if (!task) return res.status(404).json({ message: "Task not found" });
   if (!canAccessTask(req.user, task)) {
@@ -89,6 +89,17 @@ export const updateTask = async (req, res) => {
   if (description !== undefined) task.description = description;
   if (priority !== undefined) task.priority = priority;
   if (dueDate !== undefined) task.dueDate = dueDate;
+
+  if (status !== undefined && status !== task.status) {
+    if (!TASK_STATUSES.has(status)) {
+      return res.status(400).json({ message: `Invalid status. Must be one of: ${[...TASK_STATUSES].join(", ")}` });
+    }
+    task.status = status;
+    if (status === "DONE") {
+      task.closedBy = req.user._id;
+      task.closedAt = new Date();
+    }
+  }
 
   if (assignees !== undefined) {
     const newlyAssigned = assignees.filter((id) => !task.assignees.some((a) => a.equals(id)));

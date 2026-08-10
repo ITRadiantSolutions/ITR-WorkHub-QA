@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import Icons from "./Icons";
 import getInitials from "../utils/getInitials";
 
@@ -35,7 +36,13 @@ export default function ProfileModal({ open, onClose, user, moduleLabel, role, a
   };
   const labels = { name: "Name", email: "Email", role: `${moduleLabel} Role` };
 
-  return (
+  // Every caller mounts this inside a `position: sticky` sidebar <aside>.
+  // `fixed` descendants of a sticky ancestor aren't reliably positioned
+  // relative to the viewport in every browser, which let dashboard content
+  // (e.g. FlowTrack's task-completion donut) show through un-blurred on top
+  // of the backdrop. Portal straight to <body> so it always covers the full
+  // viewport regardless of where it's mounted.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
       onClick={onClose}
@@ -70,6 +77,7 @@ export default function ProfileModal({ open, onClose, user, moduleLabel, role, a
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

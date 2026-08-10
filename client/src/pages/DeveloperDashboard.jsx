@@ -467,8 +467,8 @@ export default function DeveloperDashboard() {
       setUpdatingTask(taskId);
 
       // Send update to server (suppress global mutation event - we already updated UI optimistically)
-      await API.put(
-        `/tasks/${taskId}`,
+      await API.patch(
+        `/tasks/${taskId}/status`,
         { status: newStatus },
         { suppressNotify: true },
       );

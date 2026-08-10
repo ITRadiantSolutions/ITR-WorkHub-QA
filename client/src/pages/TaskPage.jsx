@@ -981,8 +981,8 @@ export default function TasksPage() {
   };
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
-      await API.put(
-        `/tasks/${taskId}`,
+      await API.patch(
+        `/tasks/${taskId}/status`,
         { status: newStatus },
         { mutationSource: "task-status-local" },
       );

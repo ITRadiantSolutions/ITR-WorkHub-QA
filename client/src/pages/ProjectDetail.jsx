@@ -1081,7 +1081,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
   const updateTaskStatus = async (taskId, status) => {
     try {
-      await API.put(`/tasks/${taskId}`, { status });
+      await API.patch(`/tasks/${taskId}/status`, { status });
       setTasks((prev) =>
         prev.map((t) => (t._id === taskId ? { ...t, status } : t)),
       );
