@@ -150,15 +150,16 @@ export default function Login() {
     <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }} className="h-screen w-screen overflow-hidden flex flex-col lg:flex-row">
       {/* ── Left panel — brand side ─────────────────────────────────────── */}
       <div
-        className="hidden lg:flex lg:w-[52%] flex-col gap-5 px-10 xl:px-14 py-6 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[52%] flex-col gap-5 px-10 xl:px-14 py-6 relative overflow-y-auto"
         style={{ background: "linear-gradient(150deg, #eff6ff 0%, #dbeafe 60%, #bfdbfe 100%)" }}
       >
-        <div
-          className="absolute top-0 right-0 w-64 h-64 opacity-50 pointer-events-none"
-          aria-hidden
-          style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1.5px, transparent 1.5px)", backgroundSize: "16px 16px" }}
-        />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-blue-300/30 blur-3xl pointer-events-none" aria-hidden />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+          <div
+            className="absolute top-0 right-0 w-64 h-64 opacity-50"
+            style={{ backgroundImage: "radial-gradient(circle, #93c5fd 1.5px, transparent 1.5px)", backgroundSize: "16px 16px" }}
+          />
+          <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-blue-300/30 blur-3xl" />
+        </div>
 
         <div className="relative z-10">
           <WorkHubLogo size="lg" />

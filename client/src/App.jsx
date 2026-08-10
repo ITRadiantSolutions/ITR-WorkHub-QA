@@ -58,6 +58,13 @@ import CourseBuilder from "./LMS/pages/CourseBuilder";
 import AssignCourses from "./LMS/pages/AssignCourses";
 import BadgesSkills from "./LMS/pages/BadgesSkills";
 import LmsReports from "./LMS/pages/Reports";
+import HrmsLayout from "./HRMS/HrmsLayout";
+import HrmsDashboard from "./HRMS/pages/Dashboard";
+import HrmsJobs from "./HRMS/pages/Jobs";
+import HrmsReferrals from "./HRMS/pages/Referrals";
+import HrmsEmployees from "./HRMS/pages/Employees";
+import HrmsEmployeeProfile from "./HRMS/pages/EmployeeProfile";
+import HrmsMyTeam from "./HRMS/pages/MyTeam";
 import { Toaster } from "sonner";
 import { ConfirmDialogHost } from "./components/ConfirmDialog";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -367,6 +374,57 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <LmsReports />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+
+            <Route element={<HrmsLayout />}>
+              <Route
+                path="/hrms"
+                element={
+                  <ProtectedRoute>
+                    <HrmsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/jobs"
+                element={
+                  <ProtectedRoute>
+                    <HrmsJobs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/referrals"
+                element={
+                  <ProtectedRoute>
+                    <HrmsReferrals />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/employees"
+                element={
+                  <ProtectedRoute>
+                    <HrmsEmployees />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/employees/:id"
+                element={
+                  <ProtectedRoute>
+                    <HrmsEmployeeProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/my-team"
+                element={
+                  <ProtectedRoute>
+                    <HrmsMyTeam />
                   </ProtectedRoute>
                 }
               />

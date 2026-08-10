@@ -23,6 +23,18 @@ const userSchema = new mongoose.Schema(
     managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     shift: { type: String, default: null },
 
+    // HRMS-specific profile fields. `department`/`designation` are free-text
+    // for now (see HRMS plan doc) — swapping to a Department ref later is a
+    // single-field migration, not a structural change.
+    department: { type: String, trim: true, default: "" },
+    designation: { type: String, trim: true, default: "" },
+    joiningDate: { type: Date, default: null },
+    employmentStatus: {
+      type: String,
+      enum: ["active", "on_leave", "terminated"],
+      default: "active",
+    },
+
     // Independent per-module roles — a user can be e.g. a timesheet "manager"
     // and a tracker "DEVELOPER" at the same time.
     roles: {
@@ -37,6 +49,7 @@ const userSchema = new mongoose.Schema(
       // handful get elevated to staff the front desk or administer the module.
       vms: { type: String, enum: ["host", "receptionist", "admin"], default: "host" },
       lms: { type: String, enum: ["employee", "manager", "admin"], default: "employee" },
+      hrms: { type: String, enum: ["employee", "manager", "hr"], default: "employee" },
     },
 
     // Independent per-module archive flags, plus a full-account deactivation flag.
@@ -45,6 +58,7 @@ const userSchema = new mongoose.Schema(
       pms: { type: Boolean, default: false },
       vms: { type: Boolean, default: false },
       lms: { type: Boolean, default: false },
+      hrms: { type: Boolean, default: false },
       account: { type: Boolean, default: false },
     },
 
@@ -71,6 +85,7 @@ userSchema.index({ "roles.pms": 1 });
 userSchema.index({ "roles.tracker": 1 });
 userSchema.index({ "roles.vms": 1 });
 userSchema.index({ "roles.lms": 1 });
+userSchema.index({ "roles.hrms": 1 });
 
 // Keep password hashing in one place so every creation/update path is safe.
 userSchema.pre("save", async function () {

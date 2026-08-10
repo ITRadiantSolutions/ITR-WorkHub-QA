@@ -63,6 +63,7 @@ const courseProgressSchema = new mongoose.Schema(
     finalAssignmentWrongAnswers: { type: Number, default: 0 },
     finalAssignmentAttempt: { type: Number, default: 0 },
     finalAssignmentAssessmentId: { type: mongoose.Schema.Types.ObjectId, ref: "CourseAssessment", default: null },
+    finalAssignmentSubmittedAnswers: { type: mongoose.Schema.Types.Mixed, default: [] },
 
     quizBadgeAwarded: { type: Boolean, default: false },
     quizSkillAwarded: { type: Boolean, default: false },

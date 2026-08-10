@@ -65,7 +65,7 @@ export const adminCreateAssessment = async (req, res) => {
       durationMinutes,
       questions: parsedQuestions,
       isPublished: req.body.isPublished === true || req.body.isPublished === "true",
-      maxAttempts: maxAttempts !== undefined ? Math.max(1, Math.min(10, Number(maxAttempts) || 1)) : 1,
+      maxAttempts: maxAttempts !== undefined ? Math.max(1, Math.min(10, Number(maxAttempts) || 3)) : 3,
       passingPercentage: passingPercentage !== undefined ? Math.max(0, Math.min(100, Number(passingPercentage) || 80)) : 80,
       badge: badgeId,
       skill: skillId,
@@ -77,12 +77,16 @@ export const adminCreateAssessment = async (req, res) => {
   }
 };
 
+// Shared by two audiences: the admin CourseBuilder (needs the answer key to
+// edit questions) and the employee AssessmentPlayer (must never see it before
+// submitting). Only managers/admins get correctOptionIndex in the response.
 export const adminListAssessmentsByCourse = async (req, res) => {
-  const assessments = await CourseAssessment.find({ course: req.params.courseId })
+  const query = CourseAssessment.find({ course: req.params.courseId })
     .populate("skill", "name")
     .populate("badge", "name description imageUrl")
     .sort({ createdAt: -1 });
-  res.json(assessments);
+  if (!isManager(req.user)) query.select("-questions.correctOptionIndex");
+  res.json(await query);
 };
 
 export const adminUpdateAssessment = async (req, res) => {
@@ -106,7 +110,7 @@ export const adminUpdateAssessment = async (req, res) => {
     questions: parsedQuestions,
     isPublished: isPublished === true || isPublished === "true",
   };
-  if (maxAttempts !== undefined) updateData.maxAttempts = Math.max(1, Math.min(10, Number(maxAttempts) || 1));
+  if (maxAttempts !== undefined) updateData.maxAttempts = Math.max(1, Math.min(10, Number(maxAttempts) || 3));
   if (passingPercentage !== undefined) updateData.passingPercentage = Math.max(0, Math.min(100, Number(passingPercentage) || 80));
 
   try {

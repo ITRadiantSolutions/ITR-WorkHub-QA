@@ -89,16 +89,15 @@ const TILES = [
   {
     key: "hrms",
     title: "HRMS",
-    description: "Handle employee records, onboarding and HR documents.",
+    description: "Manage employees, job openings and referrals.",
     icon: "Briefcase",
     accent: "cyan",
-    comingSoon: true,
     tags: [
-      { icon: "Briefcase", label: "Employees" },
-      { icon: "Team", label: "Onboarding" },
-      { icon: "File", label: "Documents" },
+      { icon: "Briefcase", label: "Manage Organization" },
+      { icon: "Team", label: "Jobs" },
+      { icon: "File", label: "Referrals" },
     ],
-    go: () => toast.info("HRMS is coming soon."),
+    go: (user, navigate) => navigate("/hrms"),
   },
 ];
 
@@ -301,7 +300,7 @@ export default function Hub() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-3 min-h-0">
+      <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 py-3 min-h-0">
         <h1 className="w-full max-w-5xl text-2xl sm:text-[1.7rem] font-black text-slate-900 mb-4 flex items-center justify-center gap-2">
           <Icons.Sparkle /> Choose a workspace
         </h1>

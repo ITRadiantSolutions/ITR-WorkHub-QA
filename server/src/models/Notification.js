@@ -18,6 +18,12 @@ const notificationSchema = new mongoose.Schema(
         "teamMemberAdded", "teamMemberRemoved",
         "bugCreated", "bugUpdated", "bugDeleted", "bugStatusChanged",
         "deadlineChanged", "approvalUpdated", "userRoleChanged", "userApproved", "adminAlert",
+        // HRMS
+        "jobRequestSubmitted", "jobRequestApproved", "jobRequestRejected",
+        "jobRequestClarificationRequested", "jobRequestClarificationResponded",
+        "referralSubmitted", "referralStatusChanged", "employeeRoleChanged", "projectRoleAssigned",
+        // LMS
+        "lmsAssessmentFailed",
       ],
       required: true,
     },

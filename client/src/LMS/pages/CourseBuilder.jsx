@@ -308,7 +308,7 @@ export default function CourseBuilder() {
                   assessmentType,
                   title: "",
                   durationMinutes: 15,
-                  maxAttempts: 1,
+                  maxAttempts: 3,
                   passingPercentage: 80,
                   isPublished: true,
                   badge: "",

@@ -58,6 +58,14 @@ import lmsReviewRoutes from "./routes/lms/review.routes.js";
 import lmsReportsRoutes from "./routes/lms/reports.routes.js";
 import lmsProfileRoutes from "./routes/lms/profile.routes.js";
 
+// HRMS (Human Resource Management System)
+import hrmsEmployeeRoutes from "./routes/hrms/employee.routes.js";
+import hrmsProjectRoleRoutes from "./routes/hrms/projectRole.routes.js";
+import hrmsJobRequestRoutes from "./routes/hrms/jobRequest.routes.js";
+import hrmsJobPostRoutes from "./routes/hrms/jobPost.routes.js";
+import hrmsReferralRoutes from "./routes/hrms/referral.routes.js";
+import hrmsDashboardRoutes from "./routes/hrms/dashboard.routes.js";
+
 // Express app only — no listen(), no DB connect, no cron jobs. Kept separate
 // from server.js so tests (supertest) can import and exercise it directly
 // without booting the whole process.
@@ -109,6 +117,12 @@ app.use("/api/lms/skills", lmsSkillRoutes);
 app.use("/api/lms/reviews", lmsReviewRoutes);
 app.use("/api/lms/reports", lmsReportsRoutes);
 app.use("/api/lms/profile", lmsProfileRoutes);
+app.use("/api/hrms/employees", hrmsEmployeeRoutes);
+app.use("/api/hrms/project-roles", hrmsProjectRoleRoutes);
+app.use("/api/hrms/job-requests", hrmsJobRequestRoutes);
+app.use("/api/hrms/job-posts", hrmsJobPostRoutes);
+app.use("/api/hrms/referrals", hrmsReferralRoutes);
+app.use("/api/hrms/dashboard", hrmsDashboardRoutes);
 
 // Serve the built React client, when present — the deploy workflow copies
 // client/dist here so one App Service can host both API and frontend on

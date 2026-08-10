@@ -4,6 +4,8 @@ import CourseProgress from "../models/CourseProgress.js";
 import EmployeeProfile from "../models/EmployeeProfile.js";
 import Badge from "../models/Badge.js";
 import Skill from "../models/Skill.js";
+import User from "../models/User.js";
+import { notifyUsers } from "../utils/notify.js";
 
 // Ported from the standalone LMS project's courseProgressController.js.
 // req.userId/req.role (raw JWT claims) become req.user._id/req.user.roles.lms
@@ -76,6 +78,30 @@ const awardSkillOnce = async ({ employeeId, skillId, progress, alreadyAwardedFla
   return { skillAwarded: true, skill: await loadBadgeOrSkill(Skill, skillId) };
 };
 
+// Closes the "employee fails, someone should assign them a course" loop: the
+// LMS has no automated recommendation engine, so instead of silently leaving
+// a maxed-out failure sitting in CourseProgress, the employee's manager (or,
+// absent one, every LMS admin) gets notified so a human can assign remedial
+// coursework. Fires once, on the attempt that exhausts the allowance.
+const notifyManagerOfExhaustedAttempts = async ({ employeeId, courseId, assessmentType, title, score, maxAttempts }) => {
+  const employee = await User.findById(employeeId).select("name managerId");
+  if (!employee) return;
+
+  const recipientIds = employee.managerId
+    ? [employee.managerId]
+    : (await User.find({ "roles.lms": "admin" }).select("_id").lean()).map((admin) => admin._id);
+  if (!recipientIds.length) return;
+
+  await notifyUsers(recipientIds, {
+    title: "Employee did not pass a skill assessment",
+    message: `${employee.name} did not pass "${title}" (${assessmentType}) after ${maxAttempts} attempt(s) — last score ${score}%. Consider assigning a course to help them build this skill.`,
+    type: "lmsAssessmentFailed",
+    activityType: "status_change",
+    performedBy: employeeId,
+    metadata: { courseId, assessmentType, score, maxAttempts },
+  });
+};
+
 const buildMaterialKeys = (lectures = []) => {
   const keys = [];
   lectures.forEach((lecture) => {
@@ -141,7 +167,7 @@ const buildProgressSummary = async (courseId, employeeId) => {
       correctAnswers: progress.correctAnswers ?? 0,
       wrongAnswers: progress.wrongAnswers ?? 0,
       attempts: progress.quizAttempt ?? 0,
-      maxAttempts: quizFinal?.maxAttempts || 1,
+      maxAttempts: quizFinal?.maxAttempts || 3,
       passingPercentage: quizFinal?.passingPercentage || 80,
     },
     finalAssignment: {
@@ -153,7 +179,7 @@ const buildProgressSummary = async (courseId, employeeId) => {
       correctAnswers: progress.finalAssignmentCorrectAnswers ?? 0,
       wrongAnswers: progress.finalAssignmentWrongAnswers ?? 0,
       attempts: progress.finalAssignmentAttempt ?? 0,
-      maxAttempts: assignmentFinal?.maxAttempts || 1,
+      maxAttempts: assignmentFinal?.maxAttempts || 3,
       passingPercentage: assignmentFinal?.passingPercentage || 80,
     },
   };
@@ -203,14 +229,53 @@ export const employeeSubmitQuiz = async (req, res) => {
   if (!assessment) return res.status(404).json({ message: "Assessment not found" });
 
   const passingPercentage = assessment.passingPercentage || 80;
-  const maxAttempts = assessment.maxAttempts || 1;
+  const maxAttempts = assessment.maxAttempts || 3;
   const progress = await getOrCreateProgress(courseId, employeeId);
 
-  if (progress.quizAttempt >= maxAttempts) {
-    return res.status(409).json({ message: `Maximum attempts (${maxAttempts}) reached for this quiz.` });
-  }
   if (progress.quizStatus === "passed") {
     return res.status(409).json({ message: "You have already passed this quiz." });
+  }
+
+  // A resubmission of the same answers for the attempt we already scored
+  // (double-click, client-side retry after a slow response) is idempotent:
+  // return the cached outcome instead of re-scoring and burning an attempt.
+  const isDuplicateRetry =
+    String(progress.quizLastSubmission?.assessmentId || "") === String(assessmentId) &&
+    progress.quizLastSubmission?.attemptNo === progress.quizAttempt &&
+    JSON.stringify(progress.submittedAnswers ?? {}) === JSON.stringify(answers ?? {});
+
+  if (isDuplicateRetry) {
+    return res.json({
+      passed: progress.quizStatus === "passed",
+      score: progress.quizScore,
+      total: assessment.questions.length,
+      correct: progress.correctAnswers,
+      wrong: progress.wrongAnswers,
+      attempts: progress.quizAttempt,
+      maxAttempts,
+      passingPercentage,
+      remainingAttempts: Math.max(0, maxAttempts - progress.quizAttempt),
+      canRetake: progress.quizStatus !== "passed" && progress.quizAttempt < maxAttempts,
+      badgeAwarded: false,
+      skillAwarded: false,
+      badge: null,
+      skill: null,
+      duplicate: true,
+    });
+  }
+
+  // Atomically reserve the next attempt slot so two concurrent submissions
+  // (e.g. a network retry racing the original request) can't both read the
+  // same quizAttempt and both slip past the maxAttempts check.
+  const reservedProgress = await CourseProgress.findOneAndUpdate(
+    { _id: progress._id, quizStatus: { $ne: "passed" }, quizAttempt: { $lt: maxAttempts } },
+    { $inc: { quizAttempt: 1 } },
+    { new: true },
+  );
+  if (!reservedProgress) {
+    return res.status(409).json({
+      message: progress.quizStatus === "passed" ? "You have already passed this quiz." : `Maximum attempts (${maxAttempts}) reached for this quiz.`,
+    });
   }
 
   let correct = 0;
@@ -226,13 +291,13 @@ export const employeeSubmitQuiz = async (req, res) => {
   const score = total > 0 ? Math.round((correct / total) * 100) : 0;
   const passed = score >= passingPercentage;
 
-  progress.quizStatus = passed ? "passed" : "failed";
-  progress.quizScore = score;
-  progress.correctAnswers = correct;
-  progress.wrongAnswers = wrong;
-  progress.quizAttempt += 1;
-  progress.quizAssessmentId = assessmentId;
-  progress.submittedAnswers = answers;
+  reservedProgress.quizStatus = passed ? "passed" : "failed";
+  reservedProgress.quizScore = score;
+  reservedProgress.correctAnswers = correct;
+  reservedProgress.wrongAnswers = wrong;
+  reservedProgress.quizAssessmentId = assessmentId;
+  reservedProgress.submittedAnswers = answers;
+  reservedProgress.quizLastSubmission = { assessmentId, attemptNo: reservedProgress.quizAttempt };
 
   const responseData = {
     passed,
@@ -241,11 +306,11 @@ export const employeeSubmitQuiz = async (req, res) => {
     correct,
     wrong,
     result,
-    attempts: progress.quizAttempt,
+    attempts: reservedProgress.quizAttempt,
     maxAttempts,
     passingPercentage,
-    remainingAttempts: Math.max(0, maxAttempts - progress.quizAttempt),
-    canRetake: !passed && progress.quizAttempt < maxAttempts,
+    remainingAttempts: Math.max(0, maxAttempts - reservedProgress.quizAttempt),
+    canRetake: !passed && reservedProgress.quizAttempt < maxAttempts,
     badgeAwarded: false,
     skillAwarded: false,
     badge: null,
@@ -253,20 +318,20 @@ export const employeeSubmitQuiz = async (req, res) => {
   };
 
   if (passed && assessment.badge) {
-    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, progress, alreadyAwardedFlag: "quizBadgeAwarded", assessmentType: "quiz" });
+    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, progress: reservedProgress, alreadyAwardedFlag: "quizBadgeAwarded", assessmentType: "quiz" });
     responseData.badgeAwarded = badgeResult.badgeAwarded;
     responseData.badge = badgeResult.badge;
-    if (badgeResult.badgeAwarded) progress.quizBadgeAwarded = true;
+    if (badgeResult.badgeAwarded) reservedProgress.quizBadgeAwarded = true;
   }
   if (passed && assessment.skill) {
-    const skillResult = await awardSkillOnce({ employeeId, skillId: assessment.skill, progress, alreadyAwardedFlag: "quizSkillAwarded" });
+    const skillResult = await awardSkillOnce({ employeeId, skillId: assessment.skill, progress: reservedProgress, alreadyAwardedFlag: "quizSkillAwarded" });
     responseData.skillAwarded = skillResult.skillAwarded;
     responseData.skill = skillResult.skill;
-    if (skillResult.skillAwarded) progress.quizSkillAwarded = true;
+    if (skillResult.skillAwarded) reservedProgress.quizSkillAwarded = true;
   }
 
-  progress.quizAttemptsHistory.push({
-    attemptNo: progress.quizAttempt,
+  reservedProgress.quizAttemptsHistory.push({
+    attemptNo: reservedProgress.quizAttempt,
     assessmentId,
     submittedAt: new Date(),
     score,
@@ -281,9 +346,14 @@ export const employeeSubmitQuiz = async (req, res) => {
     skillAwarded: responseData.skillAwarded,
     skillId: responseData.skill?.id || assessment.skill || null,
   });
-  progress.activityHistory.push({ eventType: "quiz_submitted", detail: `attempt ${progress.quizAttempt}, score ${score}`, at: new Date() });
+  reservedProgress.activityHistory.push({ eventType: "quiz_submitted", detail: `attempt ${reservedProgress.quizAttempt}, score ${score}`, at: new Date() });
 
-  await progress.save();
+  await reservedProgress.save();
+
+  if (!passed && reservedProgress.quizAttempt >= maxAttempts) {
+    await notifyManagerOfExhaustedAttempts({ employeeId, courseId, assessmentType: "quiz", title: assessment.title, score, maxAttempts });
+  }
+
   res.json(responseData);
 };
 
@@ -297,14 +367,55 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
   if (!assessment) return res.status(404).json({ message: "Assessment not found" });
 
   const passingPercentage = assessment.passingPercentage || 80;
-  const maxAttempts = assessment.maxAttempts || 1;
+  const maxAttempts = assessment.maxAttempts || 3;
   const progress = await getOrCreateProgress(courseId, employeeId);
 
-  if (progress.finalAssignmentAttempt >= maxAttempts) {
-    return res.status(409).json({ message: `Maximum attempts (${maxAttempts}) reached.` });
-  }
-  if (progress.finalAssignmentScore >= passingPercentage && progress.finalAssignmentStatus === "submitted") {
+  const alreadyPassed = progress.finalAssignmentScore >= passingPercentage && progress.finalAssignmentStatus === "submitted";
+  if (alreadyPassed) {
     return res.status(409).json({ message: "You already passed this assignment." });
+  }
+
+  // A resubmission of the same answers for the attempt we already scored
+  // (double-click, client-side retry) is idempotent: return the cached
+  // outcome instead of re-scoring and burning an attempt.
+  const isDuplicateRetry =
+    String(progress.finalAssignmentLastSubmission?.assessmentId || "") === String(assessmentId) &&
+    progress.finalAssignmentLastSubmission?.attemptNo === progress.finalAssignmentAttempt &&
+    JSON.stringify(progress.finalAssignmentSubmittedAnswers ?? {}) === JSON.stringify(answers ?? {});
+
+  if (isDuplicateRetry) {
+    return res.json({
+      message: progress.finalAssignmentScore >= passingPercentage ? "Final Assignment Passed" : "Final Assignment Submitted",
+      passed: progress.finalAssignmentScore >= passingPercentage,
+      score: progress.finalAssignmentScore,
+      correct: progress.finalAssignmentCorrectAnswers,
+      wrong: progress.finalAssignmentWrongAnswers,
+      total: assessment.questions?.length || 0,
+      attempts: progress.finalAssignmentAttempt,
+      maxAttempts,
+      passingPercentage,
+      remainingAttempts: Math.max(0, maxAttempts - progress.finalAssignmentAttempt),
+      canRetake: progress.finalAssignmentScore < passingPercentage && progress.finalAssignmentAttempt < maxAttempts,
+      finalAssignmentStatus: progress.finalAssignmentStatus,
+      result: [],
+      badgeAwarded: false,
+      skillAwarded: false,
+      duplicate: true,
+    });
+  }
+
+  // Atomically reserve the next attempt slot — see employeeSubmitQuiz for why.
+  const reservedProgress = await CourseProgress.findOneAndUpdate(
+    {
+      _id: progress._id,
+      finalAssignmentAttempt: { $lt: maxAttempts },
+      $or: [{ finalAssignmentScore: { $lt: passingPercentage } }, { finalAssignmentStatus: { $ne: "submitted" } }],
+    },
+    { $inc: { finalAssignmentAttempt: 1 } },
+    { new: true },
+  );
+  if (!reservedProgress) {
+    return res.status(409).json({ message: `Maximum attempts (${maxAttempts}) reached.` });
   }
 
   let score = 0;
@@ -326,12 +437,13 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
     passed = score >= passingPercentage;
   }
 
-  progress.finalAssignmentAttempt += 1;
-  progress.finalAssignmentScore = score;
-  progress.finalAssignmentCorrectAnswers = correct;
-  progress.finalAssignmentWrongAnswers = wrong;
-  progress.finalAssignmentAssessmentId = assessmentId;
-  progress.finalAssignmentStatus = "submitted";
+  reservedProgress.finalAssignmentScore = score;
+  reservedProgress.finalAssignmentCorrectAnswers = correct;
+  reservedProgress.finalAssignmentWrongAnswers = wrong;
+  reservedProgress.finalAssignmentAssessmentId = assessmentId;
+  reservedProgress.finalAssignmentStatus = "submitted";
+  reservedProgress.finalAssignmentSubmittedAnswers = answers;
+  reservedProgress.finalAssignmentLastSubmission = { assessmentId, attemptNo: reservedProgress.finalAssignmentAttempt };
 
   const responseData = {
     message: passed ? "Final Assignment Passed" : "Final Assignment Submitted",
@@ -340,32 +452,32 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
     correct,
     wrong,
     total,
-    attempts: progress.finalAssignmentAttempt,
+    attempts: reservedProgress.finalAssignmentAttempt,
     maxAttempts,
     passingPercentage,
-    remainingAttempts: Math.max(0, maxAttempts - progress.finalAssignmentAttempt),
-    canRetake: !passed && progress.finalAssignmentAttempt < maxAttempts,
-    finalAssignmentStatus: progress.finalAssignmentStatus,
+    remainingAttempts: Math.max(0, maxAttempts - reservedProgress.finalAssignmentAttempt),
+    canRetake: !passed && reservedProgress.finalAssignmentAttempt < maxAttempts,
+    finalAssignmentStatus: reservedProgress.finalAssignmentStatus,
     result,
     badgeAwarded: false,
     skillAwarded: false,
   };
 
   if (passed && assessment.badge) {
-    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, progress, alreadyAwardedFlag: "finalAssignmentBadgeAwarded", assessmentType: "assignment" });
+    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, progress: reservedProgress, alreadyAwardedFlag: "finalAssignmentBadgeAwarded", assessmentType: "assignment" });
     responseData.badgeAwarded = badgeResult.badgeAwarded;
     responseData.badge = badgeResult.badge;
-    if (badgeResult.badgeAwarded) progress.finalAssignmentBadgeAwarded = true;
+    if (badgeResult.badgeAwarded) reservedProgress.finalAssignmentBadgeAwarded = true;
   }
   if (passed && assessment.skill) {
-    const skillResult = await awardSkillOnce({ employeeId, skillId: assessment.skill, progress, alreadyAwardedFlag: "finalAssignmentSkillAwarded" });
+    const skillResult = await awardSkillOnce({ employeeId, skillId: assessment.skill, progress: reservedProgress, alreadyAwardedFlag: "finalAssignmentSkillAwarded" });
     responseData.skillAwarded = skillResult.skillAwarded;
     responseData.skill = skillResult.skill;
-    if (skillResult.skillAwarded) progress.finalAssignmentSkillAwarded = true;
+    if (skillResult.skillAwarded) reservedProgress.finalAssignmentSkillAwarded = true;
   }
 
-  progress.finalAssignmentAttemptsHistory.push({
-    attemptNo: progress.finalAssignmentAttempt,
+  reservedProgress.finalAssignmentAttemptsHistory.push({
+    attemptNo: reservedProgress.finalAssignmentAttempt,
     assessmentId,
     submittedAt: new Date(),
     score,
@@ -380,8 +492,13 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
     skillAwarded: responseData.skillAwarded,
     skillId: responseData.skill?.id || assessment.skill || null,
   });
-  progress.activityHistory.push({ eventType: "assignment_submitted", detail: `attempt ${progress.finalAssignmentAttempt}, score ${score}`, at: new Date() });
+  reservedProgress.activityHistory.push({ eventType: "assignment_submitted", detail: `attempt ${reservedProgress.finalAssignmentAttempt}, score ${score}`, at: new Date() });
 
-  await progress.save();
+  await reservedProgress.save();
+
+  if (!passed && reservedProgress.finalAssignmentAttempt >= maxAttempts) {
+    await notifyManagerOfExhaustedAttempts({ employeeId, courseId, assessmentType: "assignment", title: assessment.title, score, maxAttempts });
+  }
+
   res.json(responseData);
 };

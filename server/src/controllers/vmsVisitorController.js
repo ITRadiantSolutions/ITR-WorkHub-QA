@@ -145,7 +145,7 @@ export async function createVisitor(req, res) {
       : null;
 
     const otpCode = generateOtp();
-    const expiresAt = otpExpiresAt();
+    const expiresAt = otpExpiresAt(5, visitDateParsed);
 
     const visitor = await Visitor.create({
       fullName: visitorData.fullName,
@@ -277,7 +277,7 @@ export async function resendInvitedOtpByVisitorId(req, res) {
     }
 
     const otpCode = generateOtp();
-    const otpExpiresAtValue = otpExpiresAt();
+    const otpExpiresAtValue = otpExpiresAt(5, visitor.visitDate);
     await Visitor.findByIdAndUpdate(visitor._id, {
       otpCode,
       otpExpiresAt: otpExpiresAtValue,
@@ -429,7 +429,11 @@ export async function approvalAction(req, res) {
   }
 
   const updated = await Visitor.findByIdAndUpdate(visitorId, { status: statusUpdate, escalatedReason: reason }, { new: true }).lean({ virtuals: true });
-  await Approval.create({ visitorId, approverId: req.user._id, role: approvalRole, status: APPROVAL_STATUS.PENDING, reason });
+  // "approve" is the approver's own final decision on this record (APPROVED).
+  // "escalate" hands the decision to security/admin, whose Approval record is
+  // still awaiting their action (PENDING).
+  const approvalStatus = action === "approve" ? APPROVAL_STATUS.APPROVED : APPROVAL_STATUS.PENDING;
+  await Approval.create({ visitorId, approverId: req.user._id, role: approvalRole, status: approvalStatus, reason });
   await createAudit(req, visitor._id, "VISITOR_APPROVAL", visitor, updated);
 
   if (action === "approve" && visitor.personToMeetId) {

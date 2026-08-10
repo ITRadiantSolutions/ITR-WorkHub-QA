@@ -21,7 +21,7 @@ const courseAssessmentSchema = new mongoose.Schema(
     durationMinutes: { type: Number, required: true, min: 1 },
     questions: { type: [questionSchema], default: [] },
     isPublished: { type: Boolean, default: false },
-    maxAttempts: { type: Number, default: 1, min: 1 },
+    maxAttempts: { type: Number, default: 3, min: 1 },
     passingPercentage: { type: Number, default: 80, min: 0, max: 100 },
     skill: { type: mongoose.Schema.Types.ObjectId, ref: "Skill", default: null },
     badge: { type: mongoose.Schema.Types.ObjectId, ref: "Badge", default: null },

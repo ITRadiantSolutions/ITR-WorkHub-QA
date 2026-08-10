@@ -9,13 +9,19 @@ const MODULE_ROLE_ENUM = {
   timesheet: ["employee", "manager", "hr"],
   pms: ["employee", "manager", "hr"],
   tracker: ["ADMIN", "PM", "DEVELOPER", "QA", "BUSINESS_USER"],
+  vms: ["host", "receptionist", "admin"],
+  lms: ["employee", "manager", "admin"],
+  hrms: ["employee", "manager", "hr"],
 };
 
 // "HR-only" in the old Flow_Tracker system: our unified model splits HR into
 // per-module roles rather than one tracker role, so treat tracker ADMIN or
-// either module's "hr" role as equivalent admin/HR authority.
+// any module's "hr" role as equivalent admin/HR authority.
 const isAdminOrHr = (user) =>
-  user.roles.tracker === "ADMIN" || user.roles.timesheet === "hr" || user.roles.pms === "hr";
+  user.roles.tracker === "ADMIN" ||
+  user.roles.timesheet === "hr" ||
+  user.roles.pms === "hr" ||
+  user.roles.hrms === "hr";
 
 // List all users — used for assignee/team dropdowns across the tracker UI,
 // not scoped to a manager's direct reports (see getMyReports for that).
@@ -148,8 +154,8 @@ export const assignRole = async (req, res) => {
 
 export const setArchived = async (req, res) => {
   if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
-  const { module, archived } = req.body; // module: "timesheet" | "pms" | "account"
-  if (!["timesheet", "pms", "account"].includes(module)) {
+  const { module, archived } = req.body; // module: "timesheet" | "pms" | "hrms" | "account"
+  if (!["timesheet", "pms", "hrms", "account"].includes(module)) {
     return res.status(400).json({ message: "Invalid module" });
   }
   const user = await User.findByIdAndUpdate(
