@@ -832,7 +832,7 @@ export default function AdminDashboard() {
           {activeTab === "dashboard" && (
             <div className="space-y-4 w-full">
               {/* Top metrics */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
                 {[
                   {
                     label: "Total Projects",
@@ -898,7 +898,7 @@ export default function AdminDashboard() {
                 ))}
               </div>
               {/* Dashboard distribution charts */}
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:grid-cols-3">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3.5">
                     <div className="flex items-center gap-2.5">
@@ -1090,7 +1090,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               {/* User Roles + Quick Links */}
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-2">
                 {/* User roles */}
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
@@ -1137,7 +1137,7 @@ export default function AdminDashboard() {
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5">
                       {[
                         {
                           label: "Admins",

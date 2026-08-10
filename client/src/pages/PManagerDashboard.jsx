@@ -638,7 +638,7 @@ export default function ManagerDashboard() {
             {activeTab === "dashboard" && (
           <div className="mx-auto w-full max-w-[1600px] space-y-4">
               {/* Metric cards with bugs */}
-         <div className="grid grid-cols-1 sm:grid-cols-4 xl:grid-cols-4 gap-4">
+         <div className="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4">
                 {[
                   {
                     label: "Total Tasks",
@@ -701,7 +701,7 @@ export default function ManagerDashboard() {
               </div>
 
               {/* Dashboard charts */}
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><Icons.Check /></span><div><p className="text-xs font-bold text-slate-700">Task Completion</p><p className="text-[10px] text-slate-400">Status distribution</p></div></div><span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{m.completedTasks}/{m.totalTasks} done</span></div>
                   <div className="p-4">{dashboardTasksLoading ? <div className="flex h-28 items-center justify-center gap-2 text-[11px] font-semibold text-slate-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />Loading tasks...</div> : <DashboardPie centerValue={`${m.completionRate}%`} centerLabel="complete" data={[

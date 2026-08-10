@@ -965,7 +965,7 @@ export default function DeveloperDashboard() {
                   Loading tasks...
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6">
                   {[
                     {
                       label: "Total Tasks",
@@ -1296,7 +1296,7 @@ export default function DeveloperDashboard() {
                     ) : (
                       <>
                         {/* Summary */}
-                        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-6 xl:grid-cols-6">
+                        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6">
                           {[
                             {
                               label: "Total",

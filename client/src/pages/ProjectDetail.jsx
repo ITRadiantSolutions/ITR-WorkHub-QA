@@ -1420,7 +1420,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
       {/* ── Metric strip ────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-200 px-6 py-3">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7 xl:grid-cols-7">
           {[
             { label: "Total Tasks", value: analytics.total, dark: true },
             {
@@ -1497,7 +1497,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
         {activeTab === "tasks" && (
           <div className="space-y-2">
             {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7 xl:grid-cols-7">
               {(() => {
                 const total = summaryTotal;
                 const todo = summaryTodo;
@@ -1976,7 +1976,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-3 xl:min-w-[280px]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-2 gap-3 xl:min-w-[280px]">
                     <div className="bg-slate-50 rounded-xl p-4">
                       <p className="text-[11px] uppercase font-semibold text-slate-400">
                         Start Date
@@ -2226,7 +2226,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                   }).length;
 
                   return (
-                    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3">
                       {[
                         {
                           label: "Total",

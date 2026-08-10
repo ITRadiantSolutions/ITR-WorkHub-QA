@@ -11,7 +11,7 @@ function SkeletonReports() {
   return (
     <div className="space-y-4">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
@@ -506,7 +506,7 @@ function DeveloperReport({
     <div className="space-y-4">
       {/* Stat strip */}
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         <StatCard
           label="Total Tasks"
           value={m.total}
@@ -674,7 +674,7 @@ function DeveloperReport({
           subtitle={`${bugs.length} total bugs reported`}
           icon={Icons.Bug}
         >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 mb-4">
             {[
               { label: "Total", v: bugs.length, color: "#0f172a" },
               {
@@ -896,7 +896,7 @@ function QAReport({ tasks = [], bugs = [], projects = [] }) {
     <div className="space-y-4">
       {/* Stats */}
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         <StatCard
           label="My Tasks"
           value={m.total}
@@ -1487,7 +1487,7 @@ function AdminReport({
   return (
     <div className="space-y-4">
       {/* Global overview */}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         <StatCard
           label="Total Tasks"
           value={gm.total}
@@ -1773,7 +1773,7 @@ function AdminReport({
         >
           {/* Employee list */}
           <div
-            className={`grid max-h-[430px] grid-cols-1 gap-2 overflow-y-auto pr-1 ${selectedEmp ? "" : "sm:grid-cols-2 xl:grid-cols-3"}`}
+            className={`grid max-h-[430px] grid-cols-1 gap-2 overflow-y-auto pr-1 ${selectedEmp ? "" : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"}`}
           >
             {filteredEmps.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
@@ -2204,7 +2204,7 @@ function AdminReport({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
             {allProjects
               .filter(
                 (project) =>

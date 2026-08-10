@@ -928,7 +928,7 @@ export default function QADashboard() {
               style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }}
             >
               {/* ── Metric cards ──────────────────────────────────────────────── */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
                 {[
                   {
                     label: "Assigned Projects",
@@ -994,7 +994,7 @@ export default function QADashboard() {
               </div>
 
               {/* ── Charts row ────────────────────────────────────────────────── */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
                 {/* Bug Analytics */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
@@ -1019,7 +1019,7 @@ export default function QADashboard() {
                   ]} /></div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
                 {/* Bugs by Severity */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-3.5 border-b border-slate-100 bg-slate-50">
@@ -1163,7 +1163,7 @@ export default function QADashboard() {
               </div>
 
               {/* ── Recent data ───────────────────────────────────────────────── */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
                 {/* Recent Bugs */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
@@ -1418,7 +1418,7 @@ export default function QADashboard() {
                 </div>
               </div>
               {/* Summary Cards */}
-              <div className="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-6 xl:grid-cols-6">
+              <div className="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6">
                 {[
                   {
                     label: "Total",

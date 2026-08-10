@@ -745,7 +745,7 @@ export default function AdminLogs() {
         )}
 
         {/* ─── METRIC CARDS ───────────────────────────────── */}
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
           <MetricCard
             label="API Calls"
             value={metrics.total.toLocaleString()}
@@ -953,7 +953,7 @@ export default function AdminLogs() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                 {changeLogs.map((log, i) => (
                   <ChangeCard
                     key={`${log.createdAt || log.timestamp}-${i}`}

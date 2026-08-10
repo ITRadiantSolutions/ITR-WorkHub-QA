@@ -1540,7 +1540,7 @@ export default function TasksPage() {
 
       {/* Summary strip */}
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-6 xl:grid-cols-6">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6">
         {[
           {
             label: "Total ",
@@ -1717,7 +1717,7 @@ export default function TasksPage() {
             </div>
 
             {/* Row 3 — Priority + Status + Due Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3">
               {/* Priority */}
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
@@ -1905,7 +1905,7 @@ export default function TasksPage() {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-1.5">
                       {assigneeList.map((employee) => {
                         const checked = formData.assignees.includes(
                           employee._id,
