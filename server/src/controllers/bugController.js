@@ -8,16 +8,26 @@ const sameId = (a, b) => Boolean(a && b) && (a._id || a).toString() === (b._id |
 const isProjectMember = (project, userId) =>
   sameId(project?.createdBy, userId) || sameId(project?.projectLead, userId) || (project?.teamMembers || []).some((m) => sameId(m, userId));
 
+// Bug has no projectId of its own — the frontend derives "Project" from
+// bug.taskId.projectId, so that nested ref has to be populated too or it
+// always shows N/A.
+const TASK_WITH_PROJECT_POPULATE = { path: "taskId", select: "title projectId", populate: { path: "projectId", select: "name" } };
+
 export const listBugs = async (req, res) => {
   const filter = {};
   if (req.query.taskId) filter.taskId = req.query.taskId;
   if (req.query.status) filter.status = req.query.status;
   if (req.query.severity) filter.severity = req.query.severity;
-  res.json(await Bug.find(filter).populate("reportedBy", "name email").sort({ createdAt: -1 }));
+  res.json(
+    await Bug.find(filter)
+      .populate("reportedBy", "name email")
+      .populate(TASK_WITH_PROJECT_POPULATE)
+      .sort({ createdAt: -1 }),
+  );
 };
 
 export const getBug = async (req, res) => {
-  const bug = await Bug.findById(req.params.id).populate("reportedBy", "name email");
+  const bug = await Bug.findById(req.params.id).populate("reportedBy", "name email").populate(TASK_WITH_PROJECT_POPULATE);
   if (!bug) return res.status(404).json({ message: "Bug not found" });
   res.json(bug);
 };
@@ -62,6 +72,7 @@ export const createBug = async (req, res) => {
     bugId: bug._id,
   });
 
+  await bug.populate([{ path: "reportedBy", select: "name email" }, TASK_WITH_PROJECT_POPULATE]);
   res.status(201).json(bug);
 };
 
@@ -70,12 +81,12 @@ export const createBug = async (req, res) => {
 export const updateBug = async (req, res) => {
   const { title, description, severity, status, attachments } = req.body;
 
-  const bug = await Bug.findById(req.params.id).populate("taskId", "projectId title");
+  const bug = await Bug.findById(req.params.id).populate(TASK_WITH_PROJECT_POPULATE);
   if (!bug) return res.status(404).json({ message: "Bug not found" });
 
   const role = req.user.roles.tracker;
   if (role === "PM" && bug.taskId?.projectId) {
-    const project = await Project.findById(bug.taskId.projectId);
+    const project = await Project.findById(bug.taskId.projectId._id || bug.taskId.projectId);
     if (project && !isProjectMember(project, req.user._id)) {
       return res.status(403).json({ message: "Access denied: PM can only edit bugs in assigned projects" });
     }
@@ -96,7 +107,7 @@ export const updateBug = async (req, res) => {
   await bug.save();
 
   if (status !== undefined && status !== oldStatus) {
-    const task = await Task.findById(bug.taskId);
+    const task = await Task.findById(bug.taskId?._id || bug.taskId);
     if (task) {
       await notifyUsers([...task.assignees, task.createdBy, bug.reportedBy], {
         title: "Bug status changed",

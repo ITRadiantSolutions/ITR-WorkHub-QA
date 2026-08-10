@@ -624,7 +624,7 @@ function NewEmployeeModal({ onClose, onSaved }) {
 // ── Assign roles / shifts modals ────────────────────────────────────────────
 const ROLE_OPTIONS = ["employee", "manager", "hr"];
 
-function AssignRolesModal({ users, onClose, onChanged, canSync, onSynced }) {
+function AssignRolesModal({ users, onClose, onChanged, canSync, onSynced, onToggleArchive, archiveBusyId }) {
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [syncing, setSyncing] = useState(false);
@@ -680,22 +680,42 @@ function AssignRolesModal({ users, onClose, onChanged, canSync, onSynced }) {
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search employees..." className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" />
         </div>
         <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-1.5">
-          {filtered.map((u) => (
-            <div key={u._id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">{u.name}</p>
-                <p className="text-xs text-slate-400 truncate">{u.email}</p>
+          {filtered.map((u) => {
+            const archived = Boolean(u.archived?.timesheet);
+            return (
+              <div key={u._id} className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 ${archived ? "border-amber-200 bg-amber-50/40" : "border-slate-200"}`}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{u.name}</p>
+                    {archived && <span className="shrink-0 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">Archived</span>}
+                  </div>
+                  <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <select
+                    value={u.roles?.timesheet || "employee"}
+                    onChange={(e) => changeRole(u, e.target.value)}
+                    disabled={busyId === u._id}
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold bg-white"
+                  >
+                    {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  {onToggleArchive && (
+                    <button
+                      onClick={() => onToggleArchive(u)}
+                      disabled={archiveBusyId === u._id}
+                      title={archived ? "Restore access" : "Archive from Timesheet"}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-50 ${
+                        archived ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50" : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                      }`}
+                    >
+                      {archived ? "Restore" : "Archive"}
+                    </button>
+                  )}
+                </div>
               </div>
-              <select
-                value={u.roles?.timesheet || "employee"}
-                onChange={(e) => changeRole(u, e.target.value)}
-                disabled={busyId === u._id}
-                className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold bg-white shrink-0"
-              >
-                {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -1003,6 +1023,8 @@ export default function Manage() {
           onChanged={patchUser}
           canSync={isHr}
           onSynced={load}
+          onToggleArchive={isHr ? toggleArchive : undefined}
+          archiveBusyId={archiveBusyId}
         />
       )}
       {assignShiftsOpen && <AssignShiftsModal users={users} onClose={() => setAssignShiftsOpen(false)} onChanged={patchUser} />}

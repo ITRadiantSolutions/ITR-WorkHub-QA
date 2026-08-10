@@ -79,16 +79,16 @@ export const listProjects = async (req, res) => {
   }
 
   const projects = await Project.find(filter)
-    .populate("projectLead", "name email")
-    .populate("teamMembers", "name email")
+    .populate("projectLead", "name email roles")
+    .populate("teamMembers", "name email roles")
     .sort({ createdAt: -1 });
   res.json(projects);
 };
 
 export const getProject = async (req, res) => {
   const project = await Project.findById(req.params.id)
-    .populate("projectLead", "name email")
-    .populate("teamMembers", "name email");
+    .populate("projectLead", "name email roles")
+    .populate("teamMembers", "name email roles");
   if (!project) return res.status(404).json({ message: "Project not found" });
 
   const role = req.user.roles.tracker;
@@ -175,8 +175,8 @@ export const getProjectEmployees = async (req, res) => {
   }
 
   const project = await Project.findById(req.params.projectId)
-    .populate("projectLead", "name email")
-    .populate("teamMembers", "name email")
+    .populate("projectLead", "name email roles")
+    .populate("teamMembers", "name email roles")
     .lean();
   if (!project) return res.status(404).json({ message: "Project not found" });
 
@@ -211,7 +211,7 @@ export const updateTeamMembers = async (req, res) => {
   const { action, userId } = req.body;
   if (!isPMOrAdmin(req.user)) return res.status(403).json({ message: "Access denied" });
 
-  const project = await Project.findById(req.params.id).populate("teamMembers", "name email");
+  const project = await Project.findById(req.params.id).populate("teamMembers", "name email roles");
   if (!project) return res.status(404).json({ message: "Project not found" });
 
   const user = await User.findById(userId);
@@ -231,7 +231,7 @@ export const updateTeamMembers = async (req, res) => {
   }
 
   await project.save();
-  await project.populate("teamMembers", "name email");
+  await project.populate("teamMembers", "name email roles");
 
   await notifyUsers([userId], {
     title: `Team Update: ${project.name}`,

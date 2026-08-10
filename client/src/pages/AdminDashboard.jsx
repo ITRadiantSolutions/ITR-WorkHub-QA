@@ -387,6 +387,19 @@ export default function AdminDashboard() {
         setStats((current) => ({ ...current, taskSummary }));
       });
 
+    // Full task list — ReportsPage's per-project stats need this (it was
+    // previously only fed the aggregate taskSummary above, so every
+    // project's report silently showed 0 tasks / 0% completion).
+    const taskListRequest = API.get("/tasks")
+      .catch(() => ({ data: [] }))
+      .then((res) => {
+        const tasks = res.data?.data || res.data || [];
+        setStats((current) => ({
+          ...current,
+          tasks: Array.isArray(tasks) ? tasks : [],
+        }));
+      });
+
     const bugRequest = API.get("/bugs")
       .catch(() => ({ data: [] }))
       .then((res) => {
@@ -412,6 +425,7 @@ export default function AdminDashboard() {
       projectRequest,
       employeeRequest,
       taskRequest,
+      taskListRequest,
       bugRequest,
     ]);
     setMetricsLoading(false);
@@ -1932,6 +1946,7 @@ export default function AdminDashboard() {
               projects={stats.projects}
               tasks={stats.tasks}
               bugs={stats.bugs}
+              allUsers={stats.employees}
               employeeReportRequest={employeeReportRequest}
             />
           </KeepAliveTab>

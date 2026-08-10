@@ -398,7 +398,9 @@ export default function ProjectsPage({
       const { attachments, ...payload } = form;
       const created = await API.post("/projects", payload);
 
-      const projectId = created?.data?.project?._id;
+      // Backend's createProject returns the project document directly (no
+      // {project} wrapper) — created.data *is* the project.
+      const projectId = created?.data?._id;
 
       if (projectId && Array.isArray(attachments) && attachments.length > 0) {
         await projectAPI.uploadProjectAttachments(projectId, attachments);
@@ -420,7 +422,7 @@ export default function ProjectsPage({
       setShowForm(false);
       await refreshProjects(true);
       if (onRefresh) onRefresh();
-      onProjectCreated?.(created?.data?.project);
+      onProjectCreated?.(created?.data);
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch (err) {
       console.error(err);

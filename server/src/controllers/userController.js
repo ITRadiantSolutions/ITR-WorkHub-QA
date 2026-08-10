@@ -32,7 +32,12 @@ export const listUsers = async (req, res) => {
     filter[`archived.${module}`] = req.query.archived === "true";
   }
 
-  res.json(await User.find(filter).select("-password"));
+  const users = await User.find(filter).select("-password");
+  // EmployeePage.jsx's Approved tab reads `.createdAt` for the signup-date
+  // column, so add the flat `.role` (Flow_Tracker convention, see
+  // utils/publicUser.js) alongside the full doc instead of swapping in
+  // toPublicUser(), which would silently drop createdAt/updatedAt.
+  res.json(users.map((u) => ({ ...u.toObject(), role: u.roles.tracker })));
 };
 
 export const getMe = async (req, res) => {
@@ -58,6 +63,7 @@ export const createUser = async (req, res) => {
 
   const userData = user.toObject();
   delete userData.password;
+  userData.role = user.roles.tracker;
   res.status(201).json(userData);
 };
 
@@ -101,6 +107,7 @@ export const updateUserGeneric = async (req, res) => {
 
   const userData = user.toObject();
   delete userData.password;
+  userData.role = user.roles.tracker;
   res.json({ message: "User updated successfully", user: userData });
 };
 

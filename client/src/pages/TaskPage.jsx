@@ -187,7 +187,7 @@ function StatusSelect({ value, onChange, task, user }) {
     },
   ];
 
-  const creatorRole = task?.createdBy?.role;
+  const creatorRole = task?.createdBy?.roles?.tracker;
   const projectLeadId =
     task?.projectId?.projectLead?._id || task?.projectId?.projectLead;
   const projectCreatorId =
@@ -1077,7 +1077,10 @@ export default function TasksPage() {
         selectedTask._id,
         newComment.trim(),
       );
-      setComments(response.data.data);
+      // Backend returns the full updated task (no wrapper) — pull comments
+      // off of it, same fallback pattern ProjectDetail.jsx already uses.
+      const updated = response?.data?.data || response?.data;
+      setComments(updated?.comments || []);
       setNewComment("");
     } catch (error) {
       console.error("Error adding comment:", error);
@@ -2622,7 +2625,7 @@ export default function TasksPage() {
                         />
                       </div>
                       {task.status === "DONE" &&
-                        ["ADMIN", "PM"].includes(task.createdBy?.role) &&
+                        ["ADMIN", "PM"].includes(task.createdBy?.roles?.tracker) &&
                         task.closedBy?.name && (
                           <p className="mt-0.5 text-[9px] text-slate-400">
                             Task done by {task.closedBy.name}

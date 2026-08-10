@@ -254,7 +254,6 @@ const DECORS = { flowtrack: FlowTrackDecor, timesheet: TimesheetDecor, pms: PmsD
 export default function Hub() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const visibleTiles = TILES.filter((tile) => !user?.archived?.[tile.key]);
 
   // Dark mode is a per-workspace preference (Timesheet/PMS/Tracker) — the Hub
   // landing page always stays on the light theme regardless of that setting.
@@ -308,21 +307,33 @@ export default function Hub() {
         </h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px] w-full max-w-[921px]">
-          {visibleTiles.map((tile) => {
+          {TILES.map((tile) => {
             const Icon = Icons[tile.icon];
             const a = ACCENTS[tile.accent];
             const Decor = DECORS[tile.decor];
+            const archived = Boolean(user?.archived?.[tile.key]);
             return (
               <button
                 key={tile.key}
-                onClick={() => tile.go(user, navigate)}
-                className={`group relative text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-[18px] pb-0 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-200 ${a.hoverBorder} focus:outline-none focus-visible:ring-4 ${a.ring}`}
+                onClick={() =>
+                  archived
+                    ? toast.error(`You don't have access to ${tile.title}. Contact your administrator.`)
+                    : tile.go(user, navigate)
+                }
+                className={`group relative text-left flex flex-col rounded-2xl bg-white border-2 border-slate-100 shadow-sm p-[18px] pb-0 overflow-hidden transition-all duration-200 focus:outline-none focus-visible:ring-4 ${a.ring} ${
+                  archived ? "grayscale opacity-60 cursor-not-allowed" : `hover:-translate-y-1 hover:shadow-xl ${a.hoverBorder}`
+                }`}
               >
                 {Decor && <Decor />}
 
                 {tile.comingSoon && (
                   <span className="absolute top-[14px] right-[14px] z-10 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
                     Coming Soon
+                  </span>
+                )}
+                {archived && (
+                  <span className="absolute top-[14px] right-[14px] z-10 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                    No Access
                   </span>
                 )}
 
@@ -355,7 +366,7 @@ export default function Hub() {
                     tile.filled ? `${a.solidBg} text-white` : `border ${a.border} ${a.text}`
                   }`}
                 >
-                  {tile.comingSoon ? "Coming Soon" : <>Open {tile.title} <Icons.ArrowRight /></>}
+                  {archived ? "No Access" : tile.comingSoon ? "Coming Soon" : <>Open {tile.title} <Icons.ArrowRight /></>}
                 </div>
 
                 <div className={`relative z-10 h-1 -mx-[18px] ${a.iconBg}`} />

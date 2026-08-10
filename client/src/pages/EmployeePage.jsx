@@ -472,9 +472,8 @@ export default function EmployeesPage({ searchRequest }) {
     setSaving(true);
 
     try {
-      await updateUser(selectedUser.id, editForm);
-
       const updatedUserId = selectedUser?.id || selectedUser?._id;
+      await updateUser(updatedUserId, editForm);
       const currentUserId = authUser?._id || authUser?.id;
 
       // Notify app that a user was updated

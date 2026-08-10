@@ -9,6 +9,12 @@ const requireAdmin = (req, res) => {
   return true;
 };
 
+// EmployeePage.jsx's role column/edit-form reads a flat `.role` (Flow_Tracker
+// convention, see utils/publicUser.js) — these list endpoints return full
+// User docs (approval metadata, populated rejectedBy/editedBy) so we can't
+// swap in toPublicUser without dropping fields; add `.role` alongside instead.
+const withFlatRole = (userDoc) => ({ ...userDoc.toObject(), role: userDoc.roles.tracker });
+
 export const getUserStatus = async (req, res) => {
   const email = decodeURIComponent(req.params.email || "").trim().toLowerCase();
   if (!email) return res.status(400).json({ message: "Email is required" });
@@ -20,24 +26,23 @@ export const getUserStatus = async (req, res) => {
 
 export const listPendingUsers = async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  res.json(await User.find({ approvalStatus: "Pending" }).select("-password").sort({ createdAt: -1 }));
+  const users = await User.find({ approvalStatus: "Pending" }).select("-password").sort({ createdAt: -1 });
+  res.json(users.map(withFlatRole));
 };
 
 export const listRejectedUsers = async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  res.json(
-    await User.find({ approvalStatus: "Rejected" })
-      .select("-password")
-      .populate("rejectedBy", "name")
-      .sort({ rejectedAt: -1 }),
-  );
+  const users = await User.find({ approvalStatus: "Rejected" })
+    .select("-password")
+    .populate("rejectedBy", "name")
+    .sort({ rejectedAt: -1 });
+  res.json(users.map(withFlatRole));
 };
 
 export const listEditedUsers = async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  res.json(
-    await User.find({ isEdited: true }).select("-password").populate("editedBy", "name").sort({ editedAt: -1 }),
-  );
+  const users = await User.find({ isEdited: true }).select("-password").populate("editedBy", "name").sort({ editedAt: -1 });
+  res.json(users.map(withFlatRole));
 };
 
 export const approveUser = async (req, res) => {
@@ -66,6 +71,7 @@ export const approveUser = async (req, res) => {
 
   const userData = user.toObject();
   delete userData.password;
+  userData.role = user.roles.tracker;
   res.json({ message: "User approved successfully", user: userData });
 };
 
@@ -115,6 +121,7 @@ export const reApproveUser = async (req, res) => {
 
   const userData = user.toObject();
   delete userData.password;
+  userData.role = user.roles.tracker;
   res.json({ message: "User re-approved successfully", user: userData });
 };
 
@@ -160,5 +167,6 @@ export const updateUserAsAdmin = async (req, res) => {
 
   const userData = user.toObject();
   delete userData.password;
+  userData.role = user.roles.tracker;
   res.json({ message: "User updated successfully", user: userData });
 };

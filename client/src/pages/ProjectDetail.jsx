@@ -558,7 +558,9 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
     setSprintsLoading(true);
     try {
       const res = await projectAPI.getProjectSprints(project._id);
-      const sprintData = res.data || res.sprints || [];
+      // getProjectSprints() already unwraps axios's response.data, and the
+      // backend's listSprints returns a bare array — res *is* the array.
+      const sprintData = Array.isArray(res) ? res : res?.data || res?.sprints || [];
       setSprints(sprintData);
       setSprintsCount(sprintData.length);
     } catch (e) {
@@ -870,7 +872,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
         const res = await projectAPI.getProjectSprints(project._id);
 
-        const sprintData = res.data || res.sprints || [];
+        const sprintData = Array.isArray(res) ? res : res?.data || res?.sprints || [];
 
         setSprints(sprintData);
         setSprintsCount(sprintData.length);
@@ -907,7 +909,10 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
             noCache: true,
           }),
         ]);
-        const taskData = taskRes?.data || [];
+        // projectAPI.getProjectTasks() already unwraps axios's response.data,
+        // and the backend's listTasks returns a bare (unpaginated) array —
+        // so taskRes *is* the array, not a {data, pagination} envelope.
+        const taskData = Array.isArray(taskRes) ? taskRes : taskRes?.data || [];
         const pagination = taskRes?.pagination || {};
         const summary = summaryRes?.data?.data || null;
 
@@ -1198,6 +1203,12 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
       "—"
     );
   };
+
+  // Team members populated straight off `project.teamMembers` come back as
+  // `{ roles: { tracker } }` (raw User doc shape); members sourced from the
+  // `/api/users` list (`users`/`projectUsers`) already carry a flat `.role`
+  // (see utils/publicUser.js). Handle both shapes.
+  const getMemberRole = (member) => member?.role || member?.roles?.tracker || "—";
 
   const teamMembers =
     project?.teamMembers
@@ -1871,7 +1882,7 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                                 )}
                                 {task.status === "DONE" &&
                                   ["ADMIN", "PM"].includes(
-                                    task.createdBy?.role,
+                                    task.createdBy?.roles?.tracker,
                                   ) &&
                                   task.closedBy?.name && (
                                     <p className="mt-1 text-[9px] text-slate-400">
@@ -3026,7 +3037,8 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                 <div className="space-y-3">
                   {Object.entries(
                     teamMembers.reduce((acc, member) => {
-                      acc[member.role] = (acc[member.role] || 0) + 1;
+                      const role = getMemberRole(member);
+                      acc[role] = (acc[role] || 0) + 1;
                       return acc;
                     }, {}),
                   ).map(([role, count]) => (
@@ -3113,9 +3125,9 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                           </td>
                           <td className="px-6 py-4">
                             <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${roleColor(member.role)}`}
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${roleColor(getMemberRole(member))}`}
                             >
-                              {member.role}
+                              {getMemberRole(member)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-500">
@@ -3257,6 +3269,46 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-5 flex flex-col items-center justify-center">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-3 self-start">
+                  Task Completion
+                </p>
+                <DonutChart value={analytics.completed} total={analytics.total} />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {analytics.completed} of {analytics.total} tasks done
+                </p>
+              </div>
+
+              <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white px-4 py-5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-4">
+                  Tasks by Priority
+                </p>
+                <div className="space-y-3">
+                  {[
+                    { label: "High", value: analytics.high, cls: "bg-red-500" },
+                    { label: "Medium", value: analytics.medium, cls: "bg-amber-500" },
+                    { label: "Low", value: analytics.low, cls: "bg-emerald-500" },
+                  ].map((p) => {
+                    const max = Math.max(analytics.high, analytics.medium, analytics.low, 1);
+                    return (
+                      <div key={p.label} className="flex items-center gap-3">
+                        <span className="w-14 shrink-0 text-xs font-semibold text-slate-600">{p.label}</span>
+                        <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${p.cls} transition-all`}
+                            style={{ width: `${(p.value / max) * 100}%` }}
+                          />
+                        </div>
+                        <span className="w-6 shrink-0 text-right text-xs font-bold text-slate-800">{p.value}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Overdue Alert */}
@@ -3807,10 +3859,10 @@ export default function ProjectDetail({ initialProject, onBack, users = [] }) {
 
                                   <span
                                     className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold ${roleColor(
-                                      member.role,
+                                      getMemberRole(member),
                                     )}`}
                                   >
-                                    {member.role}
+                                    {getMemberRole(member)}
                                   </span>
                                 </div>
                               </div>

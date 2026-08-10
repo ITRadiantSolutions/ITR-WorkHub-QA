@@ -516,7 +516,10 @@ export default function DeveloperDashboard() {
         selectedTask._id,
         newComment.trim(),
       );
-      setComments(response.data.data);
+      // Backend returns the full updated task (no wrapper) — pull comments
+      // off of it, same fallback pattern ProjectDetail.jsx already uses.
+      const updated = response?.data?.data || response?.data;
+      setComments(updated?.comments || []);
       setNewComment("");
     } catch (error) {
       console.error("Error adding comment:", error);
@@ -1480,7 +1483,7 @@ export default function DeveloperDashboard() {
                                         />
                                         {task.status === "DONE" &&
                                           ["ADMIN", "PM"].includes(
-                                            task.createdBy?.role,
+                                            task.createdBy?.roles?.tracker,
                                           ) &&
                                           task.closedBy?.name && (
                                             <p className="mt-1 text-[9px] font-medium text-slate-400">

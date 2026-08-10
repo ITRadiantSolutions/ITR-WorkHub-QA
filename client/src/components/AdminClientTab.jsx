@@ -93,7 +93,7 @@ export default function AdminClientTab({
   useEffect(() => {
     let cancelled = false;
     API.get("/client-groups", { cache: false })
-      .then((r) => !cancelled && setGroups(r.data?.data || []))
+      .then((r) => !cancelled && setGroups(r.data || []))
       .catch(
         (e) =>
           !cancelled &&
@@ -187,8 +187,8 @@ export default function AdminClientTab({
           : await API.post("/client-groups", { ...form, name, status });
       setGroups((cur) =>
         modalMode === "edit"
-          ? cur.map((g) => (g._id === res.data.data._id ? res.data.data : g))
-          : [res.data.data, ...cur],
+          ? cur.map((g) => (g._id === res.data._id ? res.data : g))
+          : [res.data, ...cur],
       );
       toast.success(
         modalMode === "edit" ? "Account updated" : "Account created",

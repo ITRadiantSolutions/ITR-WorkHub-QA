@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import getInitials from "../utils/getInitials";
@@ -26,6 +27,20 @@ export default function TimesheetLayout() {
 
   const initials = getInitials(user?.name);
   const [showProfile, setShowProfile] = useState(false);
+  const archivedFromTimesheet = Boolean(user?.archived?.timesheet);
+
+  // Archiving only hides the Hub tile — a stale tab, bookmark, or someone
+  // archived mid-session can still land here, so re-check on every render
+  // and kick them out before the shell (or any API call) loads.
+  useEffect(() => {
+    if (archivedFromTimesheet) {
+      toast.error("Your Time Flow access has been archived. Contact HR to restore it.");
+    }
+  }, [archivedFromTimesheet]);
+
+  if (archivedFromTimesheet) {
+    return <Navigate to="/hub" replace />;
+  }
 
   return (
     <div className="min-h-screen flex bg-[#F5F7FB]">

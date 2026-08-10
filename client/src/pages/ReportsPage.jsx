@@ -1243,7 +1243,7 @@ function AdminReport({
   void filterStatus;
 
   const employees = allUsers.filter((u) =>
-    ["DEVELOPER", "QA", "EMPLOYEE"].includes(u.role),
+    ["DEVELOPER", "QA"].includes(u.role),
   );
 
   useEffect(() => {
@@ -1312,7 +1312,7 @@ function AdminReport({
   const empM = computeTaskMetrics(empTasks);
   const quickExportEmp =
     selectedEmp || (filteredEmps.length === 1 ? filteredEmps[0] : null);
-  const canExportEmployeeReport = currentUser?.role === "ADMIN" || "PM";
+  const canExportEmployeeReport = currentUser?.role === "ADMIN" || currentUser?.role === "PM";
 
   const exportEmployeeReportExcel = (employee) => {
     const employeeTasks = allTasks

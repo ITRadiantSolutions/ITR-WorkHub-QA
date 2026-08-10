@@ -30,7 +30,7 @@ export const listTasks = async (req, res) => {
 
   const tasks = await Task.find(filter)
     .populate("assignees", "name email")
-    .populate("createdBy", "name email")
+    .populate("createdBy", "name email roles")
     .sort({ createdAt: -1 });
   res.json(tasks);
 };
@@ -38,8 +38,8 @@ export const listTasks = async (req, res) => {
 export const getTask = async (req, res) => {
   const task = await Task.findById(req.params.id)
     .populate("assignees", "name email")
-    .populate("createdBy", "name email")
-    .populate("comments.user", "name email");
+    .populate("createdBy", "name email roles")
+    .populate("comments.user", "name email roles");
   if (!task) return res.status(404).json({ message: "Task not found" });
   if (!canAccessTask(req.user, task)) {
     return res.status(403).json({ message: "Access denied: this is not your task, and you are not an admin or PM" });
@@ -165,6 +165,7 @@ export const addTaskComment = async (req, res) => {
 
   task.comments.push({ user: req.user._id, text });
   await task.save();
+  await task.populate("comments.user", "name email roles");
 
   await notifyUsers([...task.assignees, task.createdBy], {
     title: "New comment",
@@ -279,7 +280,7 @@ export const searchTasksGlobal = async (req, res) => {
     ? await Task.find({ _id: { $in: ids } })
         .populate("assignees", "name email")
         .populate("projectId", "name")
-        .populate("createdBy", "name email")
+        .populate("createdBy", "name email roles")
         .lean()
     : [];
   const byId = new Map(docs.map((t) => [String(t._id), t]));
@@ -341,7 +342,7 @@ export const getQaTasks = async (req, res) => {
   const tasks = await Task.find({ assignees: req.user._id })
     .populate("assignees", "name email")
     .populate("projectId", "name")
-    .populate("createdBy", "name email")
+    .populate("createdBy", "name email roles")
     .sort({ createdAt: -1 });
   res.json({ success: true, data: tasks });
 };

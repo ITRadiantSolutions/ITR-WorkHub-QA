@@ -16,6 +16,7 @@ export const createClientGroup = async (req, res) => {
     return res.status(400).json({ message: "name and at least one project are required" });
   }
   const group = await ClientGroup.create({ name, description, status, projects, createdBy: req.user._id });
+  await group.populate("projects", "name status");
   res.status(201).json(group);
 };
 
@@ -30,6 +31,7 @@ export const updateClientGroup = async (req, res) => {
   if (projects !== undefined) group.projects = projects;
 
   await group.save();
+  await group.populate("projects", "name status");
   res.json(group);
 };
 

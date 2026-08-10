@@ -139,7 +139,7 @@ export default function SprintDetail({
     setSubmitting(true);
     try {
       const res = await API.put(`/sprints/${sprint._id}`, form);
-      setSprint(res.data.sprint);
+      setSprint(res.data);
       setIsEditing(false);
       setSuccessMsg("Sprint updated successfully!");
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -471,7 +471,7 @@ export default function SprintDetail({
                         status: e.target.value,
                       });
 
-                      setSprint(res.data.sprint);
+                      setSprint(res.data);
 
                       setSuccessMsg("Status updated!");
                       setTimeout(() => setSuccessMsg(""), 2000);
@@ -965,9 +965,9 @@ export default function SprintDetail({
                         <span className="text-[12.5px] font-bold text-slate-900">
                           {comment.user?.name || "Anonymous"}
                         </span>
-                        {comment.user?.role && (
+                        {comment.user?.roles?.tracker && (
                           <span className="px-1.5 py-0.5 bg-slate-100 text-[10px] font-semibold text-slate-500 rounded-full">
-                            {comment.user.role.replace("_", " ")}
+                            {comment.user.roles.tracker.replace("_", " ")}
                           </span>
                         )}
                         <span className="text-[10.5px] text-slate-400 ml-auto">

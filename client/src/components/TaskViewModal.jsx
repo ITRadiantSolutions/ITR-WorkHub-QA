@@ -112,9 +112,9 @@ function TaskViewModal({
                   <span className="font-semibold text-slate-700">
                     {selectedTask.createdBy?.name || "Unknown user"}
                   </span>
-                  {selectedTask.createdBy?.role && (
+                  {selectedTask.createdBy?.roles?.tracker && (
                     <span className="ml-1 text-slate-400">
-                      · {selectedTask.createdBy.role.replaceAll("_", " ")}
+                      · {selectedTask.createdBy.roles.tracker.replaceAll("_", " ")}
                     </span>
                   )}
                 </span>
@@ -269,7 +269,7 @@ function TaskViewModal({
                               </span>
                               <Badge
                                 label={
-                                  comment.user.role?.replace("_", " ") || "User"
+                                  comment.user.roles?.tracker?.replace("_", " ") || "User"
                                 }
                                 variant="default"
                               />

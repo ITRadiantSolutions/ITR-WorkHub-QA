@@ -9,7 +9,10 @@ export const listSprints = async (req, res) => {
 };
 
 export const getSprint = async (req, res) => {
-  const sprint = await Sprint.findById(req.params.id).populate("comments.user", "name email");
+  const sprint = await Sprint.findById(req.params.id)
+    .populate("comments.user", "name email roles")
+    .populate("createdBy", "name email")
+    .populate("projectId", "name");
   if (!sprint) return res.status(404).json({ message: "Sprint not found" });
 
   const [agg] = await Story.aggregate([
@@ -20,7 +23,7 @@ export const getSprint = async (req, res) => {
 };
 
 export const getSprintComments = async (req, res) => {
-  const sprint = await Sprint.findById(req.params.id).populate("comments.user", "name email");
+  const sprint = await Sprint.findById(req.params.id).populate("comments.user", "name email roles");
   if (!sprint) return res.status(404).json({ message: "Sprint not found" });
   res.json({ success: true, comments: sprint.comments });
 };
@@ -31,6 +34,10 @@ export const createSprint = async (req, res) => {
     return res.status(400).json({ message: "name, projectId, startDate and endDate are required" });
   }
   const sprint = await Sprint.create({ name, projectId, startDate, endDate, goal, status, createdBy: req.user._id });
+  await sprint.populate([
+    { path: "createdBy", select: "name email" },
+    { path: "projectId", select: "name" },
+  ]);
   res.status(201).json(sprint);
 };
 
@@ -46,6 +53,10 @@ export const updateSprint = async (req, res) => {
   if (status !== undefined) sprint.status = status;
 
   await sprint.save();
+  await sprint.populate([
+    { path: "createdBy", select: "name email" },
+    { path: "projectId", select: "name" },
+  ]);
   res.json(sprint);
 };
 
@@ -58,7 +69,7 @@ export const addSprintComment = async (req, res) => {
 
   sprint.comments.push({ user: req.user._id, text });
   await sprint.save();
-  await sprint.populate("comments.user", "name email");
+  await sprint.populate("comments.user", "name email roles");
   res.status(201).json({ success: true, comments: sprint.comments });
 };
 

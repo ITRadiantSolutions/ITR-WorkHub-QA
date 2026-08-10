@@ -447,12 +447,12 @@ export default function TimesheetEntry() {
 
   // Hard-stop at the daily cap so a forgotten timer can't silently run past it.
   useEffect(() => {
-    if (timerRunning && timerSeconds >= MAX_HOURS_PER_DAY * 3600) {
+    if (timerRunning && atCurrentWeek && timerSeconds >= MAX_HOURS_PER_DAY * 3600) {
       toast.warning(`Timer stopped automatically at the ${MAX_HOURS_PER_DAY}-hour daily limit.`);
       toggleTimer();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timerSeconds]);
+  }, [timerSeconds, atCurrentWeek]);
 
   // Restore an in-progress timer for the current week on mount (survives a
   // reload/navigation) — anything logged for a different week is discarded.
@@ -533,34 +533,39 @@ export default function TimesheetEntry() {
 
         {editable && (
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-1.5" title={!atCurrentWeek ? "The timer only works for the current week" : undefined}>
-              <select
-                value={timerProject}
-                onChange={(e) => setTimerProject(e.target.value)}
-                disabled={timerRunning || timerSeconds > 0 || !atCurrentWeek}
-                title={timerSeconds > 0 ? "Reset the timer before switching projects" : undefined}
-                className="h-9 rounded-xl border border-slate-200 px-3 text-sm font-medium bg-white disabled:opacity-60"
-              >
-                <option value="">Select Project</option>
-                {projects.map((p) => (
-                  <option key={p._id} value={p._id}>{p.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={toggleTimer}
-                disabled={!timerRunning && !atCurrentWeek}
-                title={timerRunning ? "Pause" : timerSeconds > 0 ? "Resume" : "Start"}
-                className={`h-9 flex items-center gap-1.5 px-3.5 rounded-xl text-white text-sm font-bold transition disabled:opacity-50 ${
-                  timerRunning ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
-              >
-                {timerRunning ? <Icons.Pause /> : <Icons.Play />}{" "}
-                {timerRunning ? fmtHHMMSS(timerSeconds) : timerSeconds > 0 ? `Resume ${fmtHHMMSS(timerSeconds)}` : "Start"}
-              </button>
-              <button onClick={resetTimer} className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-slate-600 transition" title="Reset timer">
-                <Icons.Refresh />
-              </button>
-            </div>
+            {atCurrentWeek ? (
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-1.5">
+                <select
+                  value={timerProject}
+                  onChange={(e) => setTimerProject(e.target.value)}
+                  disabled={timerRunning || timerSeconds > 0}
+                  title={timerSeconds > 0 ? "Reset the timer before switching projects" : undefined}
+                  className="h-9 rounded-xl border border-slate-200 px-3 text-sm font-medium bg-white disabled:opacity-60"
+                >
+                  <option value="">Select Project</option>
+                  {projects.map((p) => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={toggleTimer}
+                  title={timerRunning ? "Pause" : timerSeconds > 0 ? "Resume" : "Start"}
+                  className={`h-9 flex items-center gap-1.5 px-3.5 rounded-xl text-white text-sm font-bold transition disabled:opacity-50 ${
+                    timerRunning ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  }`}
+                >
+                  {timerRunning ? <Icons.Pause /> : <Icons.Play />}{" "}
+                  {timerRunning ? fmtHHMMSS(timerSeconds) : timerSeconds > 0 ? `Resume ${fmtHHMMSS(timerSeconds)}` : "Start"}
+                </button>
+                <button onClick={resetTimer} className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-slate-600 transition" title="Reset timer">
+                  <Icons.Refresh />
+                </button>
+              </div>
+            ) : (timerRunning || timerSeconds > 0) && (
+              <span className="flex items-center gap-1.5 rounded-2xl bg-slate-50 border border-slate-100 px-3.5 py-2 text-sm font-medium text-slate-400" title="The timer keeps running in the background — switch back to the current week to pause or resume it">
+                <Icons.Clock /> Timer running for the current week
+              </span>
+            )}
 
             <div className="flex items-center gap-2">
               <button
