@@ -181,7 +181,7 @@ export default function Login() {
 
       {/* ── Left panel — brand side ─────────────────────────────────────── */}
       <div
-        className="hidden lg:flex lg:w-[54%] h-full flex-col gap-3 px-10 xl:px-14 py-5 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[54%] h-full flex-col gap-3 px-10 xl:px-14 py-5 relative overflow-y-auto"
         style={{ background: "linear-gradient(150deg, #eff6ff 0%, #dbeafe 60%, #bfdbfe 100%)" }}
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>

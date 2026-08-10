@@ -36,7 +36,6 @@ const TILES = [
     description: "Log hours, submit and approve timesheets with ease.",
     icon: "Clock",
     accent: "emerald",
-    filled: true,
     decor: "timesheet",
     tags: [
       { icon: "Clock", label: "Log Hours" },
@@ -66,6 +65,7 @@ const TILES = [
     description: "Access courses, track certifications and grow your skills.",
     icon: "Book",
     accent: "amber",
+    decor: "lms",
     tags: [
       { icon: "Book", label: "Courses" },
       { icon: "CheckCircle", label: "Certifications" },
@@ -79,6 +79,7 @@ const TILES = [
     description: "Approve visitors, review host requests and manage check-ins.",
     icon: "UserPlus",
     accent: "rose",
+    decor: "visitors",
     tags: [
       { icon: "UserPlus", label: "Check-in/out" },
       { icon: "Calendar", label: "Appointments" },
@@ -92,6 +93,7 @@ const TILES = [
     description: "Manage employees, job openings and referrals.",
     icon: "Briefcase",
     accent: "cyan",
+    decor: "hrms",
     tags: [
       { icon: "Briefcase", label: "Manage Organization" },
       { icon: "Team", label: "Jobs" },
@@ -248,7 +250,65 @@ function PmsDecor() {
   );
 }
 
-const DECORS = { flowtrack: FlowTrackDecor, timesheet: TimesheetDecor, pms: PmsDecor };
+function LmsDecor() {
+  return (
+    <div className="pointer-events-none absolute right-2 top-12 w-24 h-24" aria-hidden>
+      <div className="absolute right-1 top-1 w-16 h-16 rounded-2xl bg-amber-100/70 border border-amber-100 rotate-3 p-2">
+        <div className="w-3.5 h-3.5 rounded-full bg-amber-200 flex items-center justify-center text-amber-600">
+          <Icons.Book />
+        </div>
+        <div className="mt-2 space-y-1">
+          <div className="h-1 w-10 rounded-full bg-amber-300/70" />
+          <div className="h-1 w-7 rounded-full bg-amber-300/70" />
+        </div>
+      </div>
+      <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white border border-amber-200 shadow-md flex items-center justify-center text-amber-500">
+        <Icons.Award />
+      </div>
+    </div>
+  );
+}
+
+function VmsDecor() {
+  return (
+    <div className="pointer-events-none absolute right-2 top-14 w-24 h-20" aria-hidden>
+      <div className="absolute right-0 top-1.5 w-16 h-16 rounded-xl bg-rose-100/70 rotate-6" />
+      <div className="absolute right-2 top-0 w-16 h-16 rounded-xl bg-white border border-rose-100 shadow-md -rotate-3 p-2">
+        <div className="w-3.5 h-3.5 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+          <Icons.Shield />
+        </div>
+        <div className="mt-2 flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-rose-300" />
+          <div className="h-1 w-8 rounded-full bg-rose-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HrmsDecor() {
+  return (
+    <div className="pointer-events-none absolute right-4 top-14 flex items-end gap-1 h-16" aria-hidden>
+      <div className="w-3 rounded-t-md bg-cyan-200" style={{ height: "40%" }} />
+      <div className="w-3 rounded-t-md bg-cyan-300" style={{ height: "65%" }} />
+      <div className="w-3 rounded-t-md bg-cyan-400" style={{ height: "50%" }} />
+      <div className="relative w-3 rounded-t-md bg-cyan-600" style={{ height: "90%" }}>
+        <span className="absolute -top-3.5 -right-1 text-cyan-500">
+          <Icons.Briefcase />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const DECORS = {
+  flowtrack: FlowTrackDecor,
+  timesheet: TimesheetDecor,
+  pms: PmsDecor,
+  lms: LmsDecor,
+  visitors: VmsDecor,
+  hrms: HrmsDecor,
+};
 
 export default function Hub() {
   const { user, logout } = useAuth();
@@ -266,39 +326,41 @@ export default function Hub() {
   }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col">
-      <header className="flex items-center justify-between px-6 sm:px-10 py-2.5 bg-white border-b border-slate-100 shrink-0">
-        <WorkHubLogo size="sm" subtitle />
-
-        <div className="hidden md:flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-900 whitespace-nowrap">
-          <span className="text-blue-600"><Icons.Sparkle /></span>
-          Hello {user?.name?.split(" ")[0] || "there"}, choose a workspace
+    <div className="h-screen overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col">
+      <header className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 sm:px-6 lg:px-10 py-2.5 bg-white border-b border-slate-100 shrink-0">
+        <div className="min-w-0">
+          <WorkHubLogo size="sm" subtitle />
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
+        <div className="hidden md:flex items-center justify-center gap-2 text-base lg:text-xl font-extrabold tracking-tight text-slate-900 min-w-0 px-2">
+          <span className="text-blue-600 shrink-0"><Icons.Sparkle /></span>
+          <span className="truncate">Hello {user?.name?.split(" ")[0] || "there"}, choose a workspace</span>
+        </div>
+
+        <div className="flex items-center gap-2 lg:gap-4 justify-self-end min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
               {getInitials(user?.name)}
             </div>
-            <div className="hidden sm:flex items-center gap-1">
-              <div className="leading-tight">
-                <p className="text-sm font-bold text-slate-900">{user?.name || "there"}</p>
-                <p className="text-xs text-slate-500">{user?.email}</p>
+            <div className="hidden lg:flex items-center gap-1 min-w-0">
+              <div className="leading-tight min-w-0">
+                <p className="text-sm font-bold text-slate-900 truncate max-w-[160px]">{user?.name || "there"}</p>
+                <p className="text-xs text-slate-500 truncate max-w-[160px]">{user?.email}</p>
               </div>
-              <span className="text-slate-400"><Icons.ChevronDown /></span>
+              <span className="text-slate-400 shrink-0"><Icons.ChevronDown /></span>
             </div>
           </div>
 
           <button
             onClick={logout}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 lg:px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shrink-0"
           >
-            <Icons.Logout /> Sign out
+            <Icons.Logout /> <span className="hidden sm:inline">Sign out</span>
           </button>
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden flex px-6 py-4 min-h-0">
+      <main className="flex-1 overflow-y-auto flex px-6 py-4 min-h-0">
         <div className="m-auto flex flex-col items-center w-full">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] w-full max-w-[980px] mb-6">
           {TILES.map((tile) => {
