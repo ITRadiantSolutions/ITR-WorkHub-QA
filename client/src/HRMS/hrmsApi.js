@@ -14,7 +14,7 @@ export const employeesApi = {
   myReports: () => API.get("/users/my-reports"),
   sync: () => API.post("/users/sync"),
   setRole: (id, role, module = "hrms") => API.patch(`/users/${id}/role`, { module, role }),
-  setArchived: (id, archived) => API.patch(`/users/${id}/archive`, { module: "hrms", archived }),
+  setArchived: (id, archived, module = "hrms") => API.patch(`/users/${id}/archive`, { module, archived }),
   setManager: (id, managerId) => API.patch(`/users/${id}/manager`, { managerId }),
 };
 

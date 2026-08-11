@@ -13,6 +13,10 @@ const ALLOWED_RESUME_MIME_TYPES = [
 
 const hrUserIds = async () => (await User.find({ "roles.hrms": "hr" }).select("_id")).map((u) => u._id);
 
+const PHONE_REGEX = /^\d{10}$/;
+const NAME_REGEX = /^[A-Za-z][A-Za-z .'-]{1,59}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+
 export const createReferral = async (req, res) => {
   const { jobId, notes } = req.body;
   let candidateInput = req.body.candidate;
@@ -25,6 +29,21 @@ export const createReferral = async (req, res) => {
   }
   if (!jobId || !candidateInput?.name || !candidateInput?.email) {
     return res.status(400).json({ message: "jobId, candidate.name and candidate.email are required" });
+  }
+  if (!NAME_REGEX.test(String(candidateInput.name).trim())) {
+    return res.status(400).json({ message: "candidate.name must be a valid name (letters only, 2-60 characters)" });
+  }
+  if (!EMAIL_REGEX.test(String(candidateInput.email).trim())) {
+    return res.status(400).json({ message: "candidate.email must be a valid email address" });
+  }
+  if (candidateInput.phone && !PHONE_REGEX.test(String(candidateInput.phone).trim())) {
+    return res.status(400).json({ message: "candidate.phone must be a valid 10-digit phone number" });
+  }
+  if (candidateInput.experienceYears !== undefined && candidateInput.experienceYears !== null && candidateInput.experienceYears !== "") {
+    const exp = Number(candidateInput.experienceYears);
+    if (!Number.isFinite(exp) || exp < 0 || exp > 99) {
+      return res.status(400).json({ message: "candidate.experienceYears must be between 0 and 99" });
+    }
   }
 
   if (req.file && !ALLOWED_RESUME_MIME_TYPES.includes(req.file.mimetype)) {

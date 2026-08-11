@@ -7,6 +7,7 @@ import {
   Send,
   UserPlus,
   Users,
+  Settings2,
   ChevronRight,
   Moon,
   Sun,
@@ -23,6 +24,7 @@ const TABS = [
   { to: "/hrms/jobs", label: "Jobs", icon: Briefcase },
   { to: "/hrms/referrals", label: "Referrals", icon: Send },
   { to: "/hrms/my-team", label: "My Team", icon: Users, managerOnly: true },
+  { to: "/hrms/manage", label: "Manage", icon: Settings2, hrOrManagerOnly: true },
   { to: "/hrms/employees", label: "Employees", icon: UserPlus, hrOnly: true },
 ];
 
@@ -67,6 +69,7 @@ export default function HrmsLayout() {
             const visibleTabs = TABS.filter((t) => {
               if (t.hrOnly) return hr;
               if (t.managerOnly) return manager;
+              if (t.hrOrManagerOnly) return hr || manager;
               return true;
             });
             const activeTo = visibleTabs

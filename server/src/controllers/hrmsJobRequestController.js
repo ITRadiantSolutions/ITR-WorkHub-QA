@@ -12,12 +12,37 @@ const REQUEST_FIELDS = [
 
 const hrUserIds = async () => (await User.find({ "roles.hrms": "hr" }).select("_id")).map((u) => u._id);
 
+// Salary fields are optional, but when given they're always ₹ lakhs (e.g. 4.5 = ₹4.5L) — cap
+// at a sane ceiling so a typo/paste can't store an astronomically large "lakhs" value.
+const SALARY_MAX_LAKHS = 999.99;
+
+const validateSalaryRange = (payload) => {
+  for (const field of ["salaryRangeMin", "salaryRangeMax"]) {
+    const v = payload[field];
+    if (v === undefined || v === null || v === "") continue;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0 || n > SALARY_MAX_LAKHS) {
+      return `${field} must be between 0 and ${SALARY_MAX_LAKHS} lakhs (INR)`;
+    }
+  }
+  if (
+    payload.salaryRangeMin !== undefined && payload.salaryRangeMin !== null && payload.salaryRangeMin !== "" &&
+    payload.salaryRangeMax !== undefined && payload.salaryRangeMax !== null && payload.salaryRangeMax !== "" &&
+    Number(payload.salaryRangeMin) > Number(payload.salaryRangeMax)
+  ) {
+    return "salaryRangeMin cannot be greater than salaryRangeMax";
+  }
+  return null;
+};
+
 export const createJobRequest = async (req, res) => {
   const payload = {};
   for (const field of REQUEST_FIELDS) {
     if (req.body[field] !== undefined) payload[field] = req.body[field];
   }
   if (!payload.title) return res.status(400).json({ message: "title is required" });
+  const salaryError = validateSalaryRange(payload);
+  if (salaryError) return res.status(400).json({ message: salaryError });
 
   const jobRequest = await JobRequest.create({
     ...payload,
@@ -77,6 +102,11 @@ export const updateJobRequest = async (req, res) => {
   if (!["draft", "clarification_required"].includes(jobRequest.status)) {
     return res.status(409).json({ message: `Cannot edit a request with status '${jobRequest.status}'` });
   }
+  const salaryError = validateSalaryRange({
+    salaryRangeMin: req.body.salaryRangeMin !== undefined ? req.body.salaryRangeMin : jobRequest.salaryRangeMin,
+    salaryRangeMax: req.body.salaryRangeMax !== undefined ? req.body.salaryRangeMax : jobRequest.salaryRangeMax,
+  });
+  if (salaryError) return res.status(400).json({ message: salaryError });
 
   for (const field of REQUEST_FIELDS) {
     if (req.body[field] !== undefined) jobRequest[field] = req.body[field];

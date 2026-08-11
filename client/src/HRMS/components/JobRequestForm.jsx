@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { X } from "lucide-react";
 
 const EMPTY = {
@@ -8,6 +9,8 @@ const EMPTY = {
 };
 
 const csvToArray = (v) => v.split(",").map((s) => s.trim()).filter(Boolean);
+
+const SALARY_MAX_LAKHS = 999.99;
 
 export default function JobRequestForm({ initial, onSubmit, onClose, saving }) {
   const [form, setForm] = useState(() => ({
@@ -23,11 +26,25 @@ export default function JobRequestForm({ initial, onSubmit, onClose, saving }) {
   const submit = (e) => {
     e.preventDefault();
     if (!form.title.trim()) return;
+
+    const min = form.salaryRangeMin ? Number(form.salaryRangeMin) : null;
+    const max = form.salaryRangeMax ? Number(form.salaryRangeMax) : null;
+    for (const v of [min, max]) {
+      if (v !== null && (!Number.isFinite(v) || v < 0 || v > SALARY_MAX_LAKHS)) {
+        toast.warning(`Salary range must be between 0 and ${SALARY_MAX_LAKHS} lakhs (INR)`);
+        return;
+      }
+    }
+    if (min !== null && max !== null && min > max) {
+      toast.warning("Salary range min cannot be greater than max");
+      return;
+    }
+
     onSubmit({
       ...form,
       positions: Number(form.positions) || 1,
-      salaryRangeMin: form.salaryRangeMin ? Number(form.salaryRangeMin) : null,
-      salaryRangeMax: form.salaryRangeMax ? Number(form.salaryRangeMax) : null,
+      salaryRangeMin: min,
+      salaryRangeMax: max,
       skillsRequired: csvToArray(form.skillsRequired),
       skillsPreferred: csvToArray(form.skillsPreferred),
       targetHiringDate: form.targetHiringDate || null,
@@ -86,12 +103,38 @@ export default function JobRequestForm({ initial, onSubmit, onClose, saving }) {
               </select>
             </div>
             <div>
-              <label className={label}>Salary range min</label>
-              <input type="number" className={input} value={form.salaryRangeMin} onChange={set("salaryRangeMin")} />
+              <label className={label}>Salary range min (₹ lakhs)</label>
+              <input
+                type="number"
+                min={0}
+                max={SALARY_MAX_LAKHS}
+                step={0.01}
+                placeholder="e.g. 4.5"
+                className={input}
+                value={form.salaryRangeMin}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v !== "" && (Number(v) > SALARY_MAX_LAKHS || Number(v) < 0)) return;
+                  setForm((p) => ({ ...p, salaryRangeMin: v }));
+                }}
+              />
             </div>
             <div>
-              <label className={label}>Salary range max</label>
-              <input type="number" className={input} value={form.salaryRangeMax} onChange={set("salaryRangeMax")} />
+              <label className={label}>Salary range max (₹ lakhs)</label>
+              <input
+                type="number"
+                min={0}
+                max={SALARY_MAX_LAKHS}
+                step={0.01}
+                placeholder="e.g. 8"
+                className={input}
+                value={form.salaryRangeMax}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v !== "" && (Number(v) > SALARY_MAX_LAKHS || Number(v) < 0)) return;
+                  setForm((p) => ({ ...p, salaryRangeMax: v }));
+                }}
+              />
             </div>
           </div>
           <div>

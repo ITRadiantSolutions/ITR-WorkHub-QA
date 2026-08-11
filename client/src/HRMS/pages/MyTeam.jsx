@@ -1,13 +1,29 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, Mail } from "lucide-react";
 import { employeesApi } from "../hrmsApi";
-import ProjectRoleAssignmentPanel from "../components/ProjectRoleAssignmentPanel";
+import getInitials from "../../utils/getInitials";
+
+// Shades of the HRMS module's own theme color (cyan) instead of a mixed
+// rainbow palette, so avatars still vary but stay on-brand.
+const AVATAR_GRADIENTS = [
+  "from-cyan-950 to-cyan-800",
+  "from-cyan-900 to-cyan-700",
+  "from-cyan-800 to-cyan-600",
+  "from-cyan-700 to-cyan-500",
+  "from-cyan-600 to-cyan-400",
+  "from-cyan-950 to-cyan-700",
+];
+
+// Stable per-person color regardless of sort order.
+const avatarGradient = (key) => {
+  const hash = [...(key || "")].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
+};
 
 export default function MyTeam() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(null);
 
   useEffect(() => {
     employeesApi
@@ -17,43 +33,40 @@ export default function MyTeam() {
       .finally(() => setLoading(false));
   }, []);
 
+  const sortedReports = [...reports].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
   return (
-    <main className="max-w-4xl mx-auto px-6 py-8">
+    <main className="max-w-6xl mx-auto px-6 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
           <Users className="w-6 h-6 text-cyan-700" /> My Team
         </h1>
-        <p className="text-sm text-slate-500 mt-1">Assign project roles for your direct reports.</p>
+        <p className="text-sm text-slate-500 mt-1">Your direct reports.</p>
       </div>
 
       {loading ? (
         <div className="p-12 text-center text-slate-500">Loading...</div>
-      ) : reports.length === 0 ? (
+      ) : sortedReports.length === 0 ? (
         <p className="text-sm text-slate-400 italic">You have no direct reports.</p>
       ) : (
-        <div className="space-y-3">
-          {reports.map((r) => {
-            const isOpen = expanded === r._id;
-            return (
-              <div key={r._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <button
-                  onClick={() => setExpanded(isOpen ? null : r._id)}
-                  className="w-full flex items-center justify-between px-5 py-4"
-                >
-                  <div className="text-left">
-                    <p className="font-semibold text-slate-800">{r.name}</p>
-                    <p className="text-xs text-slate-500">{r.email}</p>
-                  </div>
-                  {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                </button>
-                {isOpen && (
-                  <div className="px-5 pb-5 border-t border-slate-100 pt-4">
-                    <ProjectRoleAssignmentPanel userId={r._id} canEdit />
-                  </div>
-                )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {sortedReports.map((r) => (
+            <div
+              key={r._id}
+              className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center transition hover:shadow-md hover:-translate-y-0.5"
+            >
+              <div className={`w-14 h-14 mx-auto rounded-full bg-gradient-to-br ${avatarGradient(r.email || r.name)} text-white font-bold flex items-center justify-center text-lg shadow-sm`}>
+                {getInitials(r.name)}
               </div>
-            );
-          })}
+              <p className="mt-3 font-semibold text-slate-800 truncate">{r.name}</p>
+              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold truncate max-w-full">
+                {r.designation || "Employee"}
+              </span>
+              <p className="text-xs text-slate-400 truncate mt-2 flex items-center justify-center gap-1">
+                <Mail className="w-3 h-3 shrink-0" /> {r.email}
+              </p>
+            </div>
+          ))}
         </div>
       )}
     </main>

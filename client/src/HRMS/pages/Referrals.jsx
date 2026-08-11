@@ -17,6 +17,10 @@ const STATUS_TONE = {
   on_hold: "bg-slate-100 text-slate-600",
 };
 
+const PHONE_REGEX = /^\d{10}$/;
+const NAME_REGEX = /^[A-Za-z][A-Za-z .'-]{1,59}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+
 const Badge = ({ status }) => (
   <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_TONE[status] || "bg-slate-100 text-slate-600"}`}>
     {(status || "").replace(/_/g, " ")}
@@ -35,6 +39,25 @@ function ReferralForm({ jobs, initialJobId, onSubmitted }) {
     if (!jobId || !candidate.name.trim() || !candidate.email.trim()) {
       toast.warning("Job, candidate name and email are required");
       return;
+    }
+    if (!NAME_REGEX.test(candidate.name.trim())) {
+      toast.warning("Enter a valid candidate name (letters only, 2-60 characters)");
+      return;
+    }
+    if (!EMAIL_REGEX.test(candidate.email.trim())) {
+      toast.warning("Enter a valid email address");
+      return;
+    }
+    if (candidate.phone.trim() && !PHONE_REGEX.test(candidate.phone.trim())) {
+      toast.warning("Enter a valid 10-digit phone number");
+      return;
+    }
+    if (candidate.experienceYears !== "") {
+      const exp = Number(candidate.experienceYears);
+      if (!Number.isFinite(exp) || exp < 0 || exp > 99) {
+        toast.warning("Experience must be between 0 and 99 years");
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -79,7 +102,13 @@ function ReferralForm({ jobs, initialJobId, onSubmitted }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={label}>Candidate name *</label>
-          <input className={input} value={candidate.name} onChange={(e) => setCandidate((p) => ({ ...p, name: e.target.value }))} required />
+          <input
+            className={input}
+            value={candidate.name}
+            maxLength={60}
+            onChange={(e) => setCandidate((p) => ({ ...p, name: e.target.value.replace(/[^A-Za-z .'-]/g, "") }))}
+            required
+          />
         </div>
         <div>
           <label className={label}>Email *</label>
@@ -87,11 +116,29 @@ function ReferralForm({ jobs, initialJobId, onSubmitted }) {
         </div>
         <div>
           <label className={label}>Phone</label>
-          <input className={input} value={candidate.phone} onChange={(e) => setCandidate((p) => ({ ...p, phone: e.target.value }))} />
+          <input
+            type="tel"
+            className={input}
+            value={candidate.phone}
+            maxLength={10}
+            onChange={(e) => setCandidate((p) => ({ ...p, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+          />
         </div>
         <div>
           <label className={label}>Experience (years)</label>
-          <input type="number" className={input} value={candidate.experienceYears} onChange={(e) => setCandidate((p) => ({ ...p, experienceYears: e.target.value }))} />
+          <input
+            type="number"
+            className={input}
+            value={candidate.experienceYears}
+            min={0}
+            max={99}
+            step={1}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v !== "" && (Number(v) > 99 || Number(v) < 0)) return;
+              setCandidate((p) => ({ ...p, experienceYears: v }));
+            }}
+          />
         </div>
         <div>
           <label className={label}>Current company</label>

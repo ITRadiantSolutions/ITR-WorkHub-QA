@@ -23,6 +23,27 @@ const isAdminOrHr = (user) =>
   user.roles.pms === "hr" ||
   user.roles.hrms === "hr";
 
+// The HRMS "Manage" page lets an hrms "manager" grant/revoke module access
+// for their own direct reports too, but capped below each module's top
+// tier (ADMIN/admin/hr) — only HR can hand out that level of access.
+const MANAGER_ROLE_CEILING = {
+  timesheet: ["employee", "manager"],
+  pms: ["employee", "manager"],
+  tracker: ["BUSINESS_USER", "DEVELOPER", "QA", "PM"],
+  vms: ["host", "receptionist"],
+  lms: ["employee", "manager"],
+  hrms: ["employee", "manager"],
+};
+
+// Shared by assignRole/setArchived: HR/admin can act on anyone; an hrms
+// "manager" is limited to their own direct reports.
+const canManageAccess = async (actor, targetUserId) => {
+  if (isAdminOrHr(actor)) return true;
+  if (actor.roles.hrms !== "manager") return false;
+  const target = await User.findById(targetUserId).select("managerId");
+  return Boolean(target?.managerId?.equals(actor._id));
+};
+
 // List all users — used for assignee/team dropdowns across the tracker UI,
 // not scoped to a manager's direct reports (see getMyReports for that).
 // Optional ?archived=true|false scoped to ?module=timesheet|pms|account (default
@@ -138,10 +159,15 @@ export const listManagers = async (req, res) => {
 };
 
 export const assignRole = async (req, res) => {
-  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
   const { module, role } = req.body;
+  if (!(await canManageAccess(req.user, req.params.id))) {
+    return res.status(403).json({ message: "You can only manage access for your direct reports" });
+  }
   if (!MODULE_ROLE_ENUM[module]?.includes(role)) {
     return res.status(400).json({ message: `Invalid role '${role}' for module '${module}'` });
+  }
+  if (!isAdminOrHr(req.user) && !MANAGER_ROLE_CEILING[module]?.includes(role)) {
+    return res.status(403).json({ message: `Managers cannot assign '${role}' for '${module}'` });
   }
   const user = await User.findByIdAndUpdate(
     req.params.id,
@@ -153,9 +179,14 @@ export const assignRole = async (req, res) => {
 };
 
 export const setArchived = async (req, res) => {
-  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
-  const { module, archived } = req.body; // module: "timesheet" | "pms" | "hrms" | "account"
-  if (!["timesheet", "pms", "hrms", "account"].includes(module)) {
+  const { module, archived } = req.body; // module: "timesheet" | "pms" | "vms" | "lms" | "hrms" | "account"
+  if (!(await canManageAccess(req.user, req.params.id))) {
+    return res.status(403).json({ message: "You can only manage access for your direct reports" });
+  }
+  const validModules = isAdminOrHr(req.user)
+    ? ["timesheet", "pms", "vms", "lms", "hrms", "account"]
+    : ["timesheet", "pms", "vms", "lms", "hrms"]; // "account" (full deactivation) is HR/admin-only
+  if (!validModules.includes(module)) {
     return res.status(400).json({ message: "Invalid module" });
   }
   const user = await User.findByIdAndUpdate(
@@ -252,7 +283,28 @@ export async function runAzureGroupSync() {
   const accessToken = await getGraphAccessToken();
   const seenEmails = new Set();
   const synced = [];
+  const managerEmailByEmail = new Map();
   let newAdded = 0;
+
+  // One extra Graph call per member — GET /users/{id}/manager doesn't support
+  // $expand from the group members list, so it has to be fetched separately.
+  // A 404 just means Azure AD has no manager set for that user (e.g. the top
+  // of the org chart), not a real failure.
+  const fetchManagerInfo = async (azureUserId) => {
+    try {
+      const { data } = await axios.get(
+        `https://graph.microsoft.com/v1.0/users/${azureUserId}/manager?$select=mail,userPrincipalName,displayName`,
+        { headers: { Authorization: `Bearer ${accessToken}` }, timeout: 15_000 },
+      );
+      const email = (data.mail || data.userPrincipalName || "").toLowerCase() || null;
+      return { email, name: data.displayName || "" };
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        console.error(`runAzureGroupSync: failed to fetch manager for ${azureUserId}`, err.response?.data || err.message);
+      }
+      return { email: null, name: "" };
+    }
+  };
 
   for (const groupId of groupIds) {
     let members = [];
@@ -285,6 +337,13 @@ export async function runAzureGroupSync() {
       if (!email || seenEmails.has(email)) continue;
       seenEmails.add(email);
 
+      let managerName = "";
+      if (azureAdId) {
+        const managerInfo = await fetchManagerInfo(azureAdId);
+        managerName = managerInfo.name;
+        if (managerInfo.email && managerInfo.email !== email) managerEmailByEmail.set(email, managerInfo.email);
+      }
+
       const existing = await User.findOne({ email }).select("-password");
       if (existing) {
         // Backfill profile fields Azure knows about but the local record
@@ -310,6 +369,10 @@ export async function runAzureGroupSync() {
           existing.joiningDate = joiningDate;
           changed = true;
         }
+        if (!existing.managerName && managerName) {
+          existing.managerName = managerName;
+          changed = true;
+        }
         if (changed) await existing.save();
 
         synced.push(existing);
@@ -325,6 +388,7 @@ export async function runAzureGroupSync() {
         designation,
         employmentStatus,
         joiningDate,
+        managerName,
         authProvider: "azure",
         roles: { timesheet: "employee", pms: "employee", tracker: "BUSINESS_USER", vms: "host", lms: "employee", hrms: "employee" },
         approvalStatus: "Approved",
@@ -333,6 +397,19 @@ export async function runAzureGroupSync() {
       synced.push(created);
       newAdded += 1;
     }
+  }
+
+  // Resolve reporting lines from Azure AD's manager relationship, now that
+  // every synced user (and any pre-existing manager not in these groups)
+  // exists locally. Only fills in a blank managerId — never overwrites one
+  // HR already set by hand via the Employees screen.
+  for (const [email, managerEmail] of managerEmailByEmail) {
+    const report = await User.findOne({ email, managerId: null });
+    if (!report) continue;
+    const manager = await User.findOne({ email: managerEmail }).select("_id");
+    if (!manager) continue;
+    report.managerId = manager._id;
+    await report.save();
   }
 
   return { skipped: false, message: `Group sync complete. New users: ${newAdded}`, totalUsers: synced.length, newAdded, users: synced };

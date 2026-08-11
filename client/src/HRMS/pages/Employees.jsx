@@ -110,7 +110,7 @@ export default function Employees() {
                   <td className="px-4 py-3 text-slate-500">{e.email}</td>
                   <td className="px-4 py-3">{e.department || "—"}</td>
                   <td className="px-4 py-3">{e.designation || "—"}</td>
-                  <td className="px-4 py-3">{e.managerId?.name || "—"}</td>
+                  <td className="px-4 py-3">{e.managerId?.name || e.managerName}</td>
                   <td className="px-4 py-3">
                     <select value={e.roles?.hrms || "employee"} onChange={(ev) => setRole(e, ev.target.value)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs capitalize">
                       {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}

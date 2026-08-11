@@ -13,16 +13,18 @@ import {
   hasProjectAssignedTasks,
 } from "../utils/projectAccess.js";
 
-const isHrOrManager = (user) => ["hr", "manager"].includes(user.roles.timesheet) || ["hr", "manager"].includes(user.roles.pms);
+// HR doesn't maintain FlowTrack — only timesheet/pms managers get the
+// cross-project access below (alongside tracker ADMIN/PM where noted).
+const isManager = (user) => user.roles.timesheet === "manager" || user.roles.pms === "manager";
 
-// Shared by addTeamMember/removeTeamMember/bulkAddTeamMembers — ADMIN, HR/manager,
+// Shared by addTeamMember/removeTeamMember/bulkAddTeamMembers — ADMIN, manager,
 // or a PM/Admin who leads/created/is on the project.
 const canManageProjectTeam = (user, project) =>
-  user.roles.tracker === "ADMIN" || canManageProject(user, project) || isHrOrManager(user);
+  user.roles.tracker === "ADMIN" || canManageProject(user, project) || isManager(user);
 
 // Shared by the holiday endpoints below.
 const canManageProjectHolidays = (user, project) =>
-  isHrOrManager(user) || (isPMOrAdmin(user) && canManageProject(user, project));
+  isManager(user) || (isPMOrAdmin(user) && canManageProject(user, project));
 
 const escapeHtml = (str) =>
   String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -57,7 +59,7 @@ const notifyTeamChange = async (user, actorName, added, projectNames) => {
 export const listProjects = async (req, res) => {
   const { q, status, priority } = req.query;
   const role = req.user.roles.tracker;
-  const isAdmin = role === "ADMIN" || isHrOrManager(req.user);
+  const isAdmin = role === "ADMIN" || isManager(req.user);
 
   const filter = {};
   if (!isAdmin) {
@@ -92,7 +94,7 @@ export const getProject = async (req, res) => {
   if (!project) return res.status(404).json({ message: "Project not found" });
 
   const role = req.user.roles.tracker;
-  let authorized = role === "ADMIN" || isHrOrManager(req.user);
+  let authorized = role === "ADMIN" || isManager(req.user);
   if (!authorized) authorized = role === "PM" ? canPMAccessProject(req.user, project) : canAccessProjectDirectly(req.user, project);
   if (!authorized) authorized = await hasProjectAssignedTasks(Task, project._id, req.user._id);
   if (!authorized) {
@@ -111,7 +113,7 @@ export const createProject = async (req, res) => {
   const { name, description, pocName, pocEmail, pocPhone, status, priority, startDate, endDate, projectLead, teamMembers } =
     req.body;
   if (!name) return res.status(400).json({ message: "name is required" });
-  if (!isPMOrAdmin(req.user) && !isHrOrManager(req.user)) {
+  if (!isPMOrAdmin(req.user) && !isManager(req.user)) {
     return res.status(403).json({ message: "Only Project Managers and Admins can create projects" });
   }
 
@@ -136,9 +138,9 @@ export const updateProject = async (req, res) => {
 
   const project = await Project.findById(req.params.id);
   if (!project) return res.status(404).json({ message: "Project not found" });
-  // HR/timesheet-manager can manage any project (Workspace Management page);
+  // A timesheet/pms manager can manage any project (Workspace Management page);
   // a plain PM is still limited to projects they lead/created/are on.
-  if (!isHrOrManager(req.user) && !(isPMOrAdmin(req.user) && canManageProject(req.user, project))) {
+  if (!isManager(req.user) && !(isPMOrAdmin(req.user) && canManageProject(req.user, project))) {
     return res.status(403).json({ message: "Not authorized to update this project" });
   }
 
@@ -161,7 +163,7 @@ export const deleteProject = async (req, res) => {
   const project = await Project.findById(req.params.id);
   if (!project) return res.status(404).json({ message: "Project not found" });
 
-  const authorized = req.user.roles.tracker === "ADMIN" || isHrOrManager(req.user) || project.createdBy?.equals(req.user._id);
+  const authorized = req.user.roles.tracker === "ADMIN" || isManager(req.user) || project.createdBy?.equals(req.user._id);
   if (!authorized) return res.status(403).json({ message: "Only creator or ADMIN can delete" });
 
   await Promise.all([Sprint.deleteMany({ projectId: project._id }), Task.deleteMany({ projectId: project._id })]);

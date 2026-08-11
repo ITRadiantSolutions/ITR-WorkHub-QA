@@ -48,9 +48,9 @@ router.post("/team/bulk-add", bulkAddTeamMembers);
 router.post("/:id/team", addTeamMember);
 router.delete("/:id/team/:userId", removeTeamMember);
 
-// No route-level allowRoles here: tracker ADMIN/PM, timesheet/pms HR, and
-// timesheet/pms manager can all manage holidays — canManageProjectHolidays
-// (below, in the controller) is the single source of truth for that mix.
+// No route-level allowRoles here: tracker ADMIN/PM and timesheet/pms manager
+// can manage holidays — canManageProjectHolidays (below, in the controller)
+// is the single source of truth for that mix.
 router.post("/:id/holidays", addHoliday);
 router.delete("/:id/holidays/:date", removeHoliday);
 router.post("/:id/excluded-holidays", addExcludedHoliday);

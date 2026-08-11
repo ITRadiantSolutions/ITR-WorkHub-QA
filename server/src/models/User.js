@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "on_leave", "terminated"],
       default: "active",
     },
-
+    managerName: { type: String, trim: true, default: "" },
     // Independent per-module roles — a user can be e.g. a timesheet "manager"
     // and a tracker "DEVELOPER" at the same time.
     roles: {
