@@ -32,6 +32,23 @@ export default function CycleTable({
 
   const isExpired = (expiry) => expiry && new Date(expiry) < new Date();
 
+  // Whole days left before `expiry` — caps how far the "Add days" field can
+  // go negative so a reduction can never push the deadline into the past.
+  const getMaxReduceDays = (expiry) => {
+    if (!expiry) return 0;
+    const remainingMs = new Date(expiry).getTime() - Date.now();
+    return Math.max(0, Math.floor(remainingMs / (24 * 60 * 60 * 1000)));
+  };
+
+  const clampExtraDays = (raw, expiry) => {
+    if (raw === "" || raw === "-") return raw;
+    const num = Number(raw);
+    if (Number.isNaN(num)) return raw;
+    if (num >= 0) return raw;
+    const maxReduce = getMaxReduceDays(expiry);
+    return num < -maxReduce ? String(-maxReduce) : raw;
+  };
+
   const [pending, setPending] = useState({});
   const [saving, setSaving] = useState({});
   const [extraDays, setExtraDays] = useState({});  // ← NEW
@@ -169,12 +186,14 @@ export default function CycleTable({
     try {
       const promises = [];
 
-      const empExtra = Number(extraDays[`${cycle.id}-employee`] || 0);
-      const mgrExtra = Number(extraDays[`${cycle.id}-manager`] || 0);
+      let empExtra = Number(extraDays[`${cycle.id}-employee`] || 0);
+      let mgrExtra = Number(extraDays[`${cycle.id}-manager`] || 0);
+      if (empExtra < 0) empExtra = -Math.min(-empExtra, getMaxReduceDays(cycle.employeeResponseExpiry));
+      if (mgrExtra < 0) mgrExtra = -Math.min(-mgrExtra, getMaxReduceDays(cycle.managerResponseExpiry));
 
       if (p.employeeEnabled !== o.employeeEnabled || p.employeeDuration !== o.employeeDuration ||
         p.employeeCustomDuration !== o.employeeCustomDuration ||
-        empExtra > 0 ||
+        empExtra !== 0 ||
         JSON.stringify(p.selectedEmployees) !== JSON.stringify(o.selectedEmployees)) {
         const dur = p.employeeDuration === "custom"
           ? Number(p.employeeCustomDuration || 7)
@@ -186,7 +205,7 @@ export default function CycleTable({
 
       if (p.managerEnabled !== o.managerEnabled || p.managerDuration !== o.managerDuration ||
         p.managerCustomDuration !== o.managerCustomDuration ||
-        mgrExtra > 0 ||
+        mgrExtra !== 0 ||
         JSON.stringify(p.selectedManagers) !== JSON.stringify(o.selectedManagers)) {
         const dur = p.managerDuration === "custom"
           ? Number(p.managerCustomDuration || 7)
@@ -470,11 +489,11 @@ export default function CycleTable({
                           <span className="text-xs text-slate-500 shrink-0">Add days:</span>
                           <input
                             type="number"
-                            min={1}
                             placeholder="0"
                             value={extraDays[`${cycle.id}-employee`] ?? ""}
                             onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, "");
+                              const stripped = e.target.value.replace(/(?!^-)[^\d]/g, "");
+                              const val = clampExtraDays(stripped, cycle.employeeResponseExpiry);
                               setExtraDays(prev => ({ ...prev, [`${cycle.id}-employee`]: val }));
                             }}
                             className="w-16 text-xs border border-amber-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
@@ -568,11 +587,11 @@ export default function CycleTable({
                           <span className="text-xs text-slate-500 shrink-0">Add days:</span>
                           <input
                             type="number"
-                            min={1}
                             placeholder="0"
                             value={extraDays[`${cycle.id}-manager`] ?? ""}
                             onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, "");
+                              const stripped = e.target.value.replace(/(?!^-)[^\d]/g, "");
+                              const val = clampExtraDays(stripped, cycle.managerResponseExpiry);
                               setExtraDays(prev => ({ ...prev, [`${cycle.id}-manager`]: val }));
                             }}
                             className="w-16 text-xs border border-amber-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"

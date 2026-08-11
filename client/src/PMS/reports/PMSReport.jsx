@@ -504,7 +504,7 @@ export default function PMSReport() {
             safe(r.reportingManagerName),
             r.status === "final_manager_reviewed" ? "Reviewed" : "Submitted",
             Array.isArray(r.cycle) ? r.cycle.join(", ") : safe(r.cycle),
-            formatMonthYear(r.submittedAt || r.updatedAt || r.managerActionAt),
+            formatDateTime(r.submittedAt || r.updatedAt || r.managerActionAt),
             formatRatingNumber(r.selfAvg),
             formatRatingNumber(r.managerAvg),
             formatRatingNumber(r.avgRating),

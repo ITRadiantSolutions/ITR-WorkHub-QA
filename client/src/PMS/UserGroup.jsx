@@ -102,8 +102,10 @@ export default function UserGroups() {
     return users.filter((u) => {
       if (!u.name?.toLowerCase().includes(search.toLowerCase())) return false;
       const id = String(getUserId(u));
-      // Still show/allow a user already selected in this session's form.
-      if (alreadyGroupedUserIds.has(id) && !selectedUsers.includes(id)) return false;
+      // Already-selected members get their own chip row above the list,
+      // so they're hidden here to avoid showing the same name twice.
+      if (selectedUsers.includes(id)) return false;
+      if (alreadyGroupedUserIds.has(id)) return false;
       return true;
     });
   }, [users, search, alreadyGroupedUserIds, selectedUsers]);
@@ -216,7 +218,7 @@ export default function UserGroups() {
     setEditingGroupId(getGroupId(group));   // ✅ FIX
     setGroupName(group.name);
     setDescription(group.description || "");
-    setSelectedUsers((group.members || []).map(id => String(id)));
+    setSelectedUsers((group.members || []).map((m) => memberIdOf(m)));
     setShowCreate(true);
   };
 
@@ -327,17 +329,20 @@ export default function UserGroups() {
                     )}
 
                     <div className="flex flex-wrap gap-2 pt-3 max-h-40 overflow-y-auto">
-                      {g.members?.map((id) => {
+                      {g.members?.map((m) => {
+                        const mid = memberIdOf(m);
                         const user = users.find(
-                          (u) => getUserId(u) === id
+                          (u) => String(getUserId(u)) === mid
                         );
+                        const fallbackName =
+                          typeof m === "object" && m !== null ? m.name : null;
                         return (
                           <span
-                            key={id}
+                            key={mid}
                             className="px-3 py-1 text-xs rounded-full
                      bg-violet-100 text-violet-700 font-medium"
                           >
-                            {user?.name || "Unknown"}
+                            {user?.name || fallbackName || "Unknown"}
                           </span>
                         );
                       })}
@@ -453,6 +458,27 @@ export default function UserGroups() {
                     {selectedUsers.length} selected
                   </span>
                 </div>
+
+                {/* SELECTED MEMBERS */}
+                {selectedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedUsers.map((id) => {
+                      const u = users.find((usr) => String(getUserId(usr)) === id);
+                      return (
+                        <span
+                          key={id}
+                          onClick={() => toggleUser(id)}
+                          className="flex items-center gap-1 px-3 py-1 text-xs rounded-full
+                     bg-purple-100 text-purple-700 font-medium cursor-pointer hover:bg-purple-200 transition"
+                          title="Remove from group"
+                        >
+                          {u?.name || "Unknown"}
+                          <X size={12} />
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* USER LIST */}
                 <div className="max-h-64 overflow-y-auto rounded-xl border divide-y bg-white">

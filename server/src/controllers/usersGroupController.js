@@ -8,6 +8,14 @@ const requirePmsHrOrManager = (req, res) => {
   return true;
 };
 
+// GET routes below populate members[] into {_id, name, email} objects for
+// display. Clients that round-trip that shape back into create/update
+// (stale bundle, direct API call) would otherwise hand Mongoose an object
+// where it expects an ObjectId string — normalize at the boundary instead
+// of trusting the caller.
+const normalizeMemberIds = (members = []) =>
+  members.map((m) => String(typeof m === "object" && m !== null ? m._id || m.id : m));
+
 // A user can only belong to one group at a time — find any of the given
 // member ids that already sit in some OTHER group's members[].
 const findConflictingMembers = async (memberIds, excludeGroupId) => {
@@ -41,12 +49,13 @@ export const createGroup = async (req, res) => {
   const { name, description, members } = req.body;
   if (!name) return res.status(400).json({ message: "name is required" });
 
-  const conflicts = await findConflictingMembers(members);
+  const memberIds = normalizeMemberIds(members);
+  const conflicts = await findConflictingMembers(memberIds);
   if (conflicts.length) {
     return res.status(400).json({ message: `Already in another group: ${conflicts.join(", ")}` });
   }
 
-  const group = await UsersGroup.create({ name, description, members: members || [], createdBy: req.user._id });
+  const group = await UsersGroup.create({ name, description, members: memberIds, createdBy: req.user._id });
   res.status(201).json(group);
 };
 

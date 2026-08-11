@@ -355,7 +355,7 @@ const UserRow = memo(({
                         className="w-3.5 h-3.5 rounded accent-purple-600 cursor-pointer" />
                 </td>
             )}
-            <td className={`px-4 py-3 min-w-0 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[22%]" : "w-[28%]"}`}>
+            <td className={`px-6 py-3 min-w-0 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
                 <div className="flex items-start gap-2.5">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-purple-500 to-purple-500"}`}>
                         {initials(userData.name)}
