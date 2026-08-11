@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema(
     // single-field migration, not a structural change.
     department: { type: String, trim: true, default: "" },
     designation: { type: String, trim: true, default: "" },
+    employeeId: { type: String, trim: true, default: "" },
     joiningDate: { type: Date, default: null },
     employmentStatus: {
       type: String,

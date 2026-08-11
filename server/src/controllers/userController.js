@@ -257,11 +257,17 @@ export async function runAzureGroupSync() {
   for (const groupId of groupIds) {
     let members = [];
     try {
+      // Real Microsoft Graph user properties — the previous $select list
+      // included several names (_id, azureAdId, joinDate, designation) that
+      // don't exist on the Graph user resource, which Graph rejects with a
+      // 400 for the whole request (silently skipping every member of every
+      // group, since that error was swallowed by the catch below).
       const { data } = await axios.get(
-        `https://graph.microsoft.com/v1.0/groups/${groupId}/members?$select=displayName,mail,userPrincipalName`,
+        `https://graph.microsoft.com/v1.0/groups/${groupId}/members?$select=id,displayName,mail,userPrincipalName,department,jobTitle,employeeId,employeeHireDate,accountEnabled`,
         { headers: { Authorization: `Bearer ${accessToken}` }, timeout: 15_000 },
       );
       members = data.value || [];
+      // console.log(`runAzureGroupSync: fetched ${members.length} members from group ${groupId}`);
     } catch (err) {
       console.error(`runAzureGroupSync: failed to fetch group ${groupId}`, err.response?.data || err.message);
       continue; // one bad group shouldn't abort the whole sync
@@ -270,11 +276,42 @@ export async function runAzureGroupSync() {
     for (const member of members) {
       const email = (member.mail || member.userPrincipalName || "").toLowerCase();
       const name = member.displayName || email;
+      const azureAdId = member.id || null;
+      const department = member.department || "";
+      const designation = member.jobTitle || "";
+      const employeeId = member.employeeId || "";
+      const joiningDate = member.employeeHireDate ? new Date(member.employeeHireDate) : null;
+      const employmentStatus = member.accountEnabled === false ? "terminated" : "active";
       if (!email || seenEmails.has(email)) continue;
       seenEmails.add(email);
 
       const existing = await User.findOne({ email }).select("-password");
       if (existing) {
+        // Backfill profile fields Azure knows about but the local record
+        // doesn't yet — never overwrite a value an admin already set.
+        let changed = false;
+        if (!existing.department && department) {
+          existing.department = department;
+          changed = true;
+        }
+        if (!existing.designation && designation) {
+          existing.designation = designation;
+          changed = true;
+        }
+        if (!existing.employeeId && employeeId) {
+          existing.employeeId = employeeId;
+          changed = true;
+        }
+        if (!existing.azureAdId && azureAdId) {
+          existing.azureAdId = azureAdId;
+          changed = true;
+        }
+        if (!existing.joiningDate && joiningDate) {
+          existing.joiningDate = joiningDate;
+          changed = true;
+        }
+        if (changed) await existing.save();
+
         synced.push(existing);
         continue;
       }
@@ -282,8 +319,14 @@ export async function runAzureGroupSync() {
       const created = await User.create({
         name,
         email,
+        azureAdId,
+        employeeId,
+        department,
+        designation,
+        employmentStatus,
+        joiningDate,
         authProvider: "azure",
-        roles: { timesheet: "employee", pms: "employee", tracker: "BUSINESS_USER" },
+        roles: { timesheet: "employee", pms: "employee", tracker: "BUSINESS_USER", vms: "host", lms: "employee", hrms: "employee" },
         approvalStatus: "Approved",
         approvedAt: new Date(),
       });

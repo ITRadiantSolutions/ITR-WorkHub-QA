@@ -186,7 +186,11 @@ export const getProjectEmployees = async (req, res) => {
 
   const employees = [...project.teamMembers, project.projectLead]
     .filter(Boolean)
-    .filter((m, idx, arr) => idx === arr.findIndex((x) => x._id?.toString() === m._id?.toString()));
+    .filter((m, idx, arr) => idx === arr.findIndex((x) => x._id?.toString() === m._id?.toString()))
+    // QaAssignModal.jsx (and the task-assignee picker) filter this list by a
+    // flat `.role` (Flow_Tracker convention, see utils/publicUser.js); these
+    // are populated User subdocs so they only carry `roles.tracker`.
+    .map((m) => ({ ...m, role: m.roles?.tracker }));
 
   res.json({ message: "Project employees fetched successfully", data: employees });
 };
