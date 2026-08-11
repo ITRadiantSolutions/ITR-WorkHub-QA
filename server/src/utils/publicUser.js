@@ -13,6 +13,8 @@ export function toPublicUser(user) {
     managerId: user.managerId,
     shift: user.shift,
     archived: user.archived,
+    isSuperAdmin: user.isSuperAdmin,
+    manageAccessModules: user.manageAccessModules,
     approvalStatus: user.approvalStatus,
     authProvider: user.authProvider,
   };

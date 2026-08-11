@@ -35,9 +35,20 @@ const MANAGER_ROLE_CEILING = {
   hrms: ["employee", "manager"],
 };
 
-// Shared by assignRole/setArchived: HR/admin can act on anyone; an hrms
-// "manager" is limited to their own direct reports.
-const canManageAccess = async (actor, targetUserId) => {
+// A super admin bypasses every gate below, including the ones that would
+// otherwise apply to "hr"-tier users (e.g. the MANAGER_ROLE_CEILING check).
+const isFullAccess = (actor) => actor.isSuperAdmin || isAdminOrHr(actor);
+
+// Gates ONLY assignRole/setArchived — i.e. "who can edit module access/
+// roles" (the HRMS Manage page, Employees page role dropdown, ModuleRolesPanel).
+// Deliberately does NOT affect HR's other duties (referrals, job posts,
+// employee profile fields, Azure sync, etc.) — those stay on isAdminOrHr.
+// Holding "hr" or "manager" no longer implies edit rights here on its own;
+// a super admin has to explicitly grant the specific module via
+// User.manageAccessModules — granting PMS doesn't imply FlowTrack, etc.
+const canEditAccess = async (actor, targetUserId, module) => {
+  if (actor.isSuperAdmin) return true;
+  if (!actor.manageAccessModules?.includes(module)) return false;
   if (isAdminOrHr(actor)) return true;
   if (actor.roles.hrms !== "manager") return false;
   const target = await User.findById(targetUserId).select("managerId");
@@ -160,13 +171,13 @@ export const listManagers = async (req, res) => {
 
 export const assignRole = async (req, res) => {
   const { module, role } = req.body;
-  if (!(await canManageAccess(req.user, req.params.id))) {
-    return res.status(403).json({ message: "You can only manage access for your direct reports" });
+  if (!(await canEditAccess(req.user, req.params.id, module))) {
+    return res.status(403).json({ message: "You don't have permission to manage access. Ask a super admin to grant it." });
   }
   if (!MODULE_ROLE_ENUM[module]?.includes(role)) {
     return res.status(400).json({ message: `Invalid role '${role}' for module '${module}'` });
   }
-  if (!isAdminOrHr(req.user) && !MANAGER_ROLE_CEILING[module]?.includes(role)) {
+  if (!isFullAccess(req.user) && !MANAGER_ROLE_CEILING[module]?.includes(role)) {
     return res.status(403).json({ message: `Managers cannot assign '${role}' for '${module}'` });
   }
   const user = await User.findByIdAndUpdate(
@@ -180,10 +191,10 @@ export const assignRole = async (req, res) => {
 
 export const setArchived = async (req, res) => {
   const { module, archived } = req.body; // module: "timesheet" | "pms" | "vms" | "lms" | "hrms" | "account"
-  if (!(await canManageAccess(req.user, req.params.id))) {
-    return res.status(403).json({ message: "You can only manage access for your direct reports" });
+  if (!(await canEditAccess(req.user, req.params.id, module))) {
+    return res.status(403).json({ message: "You don't have permission to manage access. Ask a super admin to grant it." });
   }
-  const validModules = isAdminOrHr(req.user)
+  const validModules = isFullAccess(req.user)
     ? ["timesheet", "pms", "vms", "lms", "hrms", "account"]
     : ["timesheet", "pms", "vms", "lms", "hrms"]; // "account" (full deactivation) is HR/admin-only
   if (!validModules.includes(module)) {
@@ -192,6 +203,30 @@ export const setArchived = async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { $set: { [`archived.${module}`]: Boolean(archived) } },
+    { new: true },
+  ).select("-password");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
+
+// Super admin only — hands the "manage access" capability (assignRole/
+// setArchived, i.e. the HRMS Manage page) to a specific person, per module,
+// instead of it being automatic for every "hr"/"manager" tier holder or
+// all-or-nothing. Replaces the full list each call — the client sends the
+// complete set of modules this person should have after the change. There's
+// no equivalent endpoint for isSuperAdmin itself — that's only ever set by a
+// direct, deliberate action, never through a normal API call.
+export const setManageAccessGrant = async (req, res) => {
+  if (!req.user.isSuperAdmin) {
+    return res.status(403).json({ message: "Only a super admin can grant or revoke manage-access." });
+  }
+  const modules = Array.isArray(req.body.modules) ? [...new Set(req.body.modules)] : [];
+  if (modules.some((m) => !MODULE_ROLE_ENUM[m])) {
+    return res.status(400).json({ message: "Invalid module in list" });
+  }
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: { manageAccessModules: modules } },
     { new: true },
   ).select("-password");
   if (!user) return res.status(404).json({ message: "User not found" });

@@ -16,6 +16,7 @@ export const employeesApi = {
   setRole: (id, role, module = "hrms") => API.patch(`/users/${id}/role`, { module, role }),
   setArchived: (id, archived, module = "hrms") => API.patch(`/users/${id}/archive`, { module, archived }),
   setManager: (id, managerId) => API.patch(`/users/${id}/manager`, { managerId }),
+  setManageAccessGrant: (id, modules) => API.patch(`/users/${id}/manage-access-grant`, { modules }),
 };
 
 export const projectRolesApi = {

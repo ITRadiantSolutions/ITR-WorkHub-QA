@@ -67,6 +67,7 @@ import HrmsEmployeeProfile from "./HRMS/pages/EmployeeProfile";
 import HrmsMyTeam from "./HRMS/pages/MyTeam";
 import HrmsManage from "./HRMS/pages/Manage";
 import HrmsManageModule from "./HRMS/pages/ManageModule";
+import AccessGrants from "./pages/AccessGrants";
 import { Toaster } from "sonner";
 import { ConfirmDialogHost } from "./components/ConfirmDialog";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -447,6 +448,15 @@ function App() {
                 }
               />
             </Route>
+
+            <Route
+              path="/access-grants"
+              element={
+                <ProtectedRoute>
+                  <AccessGrants />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/admin"

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Search } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { isHRMS_HR } from "../../utils/hrmsrolecheck";
+import { isHRMS_HR, isSuperAdmin, canManageModule } from "../../utils/hrmsrolecheck";
 import { employeesApi } from "../hrmsApi";
 import { MANAGE_MODULES, MANAGER_ROLE_CEILING } from "../moduleAccessConfig";
 
@@ -12,9 +12,14 @@ export default function ManageModule() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isHr = isHRMS_HR(user);
+  const superAdmin = isSuperAdmin(user);
+  // Being granted PMS doesn't imply FlowTrack, etc. — checked per module,
+  // not just "granted something."
+  const canManage = canManageModule(user, moduleKey);
+  const canViewAll = isHr || superAdmin;
 
   const module = MANAGE_MODULES.find((m) => m.key === moduleKey);
-  const roleOptions = isHr ? module?.roles : MANAGER_ROLE_CEILING[moduleKey] || [];
+  const roleOptions = canViewAll ? module?.roles : MANAGER_ROLE_CEILING[moduleKey] || [];
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,16 +28,27 @@ export default function ManageModule() {
 
   const load = useCallback(() => {
     setLoading(true);
-    const request = isHr ? employeesApi.list() : employeesApi.myReports();
+    const request = canViewAll ? employeesApi.list() : employeesApi.myReports();
     request
-      .then((res) => setUsers(isHr ? res.data || [] : res.data?.data || []))
+      .then((res) => setUsers(canViewAll ? res.data || [] : res.data?.data || []))
       .catch(() => toast.error("Failed to load users"))
       .finally(() => setLoading(false));
-  }, [isHr]);
+  }, [canViewAll]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  if (!canManage) {
+    return (
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        <button onClick={() => navigate("/hrms")} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4">
+          <ArrowLeft className="w-[18px] h-[18px]" /> Back
+        </button>
+        <p className="text-sm text-slate-500">You don't have permission to manage access for this module. Ask a super admin to grant it.</p>
+      </main>
+    );
+  }
 
   if (!module) {
     return (
@@ -88,7 +104,7 @@ export default function ManageModule() {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">{module.label}</h1>
           <p className="text-sm text-slate-500">
-            {isHr ? "Manage every employee's access to this module." : "Manage access for your direct reports."}
+            {canViewAll ? "Manage every employee's access to this module." : "Manage access for your direct reports."}
           </p>
         </div>
       </div>
@@ -119,7 +135,7 @@ export default function ManageModule() {
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={module.hasArchive ? 4 : 3} className="px-4 py-8 text-center text-slate-400 italic">
-                  {isHr ? "No employees found." : "You have no direct reports."}
+                  {canViewAll ? "No employees found." : "You have no direct reports."}
                 </td>
               </tr>
             ) : (

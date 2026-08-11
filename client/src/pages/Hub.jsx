@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 import WorkHubLogo from "../components/WorkHubLogo";
 import getInitials from "../utils/getInitials";
+import { isSuperAdmin } from "../utils/hrmsrolecheck";
 
 const TRACKER_ROUTES = {
   ADMIN: "/admin",
@@ -350,6 +351,16 @@ export default function Hub() {
               <span className="text-slate-400 shrink-0"><Icons.ChevronDown /></span>
             </div>
           </div>
+
+          {isSuperAdmin(user) && (
+            <button
+              onClick={() => navigate("/access-grants")}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 lg:px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shrink-0"
+              title="Super admin — manage who can edit access across every module"
+            >
+              <Icons.Shield /> <span className="hidden sm:inline">Access Grants</span>
+            </button>
+          )}
 
           <button
             onClick={logout}

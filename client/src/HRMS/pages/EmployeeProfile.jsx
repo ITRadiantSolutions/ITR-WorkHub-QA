@@ -3,8 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { employeesApi } from "../hrmsApi";
-import ProjectRoleAssignmentPanel from "../components/ProjectRoleAssignmentPanel";
-import ModuleRolesPanel from "../components/ModuleRolesPanel";
+// Role & Access editing now goes through the super-admin-gated Manage /
+// Access Grants pages instead of this per-employee tab — see hrmsrolecheck's
+// hasManageAccess. Left commented (not deleted) in case it's reinstated.
+// import ProjectRoleAssignmentPanel from "../components/ProjectRoleAssignmentPanel";
+// import ModuleRolesPanel from "../components/ModuleRolesPanel";
 
 const STATUS_OPTIONS = ["active", "on_leave", "terminated"];
 
@@ -73,9 +76,10 @@ export default function EmployeeProfile() {
         <button onClick={() => setTab("overview")} className={`px-4 py-2 rounded-xl text-sm font-semibold ${tab === "overview" ? "bg-cyan-700 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>
           Overview
         </button>
-        <button onClick={() => setTab("access")} className={`px-4 py-2 rounded-xl text-sm font-semibold ${tab === "access" ? "bg-cyan-700 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>
+        {/* Role & Access tab disabled — editing now happens via Manage / Access Grants (super-admin gated). */}
+        {/* <button onClick={() => setTab("access")} className={`px-4 py-2 rounded-xl text-sm font-semibold ${tab === "access" ? "bg-cyan-700 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>
           Role & Access
-        </button>
+        </button> */}
       </div>
 
       {tab === "overview" && (
@@ -110,6 +114,7 @@ export default function EmployeeProfile() {
         </div>
       )}
 
+      {/* Role & Access panel disabled — editing now happens via Manage / Access Grants (super-admin gated).
       {tab === "access" && (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
@@ -124,6 +129,7 @@ export default function EmployeeProfile() {
           </div>
         </div>
       )}
+      */}
     </main>
   );
 }

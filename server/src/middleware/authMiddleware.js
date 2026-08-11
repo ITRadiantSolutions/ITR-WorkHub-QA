@@ -36,6 +36,7 @@ export const protect = async (req, res, next) => {
 // only checks the account-wide flag, so routers that live entirely inside
 // one module opt into this too, scoped to that module's archived.<module> flag.
 export const requireModuleAccess = (module) => (req, res, next) => {
+  if (req.user?.isSuperAdmin) return next();
   if (req.user?.archived?.[module]) {
     return res.status(403).json({ message: "Account is deactivated for this module" });
   }

@@ -17,15 +17,18 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import getInitials from "../utils/getInitials";
 import ProfileModal from "../components/ProfileModal";
-import { isHRMS_HR, isHRMS_Manager } from "../utils/hrmsrolecheck";
+import { isHRMS_HR, isHRMS_Manager, hasManageAccess } from "../utils/hrmsrolecheck";
 
 const TABS = [
   { to: "/hrms", label: "Dashboard", icon: LayoutDashboard },
   { to: "/hrms/jobs", label: "Jobs", icon: Briefcase },
   { to: "/hrms/referrals", label: "Referrals", icon: Send },
   { to: "/hrms/my-team", label: "My Team", icon: Users, managerOnly: true },
-  { to: "/hrms/manage", label: "Manage", icon: Settings2, hrOrManagerOnly: true },
+  { to: "/hrms/manage", label: "Manage", icon: Settings2, manageAccessOnly: true },
   { to: "/hrms/employees", label: "Employees", icon: UserPlus, hrOnly: true },
+  // Access Grants (super admin) lives at the top level now, reachable from
+  // the Hub — not nested here, since a super admin isn't necessarily an
+  // HRMS user. See client/src/pages/AccessGrants.jsx.
 ];
 
 const ROLE_LABELS = { hr: "HR", manager: "Manager", employee: "Employee" };
@@ -39,6 +42,7 @@ export default function HrmsLayout() {
   const initials = getInitials(user?.name);
   const hr = isHRMS_HR(user);
   const manager = isHRMS_Manager(user);
+  const canManage = hasManageAccess(user);
   const [showProfile, setShowProfile] = useState(false);
   const roleLabel = ROLE_LABELS[user?.roles?.hrms] || "Employee";
 
@@ -69,7 +73,7 @@ export default function HrmsLayout() {
             const visibleTabs = TABS.filter((t) => {
               if (t.hrOnly) return hr;
               if (t.managerOnly) return manager;
-              if (t.hrOrManagerOnly) return hr || manager;
+              if (t.manageAccessOnly) return canManage;
               return true;
             });
             const activeTo = visibleTabs
