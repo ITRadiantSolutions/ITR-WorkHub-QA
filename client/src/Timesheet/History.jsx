@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { API } from "../services/api";
 import Icons from "../components/Icons";
 
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 const TABS = [
   { key: "submitted", label: "Pending", icon: "Clock" },
   { key: "approved", label: "Approved", icon: "CheckCircle" },
@@ -24,13 +26,121 @@ const fmtDateTime = (d) => (d ? new Date(d).toISOString().slice(0, 16).replace("
 
 const PAGE_SIZE_OPTIONS = [9, 18, 27, 36];
 
+// Read-only — "View" (submitted/approved weeks) opens this instead of
+// navigating away, so the History page (tab/page/scroll) never has to
+// unmount. "Edit" (needs_edit/rejected) still navigates to the full
+// Timesheet page below, since editing needs the full save/submit toolset.
+function ViewTimesheetModal({ timesheet, onClose }) {
+  const style = STATUS_STYLES[timesheet.status] || STATUS_STYLES.draft;
+  const rows = timesheet.rows || [];
+  const grandTotal = rows.reduce((sum, r) => sum + (r.secs || []).reduce((s, v) => s + (v || 0), 0), 0) / 3600;
+  const comments = rows.filter((r) => r.comment?.trim());
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">
+              Week {fmtShort(timesheet.weekStart)} – {fmtShort(timesheet.weekEnd)}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Submitted {fmtDateTime(timesheet.submittedAt)} · Action by: {timesheet.managerActionBy?.name || "—"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${style.badge}`}>
+              {timesheet.status.replace(/_/g, " ")}
+            </span>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X /></button>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-50 text-slate-500">
+                <th className="text-left px-3 py-2 font-bold uppercase tracking-wide">Project</th>
+                {DAY_LABELS.map((d) => (
+                  <th key={d} className="px-2 py-2 font-bold uppercase tracking-wide text-center">{d}</th>
+                ))}
+                <th className="px-2 py-2 font-bold uppercase tracking-wide text-center">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => {
+                const total = (row.secs || []).reduce((sum, s) => sum + (s || 0), 0) / 3600;
+                return (
+                  <tr key={i} className="border-t border-slate-100">
+                    <td className="px-3 py-2 font-medium text-slate-700">{row.projectId?.name || "Project"}</td>
+                    {(row.secs || Array(7).fill(0)).map((s, d) => (
+                      <td key={d} className="px-2 py-2 text-center tabular-nums text-slate-600">
+                        {s ? (s / 3600).toFixed(1) : "—"}
+                      </td>
+                    ))}
+                    <td className="px-2 py-2 text-center font-bold text-teal-700 tabular-nums">{total.toFixed(1)}</td>
+                  </tr>
+                );
+              })}
+              {!rows.length && (
+                <tr>
+                  <td colSpan={9} className="px-3 py-6 text-center text-slate-400">No entries logged.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-end mt-3">
+          <span className="text-sm font-bold text-slate-800">
+            Week total: <span className="text-teal-700 tabular-nums">{grandTotal.toFixed(1)}h</span>
+          </span>
+        </div>
+
+        {comments.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-slate-100 space-y-1.5">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Comments</p>
+            {comments.map((r, i) => (
+              <p key={i} className="text-xs text-slate-600">
+                <span className="font-semibold">{r.projectId?.name || "Project"}:</span> {r.comment}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {timesheet.managerComment && (
+          <p className="mt-3 text-xs text-slate-500">
+            <span className="font-bold uppercase tracking-wide text-slate-400">Reviewer note: </span>
+            {timesheet.managerComment}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Clicking "View"/"Edit" navigates away and unmounts this component — coming
+// back (browser back or the sidebar link) remounts it from scratch, so plain
+// useState would always reset to tab 1 / page "submitted". Persisting the
+// view (not the fetched data — that's refetched fresh) across that remount.
+const VIEW_STATE_KEY = "timesheet_history_view";
+const loadViewState = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(VIEW_STATE_KEY) || "null") || {};
+  } catch {
+    return {};
+  }
+};
+
 export default function History() {
   const navigate = useNavigate();
   const [timesheets, setTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("submitted");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(9);
+  const [tab, setTab] = useState(() => loadViewState().tab || "submitted");
+  const [page, setPage] = useState(() => loadViewState().page || 1);
+  const [pageSize, setPageSize] = useState(() => loadViewState().pageSize || 9);
+  const [restoringPage, setRestoringPage] = useState(true);
+  const [viewingTs, setViewingTs] = useState(null);
 
   useEffect(() => {
     API.get("/timesheets")
@@ -39,7 +149,20 @@ export default function History() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => setPage(1), [tab, pageSize]);
+  useEffect(() => {
+    sessionStorage.setItem(VIEW_STATE_KEY, JSON.stringify({ tab, page, pageSize }));
+  }, [tab, page, pageSize]);
+
+  // Skip the very first "tab/pageSize changed" reset-to-page-1 — it fires on
+  // mount from the restored values and would immediately undo them.
+  useEffect(() => {
+    if (restoringPage) {
+      setRestoringPage(false);
+      return;
+    }
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, pageSize]);
 
   const counts = TABS.reduce((acc, t) => {
     acc[t.key] = timesheets.filter((ts) => ts.status === t.key).length;
@@ -119,8 +242,12 @@ export default function History() {
                 </p>
                 <button
                   onClick={() => {
-                    if (canEdit) toast.info("You can now edit this week's timesheet and save your changes.");
-                    navigate(`/timesheet/new/${ts._id}`);
+                    if (canEdit) {
+                      toast.info("You can now edit this week's timesheet and save your changes.");
+                      navigate(`/timesheet/new/${ts._id}`);
+                    } else {
+                      setViewingTs(ts);
+                    }
                   }}
                   className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition"
                 >
@@ -176,6 +303,8 @@ export default function History() {
         </div>
         </>
       )}
+
+      {viewingTs && <ViewTimesheetModal timesheet={viewingTs} onClose={() => setViewingTs(null)} />}
     </main>
   );
 }

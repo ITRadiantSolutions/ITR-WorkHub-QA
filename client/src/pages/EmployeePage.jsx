@@ -1070,6 +1070,9 @@ const col4 = isRejected
                   className={`${inputCls} cursor-not-allowed bg-slate-100 text-slate-500`}
                 />
               </Field>
+              {/* Role editing moved to HRMS Manage > FlowTrack (single centralized place for module access).
+                  editForm.role stays populated from handleEdit so submitting this form still round-trips
+                  the user's existing role unchanged — only name changes actually take effect here.
               <Field label="Role">
                 <div className="relative">
                   <select
@@ -1091,7 +1094,6 @@ const col4 = isRejected
                 </div>
               </Field>
 
-              {/* Role preview badge */}
               {editForm.role && (
                 <div className="flex items-center gap-2 pt-1">
                   <span className="text-[11px] text-slate-400">New role:</span>
@@ -1102,6 +1104,7 @@ const col4 = isRejected
                   </span>
                 </div>
               )}
+              */}
 
               <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                 <button

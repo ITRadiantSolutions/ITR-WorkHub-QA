@@ -39,10 +39,12 @@ const newRow = () => ({ projectId: "", task: "", hours: Array(7).fill(""), nsa: 
 const MAX_HOURS_PER_DAY = 8;
 const MAX_HOURS_PER_WEEK = 40;
 const TIMER_STORAGE_KEY = "timesheet_timer_v1";
-// A single leading digit (0-9, the daily cap is 8 anyway) plus at most 2
-// decimal places — rejects "-", letters, multi-digit whole hours like
-// "22", and anything past 2 decimals while the user is still typing.
-const isValidHourInput = (value) => value === "" || /^\d?(\.\d{0,2})?$/.test(value);
+// A single leading digit (0-9, the daily cap is 8 anyway) plus at most 4
+// decimal places — rejects "-", letters, multi-digit whole hours like "22".
+// 4dp (not 2) so a timer-committed value (which needs sub-minute precision
+// to round-trip accurately through hours) stays editable afterward instead
+// of failing this check on the very first keystroke.
+const isValidHourInput = (value) => value === "" || /^\d?(\.\d{0,4})?$/.test(value);
 
 export default function TimesheetEntry() {
   const { id } = useParams();
@@ -193,7 +195,11 @@ export default function TimesheetEntry() {
       }
     }
     setRows(serverRows);
-  }, [current, id]);
+    // weekStart is intentionally in the deps (not just current/id): current
+    // stays `null` for any week with no saved timesheet, so switching between
+    // two such weeks wouldn't otherwise re-run this and would leave the
+    // previous week's unsaved rows on screen under the new week.
+  }, [current, id, weekStart]);
 
   // Auto-save the in-progress resubmission so a crashed tab doesn't lose edits.
   useEffect(() => {
@@ -414,12 +420,15 @@ export default function TimesheetEntry() {
             const next = prev.map((r) => {
               if (r.projectId !== timerProject) return r;
               found = true;
+              // 4 decimal places (~0.36s granularity), not 2 (~36s granularity) —
+              // at 2dp a short timer run round-trips through save (hours * 3600)
+              // as a visibly different number of seconds than what actually ran.
               const hrs = (parseFloat(r.hours[todayIdx]) || 0) + delta / 3600;
-              return { ...r, hours: r.hours.map((h, d) => (d === todayIdx ? hrs.toFixed(2) : h)) };
+              return { ...r, hours: r.hours.map((h, d) => (d === todayIdx ? hrs.toFixed(4) : h)) };
             });
             if (found) return next;
             const row = { ...newRow(), projectId: timerProject };
-            row.hours[todayIdx] = (delta / 3600).toFixed(2);
+            row.hours[todayIdx] = (delta / 3600).toFixed(4);
             return [...prev.filter((r) => r.projectId), row];
           });
           toast.success(`Added ${fmtHHMMSS(delta)} to today`);

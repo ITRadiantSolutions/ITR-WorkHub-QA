@@ -569,6 +569,7 @@ function EmployeeCard({ user, projectNames, onAddProject, onModifyProjects, onTo
           Remove/Modify
         </button>
       </div>
+      {/* Archive/restore moved to HRMS Manage > Time Flow (single centralized place for module access).
       <button
         onClick={() => onToggleArchive(user)}
         disabled={archiveBusy}
@@ -578,6 +579,7 @@ function EmployeeCard({ user, projectNames, onAddProject, onModifyProjects, onTo
       >
         {archived ? "Restore access" : "Archive from Timesheet"}
       </button>
+      */}
     </div>
   );
 }
@@ -879,9 +881,11 @@ export default function Manage() {
           <button onClick={() => setBulkAssignOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-teal-200 text-teal-700 text-sm font-bold hover:bg-teal-50">
             <Icons.Plus /> Bulk Assign
           </button>
+          {/* Role assignment moved to HRMS Manage > Time Flow (single centralized place for module access).
           <button onClick={() => setAssignRolesOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-teal-200 text-teal-700 text-sm font-bold hover:bg-teal-50">
             <Icons.Users /> Assign Roles
           </button>
+          */}
           <button onClick={() => setAssignShiftsOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold shadow">
             <Icons.Calendar /> Assign Shifts
           </button>
@@ -1016,6 +1020,7 @@ export default function Manage() {
         />
       )}
       {newEmployeeOpen && <NewEmployeeModal onClose={() => setNewEmployeeOpen(false)} onSaved={() => { setNewEmployeeOpen(false); load(); }} />}
+      {/* Role assignment moved to HRMS Manage > Time Flow (single centralized place for module access).
       {assignRolesOpen && (
         <AssignRolesModal
           users={users}
@@ -1027,6 +1032,7 @@ export default function Manage() {
           archiveBusyId={archiveBusyId}
         />
       )}
+      */}
       {assignShiftsOpen && <AssignShiftsModal users={users} onClose={() => setAssignShiftsOpen(false)} onChanged={patchUser} />}
       {bulkAssignOpen && (
         <BulkAssignModal

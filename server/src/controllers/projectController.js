@@ -13,18 +13,25 @@ import {
   hasProjectAssignedTasks,
 } from "../utils/projectAccess.js";
 
-// HR doesn't maintain FlowTrack — only timesheet/pms managers get the
-// cross-project access below (alongside tracker ADMIN/PM where noted).
+// HR doesn't maintain FlowTrack itself (creating/editing/deleting project
+// records) — that stays limited to timesheet/pms managers, alongside tracker
+// ADMIN/PM where noted. HR does run the Timesheet "Workspace Management"
+// page's holidays/team-roster workflows though (the Manage page's Projects/
+// Teams tabs expose those to HR unconditionally), so those specifically —
+// plus the project *list* that page depends on to act on them — need HR
+// included too, via isHrOrManager below.
 const isManager = (user) => user.roles.timesheet === "manager" || user.roles.pms === "manager";
+const isHrOrManager = (user) =>
+  ["hr", "manager"].includes(user.roles.timesheet) || ["hr", "manager"].includes(user.roles.pms);
 
-// Shared by addTeamMember/removeTeamMember/bulkAddTeamMembers — ADMIN, manager,
+// Shared by addTeamMember/removeTeamMember/bulkAddTeamMembers — ADMIN, HR/manager,
 // or a PM/Admin who leads/created/is on the project.
 const canManageProjectTeam = (user, project) =>
-  user.roles.tracker === "ADMIN" || canManageProject(user, project) || isManager(user);
+  user.roles.tracker === "ADMIN" || canManageProject(user, project) || isHrOrManager(user);
 
 // Shared by the holiday endpoints below.
 const canManageProjectHolidays = (user, project) =>
-  isManager(user) || (isPMOrAdmin(user) && canManageProject(user, project));
+  isHrOrManager(user) || (isPMOrAdmin(user) && canManageProject(user, project));
 
 const escapeHtml = (str) =>
   String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -59,7 +66,10 @@ const notifyTeamChange = async (user, actorName, added, projectNames) => {
 export const listProjects = async (req, res) => {
   const { q, status, priority } = req.query;
   const role = req.user.roles.tracker;
-  const isAdmin = role === "ADMIN" || isManager(req.user);
+  // isHrOrManager (not isManager) — HR needs to see every project to act on
+  // the ones it's authorized to touch (holidays, team roster) from the
+  // Workspace Management page, even though it doesn't create/edit/delete them.
+  const isAdmin = role === "ADMIN" || isHrOrManager(req.user);
 
   const filter = {};
   if (!isAdmin) {

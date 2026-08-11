@@ -141,18 +141,24 @@ export default function Review() {
     return () => clearInterval(interval);
   }, []);
 
+  // Tab badges reflect the active search too — otherwise they show the total
+  // per status while the table below (searched) shows a different, smaller
+  // set, so the badge count looks stale/wrong next to what's actually listed.
+  const searchMatched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return timesheets.filter((ts) => !q || ts.userId?.name?.toLowerCase().includes(q));
+  }, [timesheets, search]);
+
   const counts = TABS.reduce((acc, t) => {
-    acc[t.key] = t.key === "all" ? timesheets.length : timesheets.filter((ts) => ts.status === t.key).length;
+    acc[t.key] = t.key === "all" ? searchMatched.length : searchMatched.filter((ts) => ts.status === t.key).length;
     return acc;
   }, {});
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return timesheets
+    return searchMatched
       .filter((ts) => tab === "all" || ts.status === tab)
-      .filter((ts) => !q || ts.userId?.name?.toLowerCase().includes(q))
       .sort((a, b) => new Date(b.submittedAt || b.weekStart) - new Date(a.submittedAt || a.weekStart));
-  }, [timesheets, tab, search]);
+  }, [searchMatched, tab]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -334,29 +340,33 @@ export default function Review() {
                           {employeeComment(ts) || "-"}
                         </td>
                         <td className="px-3 py-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => setModal({ ids: [ts._id], action: "approve" })}
-                              disabled={!actionable || busyIds.has(ts._id)}
-                              className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => setModal({ ids: [ts._id], action: "reject" })}
-                              disabled={!actionable || busyIds.has(ts._id)}
-                              className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => setModal({ ids: [ts._id], action: "needs_edit" })}
-                              disabled={!actionable || busyIds.has(ts._id)}
-                              className="px-3 py-1.5 rounded-lg border-2 border-amber-400 text-amber-600 text-xs font-bold hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              Request Edit
-                            </button>
-                          </div>
+                          {actionable ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => setModal({ ids: [ts._id], action: "approve" })}
+                                disabled={busyIds.has(ts._id)}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => setModal({ ids: [ts._id], action: "reject" })}
+                                disabled={busyIds.has(ts._id)}
+                                className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Reject
+                              </button>
+                              <button
+                                onClick={() => setModal({ ids: [ts._id], action: "needs_edit" })}
+                                disabled={busyIds.has(ts._id)}
+                                className="px-3 py-1.5 rounded-lg border-2 border-amber-400 text-amber-600 text-xs font-bold hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Request Edit
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
                         </td>
                       </tr>
                       {isExpanded && (

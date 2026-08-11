@@ -431,10 +431,12 @@ const UserRow = memo(({
             <td className="px-4 py-3 flex-1 min-w-[260px]">
                 <div className="flex items-center justify-center gap-1.5 flex-nowrap">
                     {isArchived ? (
-                        <button onClick={() => onArchive(userData.id, userData.name, true)}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition active:scale-95">
-                            Restore
-                        </button>
+                        // Restore moved to HRMS Manage > PMS (single centralized place for module access).
+                        // <button onClick={() => onArchive(userData.id, userData.name, true)}
+                        //     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition active:scale-95">
+                        //     Restore
+                        // </button>
+                        <span className="text-xs text-slate-400 italic">Archived</span>
                     ) : (
                         <>
                             <button onClick={() => onView(userData)} title="View KRA Details"
@@ -453,12 +455,14 @@ const UserRow = memo(({
                                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${canManageReporting ? "bg-teal-50 text-teal-600 hover:bg-teal-100" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                             </button>
+                            {/* Archive moved to HRMS Manage > PMS (single centralized place for module access).
                             <button onClick={() => pms_role === "hr" && onArchive(userData.id, userData.name, false)}
                                 disabled={pms_role !== "hr"}
                                 title={pms_role === "hr" ? "Archive User" : "Only HR can archive users"}
                                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${pms_role === "hr" ? "bg-orange-50 text-orange-500 hover:bg-orange-100 hover:text-orange-700" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M10 12v4m4-4v4" /></svg>
                             </button>
+                            */}
                             {canManagePip ? (
                                 <button onClick={() => onPip(userData)}
                                     title={pipSummary.hasPip ? "Manage PIP" : "Start PIP"}
@@ -553,7 +557,8 @@ export default function UserKraSearch() {
     const canManagePip = pms_role === "hr" || pms_role === "manager" || pms_role === "admin";
     const canEditKra = pms_role === "hr" || pms_role === "manager";
     const canManageReporting = pms_role === "hr";
-    const canManageRoles = pms_role === "hr";
+    // Role editing moved to HRMS Manage > PMS (single centralized place for module access).
+    const canManageRoles = false; // was: pms_role === "hr"
     const isPipDirty = pipOriginalForm.current !== JSON.stringify(pipForm);
     const tableLoading = filterStatus === "archived" ? archivedLoading : loading;
 

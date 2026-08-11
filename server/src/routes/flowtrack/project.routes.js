@@ -31,7 +31,10 @@ router.param("userId", objectIdParam);
 
 router.get("/", listProjects);
 router.get("/search", listProjects);
-router.post("/", allowRoles("tracker", "ADMIN", "PM"), createProject);
+// No route-level allowRoles here: tracker ADMIN/PM and timesheet/pms manager
+// can create projects — createProject's own isPMOrAdmin/isManager check
+// (used from the Workspace Management page too) is the source of truth.
+router.post("/", createProject);
 router.post("/holidays-by-projects", holidaysByProjectIds);
 
 router.get("/:projectId/employees", allowRoles("tracker", "ADMIN", "PM", "DEVELOPER", "QA"), getProjectEmployees);

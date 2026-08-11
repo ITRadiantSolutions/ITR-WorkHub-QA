@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom"; // only used by the disabled Actions/View button below
 import { toast } from "sonner";
-import { UserPlus, Search, RefreshCw, Eye } from "lucide-react";
+import { UserPlus, Search, RefreshCw } from "lucide-react"; // Eye icon only used by the disabled Actions/View button below
 import { employeesApi } from "../hrmsApi";
 
-const ROLE_OPTIONS = ["employee", "manager", "hr"];
+// const ROLE_OPTIONS = ["employee", "manager", "hr"]; // only used by the disabled Role select below
 
 export default function Employees() {
-  const navigate = useNavigate();
+  // This page is view-only now — role and status changes happen exclusively
+  // on HRMS Manage (/hrms/manage), the single centralized place for module access.
+  // const navigate = useNavigate(); // only used by the disabled Actions/View button below
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -40,25 +42,26 @@ export default function Employees() {
     }
   };
 
-  const setRole = async (emp, role) => {
-    try {
-      await employeesApi.setRole(emp._id, role);
-      toast.success("Role updated");
-      load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update role");
-    }
-  };
-
-  const toggleActive = async (emp) => {
-    try {
-      await employeesApi.setArchived(emp._id, !emp.archived?.hrms);
-      toast.success(emp.archived?.hrms ? "Activated" : "Deactivated");
-      load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update status");
-    }
-  };
+  // Role/status editing moved to HRMS Manage (/hrms/manage) — kept here, commented, in case it's reinstated.
+  // const setRole = async (emp, role) => {
+  //   try {
+  //     await employeesApi.setRole(emp._id, role);
+  //     toast.success("Role updated");
+  //     load();
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Failed to update role");
+  //   }
+  // };
+  //
+  // const toggleActive = async (emp) => {
+  //   try {
+  //     await employeesApi.setArchived(emp._id, !emp.archived?.hrms);
+  //     toast.success(emp.archived?.hrms ? "Activated" : "Deactivated");
+  //     load();
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Failed to update status");
+  //   }
+  // };
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-8">
@@ -67,7 +70,7 @@ export default function Employees() {
           <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
             <UserPlus className="w-6 h-6 text-cyan-700" /> Employees
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Manage the full employee roster.</p>
+          <p className="text-sm text-slate-500 mt-1">View the full employee roster. Role and status changes happen on the Manage page.</p>
         </div>
         <button onClick={sync} disabled={syncing} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60">
           <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} /> Sync from Azure AD
@@ -95,14 +98,14 @@ export default function Employees() {
               <th className="text-left px-4 py-3">Manager</th>
               <th className="text-left px-4 py-3">Role</th>
               <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Actions</th>
+              {/* <th className="text-left px-4 py-3">Actions</th> */}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
             ) : employees.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400 italic">No employees found.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400 italic">No employees found.</td></tr>
             ) : (
               employees.map((e) => (
                 <tr key={e._id}>
@@ -111,24 +114,28 @@ export default function Employees() {
                   <td className="px-4 py-3">{e.department || "—"}</td>
                   <td className="px-4 py-3">{e.designation || "—"}</td>
                   <td className="px-4 py-3">{e.managerId?.name || e.managerName}</td>
-                  <td className="px-4 py-3">
-                    <select value={e.roles?.hrms || "employee"} onChange={(ev) => setRole(e, ev.target.value)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs capitalize">
+                  <td className="px-4 py-3 capitalize">
+                    {e.roles?.hrms || "employee"}
+                    {/* <select value={e.roles?.hrms || "employee"} onChange={(ev) => setRole(e, ev.target.value)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs capitalize">
                       {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                    </select>
+                    </select> */}
                   </td>
                   <td className="px-4 py-3">
-                    <button
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${e.archived?.hrms ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"}`}>
+                      {e.archived?.hrms ? "Inactive" : "Active"}
+                    </span>
+                    {/* <button
                       onClick={() => toggleActive(e)}
                       className={`px-2.5 py-1 rounded-full text-xs font-semibold ${e.archived?.hrms ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700"}`}
                     >
                       {e.archived?.hrms ? "Inactive" : "Active"}
-                    </button>
+                    </button> */}
                   </td>
-                  <td className="px-4 py-3">
+                  {/* <td className="px-4 py-3">
                     <button onClick={() => navigate(`/hrms/employees/${e._id}`)} className="text-cyan-700 font-semibold flex items-center gap-1 hover:underline">
                       <Eye className="w-3.5 h-3.5" /> View
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               ))
             )}
