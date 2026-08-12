@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Download, FileText, UserX } from "lucide-react";
+import { Download, FileText, UserX, Inbox, CalendarSearch } from "lucide-react";
 import { API } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { isPMS_HR } from "../../utils/pmsrolecheck";
 import StatusBadge from "../components/StatusBadge";
+import EmptyState from "../components/EmptyState";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -40,7 +41,11 @@ function MyReports({ userId }) {
 
   if (loading) return <div className="p-12 text-center text-slate-500">Loading...</div>;
   if (submissions.length === 0) {
-    return <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center text-slate-400">No reports yet — they'll show up here once a review cycle starts.</div>;
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+        <EmptyState icon={Inbox} title="No reports yet." subtitle="They'll show up here once a review cycle starts." />
+      </div>
+    );
   }
 
   return (
@@ -133,7 +138,9 @@ function CycleAnalytics() {
       </div>
 
       {!cycleId ? (
-        <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center text-slate-400">Pick a cycle to see its report.</div>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <EmptyState icon={CalendarSearch} title="Pick a cycle to see its report." />
+        </div>
       ) : loading ? (
         <div className="p-12 text-center text-slate-500">Loading...</div>
       ) : (
@@ -200,7 +207,7 @@ export default function Reports() {
   const [tab, setTab] = useState("mine");
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-8">
+    <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
       <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900">Reports</h1>

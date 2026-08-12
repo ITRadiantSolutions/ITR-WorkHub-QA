@@ -33,7 +33,7 @@ export default function MyTemplate() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FB]">
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
         <button onClick={() => navigate("/pms")} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4">
           <Icons.Back /> Overview
         </button>
@@ -50,7 +50,7 @@ export default function MyTemplate() {
             No KRAs assigned to you yet — check back once HR or your manager assigns a template.
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
             {assignments.map((a, i) => (
               <TemplateCard key={a._id} assignment={a} cycle={cyclesById[a.cycleId]} loggedInUser={user} tIndex={i} onChanged={load} />
             ))}

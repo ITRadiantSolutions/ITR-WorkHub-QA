@@ -1,11 +1,13 @@
-import React, {
+﻿import React, {
     useState, useEffect, useMemo, useRef, useCallback, memo,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { Users, Check, X, Flag, RefreshCw, Download } from "lucide-react";
 import getAuthAxios from "../utils/authAxios";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { confirmDialog } from "../components/ConfirmDialog";
+import StatsCard from "./components/StatsCard";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -41,7 +43,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 // ── PMS Role management (HR only) ──────────────────────────────────────────────
 const PMS_ROLE_META = {
-    hr: { label: "HR", icon: "🛡️", classes: "bg-purple-100 text-purple-700 border-purple-200" },
+    hr: { label: "HR", icon: "🛡️", classes: "bg-violet-100 text-violet-700 border-violet-200" },
     manager: { label: "Manager", icon: "⭐", classes: "bg-teal-100 text-teal-700 border-teal-200" },
     employee: { label: "Employee", icon: "👤", classes: "bg-slate-100 text-slate-600 border-slate-200" },
 };
@@ -133,7 +135,7 @@ const buildDownloadCSV = (filteredUsers, formatDateTimeFn) => () => {
 };
 
 // ── Shared spinner ─────────────────────────────────────────────────────────────
-const Spinner = ({ size = "w-8 h-8", color = "border-purple-200 border-t-purple-600" }) => (
+const Spinner = ({ size = "w-8 h-8", color = "border-violet-200 border-t-violet-600" }) => (
     <div className={`${size} border-4 ${color} rounded-full animate-spin`} />
 );
 
@@ -167,7 +169,7 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                 <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-slate-700">Goal {index + 1}</p>
                     {totalAttachments > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 text-xs font-semibold">
                             📎 {totalAttachments} {totalAttachments === 1 ? "attachment" : "attachments"}
                         </span>
                     )}
@@ -254,14 +256,14 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                                 {totalAttachments} {totalAttachments === 1 ? "Attachment" : "Attachments"}
                             </p>
                             {proofDocs.map((path, fileIdx) => (
-                                <div key={fileIdx} className="flex items-center gap-3 p-2.5 bg-purple-50 border border-purple-200 rounded-lg">
-                                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-                                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div key={fileIdx} className="flex items-center gap-3 p-2.5 bg-violet-50 border border-violet-200 rounded-lg">
+                                    <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                                        <svg className="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-semibold text-purple-700 truncate">{proofFileName(path) || `Attachment ${fileIdx + 1}`}</p>
+                                        <p className="text-xs font-semibold text-violet-700 truncate">{proofFileName(path) || `Attachment ${fileIdx + 1}`}</p>
                                         <p className="text-xs text-slate-400">Employee uploaded proof</p>
                                     </div>
                                     <button
@@ -271,7 +273,7 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
                                             const url = await fetchProofUrl(path);
                                             if (url) window.open(url, "_blank", "noopener,noreferrer");
                                         }}
-                                        className="shrink-0 px-3 py-1 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition">
+                                        className="shrink-0 px-3 py-1 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition">
                                         View
                                     </button>
                                 </div>
@@ -296,17 +298,17 @@ const UserRow = memo(({
     const isArchived = userData.isArchived === true;
 
     return (
-        <tr className={`flex w-full items-center transition-colors ${isArchived ? "bg-slate-50 opacity-70 hover:opacity-90" : isChecked ? "bg-purple-50" : "hover:bg-slate-50"}`}>
+        <tr className={`flex w-full items-center transition-colors ${isArchived ? "bg-slate-50 opacity-70 hover:opacity-90" : isChecked ? "bg-violet-50" : "hover:bg-slate-50"}`}>
             {filterStatus !== "archived" && pms_role === "hr" && (
                 <td className="px-4 py-3 w-[48px] flex items-center justify-center">
                     <input type="checkbox" checked={isChecked} onChange={() => onToggleSelect(userData.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-3.5 h-3.5 rounded accent-purple-600 cursor-pointer" />
+                        className="w-3.5 h-3.5 rounded accent-violet-600 cursor-pointer" />
                 </td>
             )}
             <td className={`px-6 py-3 min-w-0 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
                 <div className="flex items-start gap-2.5">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-purple-500 to-purple-500"}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-violet-700 to-violet-500"}`}>
                         {initials(userData.name)}
                     </div>
                     <div className="min-w-0">
@@ -377,7 +379,7 @@ const UserRow = memo(({
                     ) : (
                         <>
                             <button onClick={() => onView(userData)} title="View KRA Details"
-                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-50 text-purple-600 hover:bg-purple-100 transition shrink-0">
+                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-50 text-violet-600 hover:bg-violet-100 transition shrink-0">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             </button>
                             <button onClick={() => canManageReporting && onReporting(userData)}
@@ -838,12 +840,12 @@ export default function UserKraSearch() {
                     <div className="flex gap-2 shrink-0">
                         <button onClick={filterStatus === "archived" ? fetchArchivedUsers : fetchAllUsers}
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            <RefreshCw className="w-4 h-4" />
                             Refresh
                         </button>
                         <button onClick={downloadCSV} disabled={!filteredUsers.length}
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-violet-500 text-white text-sm font-semibold shadow-sm hover:opacity-90 transition disabled:opacity-50">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <Download className="w-4 h-4" />
                             Export CSV
                         </button>
                     </div>
@@ -852,46 +854,14 @@ export default function UserKraSearch() {
                 {/* ── Stat cards ── */}
                 {filterStatus !== "archived" && (
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <button onClick={() => setFilterStatus("all")}
-                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
-                            <span className="w-11 h-11 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                            </span>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold text-slate-400">Total Users</p>
-                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{totalUsersCount}</p>
-                            </div>
-                        </button>
-                        <button onClick={() => setFilterStatus("assigned")}
-                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
-                            <span className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                            </span>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold text-slate-400">KRA Assigned</p>
-                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{kraAssignedCount}</p>
-                            </div>
-                        </button>
-                        <button onClick={() => setFilterStatus("unassigned")}
-                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
-                            <span className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                            </span>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold text-slate-400">No KRA Assigned</p>
-                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{noKraCount}</p>
-                            </div>
-                        </button>
-                        <button onClick={() => setFilterStatus("pip")}
-                            className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
-                            <span className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h2v-7h5l1 2h7V5h-6l-1-2H5z" /></svg>
-                            </span>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold text-slate-400">PIP Users</p>
-                                <p className="text-2xl font-extrabold text-slate-900 leading-tight">{pipActiveCount}</p>
-                            </div>
-                        </button>
+                        <StatsCard icon={Users} label="Total Users" value={totalUsersCount} accent="violet"
+                            active={filterStatus === "all"} onClick={() => setFilterStatus("all")} />
+                        <StatsCard icon={Check} label="KRA Assigned" value={kraAssignedCount} accent="emerald"
+                            active={filterStatus === "assigned"} onClick={() => setFilterStatus("assigned")} />
+                        <StatsCard icon={X} label="No KRA Assigned" value={noKraCount} accent="amber"
+                            active={filterStatus === "unassigned"} onClick={() => setFilterStatus("unassigned")} />
+                        <StatsCard icon={Flag} label="PIP Users" value={pipActiveCount} accent="red"
+                            active={filterStatus === "pip"} onClick={() => setFilterStatus("pip")} />
                     </div>
                 )}
 
@@ -972,15 +942,15 @@ export default function UserKraSearch() {
 
                 {/* Bulk action bar */}
                 {bulkSelected.size > 0 && filterStatus !== "archived" && pms_role === "hr" && (
-                    <div className="flex items-center gap-3 px-5 py-3 bg-purple-50 border border-purple-200 rounded-xl flex-wrap">
+                    <div className="flex items-center gap-3 px-5 py-3 bg-violet-50 border border-violet-200 rounded-xl flex-wrap">
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center">
                                 <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                             </div>
-                            <span className="text-sm font-semibold text-purple-700">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</span>
+                            <span className="text-sm font-semibold text-violet-700">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</span>
                         </div>
-                        <button onClick={openBulkModal} className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition flex items-center gap-2">Bulk Action</button>
-                        <button onClick={() => setBulkSelected(new Set())} className="text-sm text-purple-500 hover:text-purple-700 underline">Clear selection</button>
+                        <button onClick={openBulkModal} className="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition flex items-center gap-2">Bulk Action</button>
+                        <button onClick={() => setBulkSelected(new Set())} className="text-sm text-violet-500 hover:text-violet-700 underline">Clear selection</button>
                     </div>
                 )}
 
@@ -1008,17 +978,17 @@ export default function UserKraSearch() {
                                         {filterStatus !== "archived" && pms_role === "hr" && (
                                             <th className="px-4 py-3 w-[48px] flex items-center justify-center">
                                                 <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll}
-                                                    className="w-4 h-4 rounded accent-purple-600 cursor-pointer"
+                                                    className="w-4 h-4 rounded accent-violet-600 cursor-pointer"
                                                     title={allFilteredSelected ? "Deselect all" : "Select all"} />
                                             </th>
                                         )}
                                         <th className={`px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
                                             <button onClick={() => setSortType((s) => s === "name" ? "recent" : "name")}
-                                                className="flex items-center gap-1 hover:text-purple-600 transition group">
+                                                className="flex items-center gap-1 hover:text-violet-600 transition group">
                                                 User Name
                                                 <span className="flex flex-col gap-0.5 ml-0.5">
-                                                    <svg className={`w-2.5 h-2.5 ${sortType === "name" ? "text-purple-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 4l8 8H4z" /></svg>
-                                                    <svg className={`w-2.5 h-2.5 ${sortType === "recent" ? "text-purple-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 20l-8-8h16z" /></svg>
+                                                    <svg className={`w-2.5 h-2.5 ${sortType === "name" ? "text-violet-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 4l8 8H4z" /></svg>
+                                                    <svg className={`w-2.5 h-2.5 ${sortType === "recent" ? "text-violet-600" : "text-slate-300 group-hover:text-slate-400"}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 20l-8-8h16z" /></svg>
                                                 </span>
                                             </button>
                                         </th>
@@ -1227,14 +1197,14 @@ export default function UserKraSearch() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
                     <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-purple-600 to-purple-600">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-violet-700 to-violet-500">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xl">
                                     {initials(selectedUser?.name)}
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">{selectedUser?.name}</h2>
-                                    <p className="text-sm text-purple-200">KRA &amp; KPI Details</p>
+                                    <p className="text-sm text-violet-200">KRA &amp; KPI Details</p>
                                 </div>
                             </div>
                             <button onClick={closeModal} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
@@ -1253,7 +1223,7 @@ export default function UserKraSearch() {
                                         {[
                                             { label: "Total KRAs", value: userKraDetails.kras.length, bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700" },
                                             { label: "Job Specific", value: userKraDetails.kras.filter((k) => getKraType(k) === "job-specific").length, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
-                                            { label: "Org", value: userKraDetails.kras.filter((k) => getKraType(k) === "organizational").length, bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+                                            { label: "Org", value: userKraDetails.kras.filter((k) => getKraType(k) === "organizational").length, bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
                                             { label: "Total KPIs", value: userKraDetails.kras.reduce((acc, k) => acc + (k.kpis?.length || 0), 0), bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
                                         ].map(({ label, value, bg, border, text }) => (
                                             <div key={label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bg} border ${border}`}>
@@ -1269,13 +1239,13 @@ export default function UserKraSearch() {
                                             const isOrg = kraType === "organizational";
                                             const { date, time } = kra.assignedAt ? formatDateTime(kra.assignedAt) : { date: "N/A", time: "" };
                                             return (
-                                                <div key={index} className={`rounded-xl border-2 overflow-hidden ${isOrg ? "border-purple-200 bg-purple-50/30" : "border-emerald-200 bg-emerald-50/30"}`}>
-                                                    <div className={`p-4 ${isOrg ? "bg-purple-100" : "bg-emerald-100"}`}>
+                                                <div key={index} className={`rounded-xl border-2 overflow-hidden ${isOrg ? "border-violet-200 bg-violet-50/30" : "border-emerald-200 bg-emerald-50/30"}`}>
+                                                    <div className={`p-4 ${isOrg ? "bg-violet-100" : "bg-emerald-100"}`}>
                                                         <div className="flex items-start justify-between gap-4">
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-2 flex-wrap">
                                                                     <h3 className="font-semibold text-slate-800">{kra.name}</h3>
-                                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOrg ? "bg-purple-200 text-purple-700" : "bg-emerald-200 text-emerald-700"}`}>
+                                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOrg ? "bg-violet-200 text-violet-700" : "bg-emerald-200 text-emerald-700"}`}>
                                                                         {isOrg ? "Organizational" : "Job Specific"}
                                                                     </span>
                                                                 </div>
@@ -1333,7 +1303,7 @@ export default function UserKraSearch() {
                                     <svg className="w-16 h-16 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                     <p className="text-slate-500 mt-4">No KRA assigned to this user</p>
                                     <button onClick={() => { closeModal(); navigate("/pms/templates"); }}
-                                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition">
+                                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                         Assign a KRA Template
                                     </button>
@@ -1352,7 +1322,7 @@ export default function UserKraSearch() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closePipModal} />
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-violet-600 to-purple-600">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-violet-700 to-violet-500">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg">
                                     {initials(pipUser?.name)}

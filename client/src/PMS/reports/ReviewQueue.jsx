@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -319,7 +319,7 @@ export default function ReviewQueue() {
                     key={n}
                     onClick={() => setPage(n)}
                     className={`w-8 h-8 rounded-lg text-xs font-semibold ${
-                      n === page ? "bg-gradient-to-r from-violet-800 to-violet-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50 border border-gray-200"
+                      n === page ? "bg-gradient-to-r from-violet-700 to-violet-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50 border border-gray-200"
                     }`}
                   >
                     {n}

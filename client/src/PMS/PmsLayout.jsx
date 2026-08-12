@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Target,
@@ -52,18 +52,18 @@ export default function PmsLayout() {
       {/* Sidebar */}
       <aside className="w-64 shrink-0 bg-white border-r border-gray-200 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col sticky top-0 h-screen">
         <button onClick={() => navigate("/hub")} className="flex items-center gap-2.5 px-5 py-5 shrink-0 group">
-          <div className="w-9 h-9 rounded-[14px] bg-violet-800 flex items-center justify-center text-white shadow-sm group-hover:bg-violet-900 transition-colors shrink-0">
+          <div className="w-9 h-9 rounded-[14px] bg-violet-700 flex items-center justify-center text-white shadow-sm group-hover:bg-violet-800 transition-colors shrink-0">
             <Target className="w-4.5 h-4.5" />
           </div>
           <span className="text-lg font-extrabold tracking-tight text-gray-900">
-            <span className="text-violet-800">PMS</span>
+            <span className="text-violet-700">PMS</span>
           </span>
         </button>
 
         <div className="px-3 pb-2 shrink-0">
           <button
             onClick={() => navigate("/hub")}
-            className="w-full flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-violet-800 transition"
+            className="w-full flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-violet-700 transition"
           >
             <ArrowLeft className="w-[18px] h-[18px]" />
             Back to Hub
@@ -92,10 +92,10 @@ export default function PmsLayout() {
                   key={t.to}
                   onClick={() => navigate(t.to)}
                   className={`relative w-full flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    active ? "bg-violet-50 text-violet-800" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                    active ? "bg-violet-50 text-violet-700" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                   }`}
                 >
-                  {active && <span className="absolute left-0.5 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-violet-800" />}
+                  {active && <span className="absolute left-0.5 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-violet-700" />}
                   <Icon className="w-5 h-5 shrink-0" />
                   {t.label}
                 </button>
@@ -109,7 +109,7 @@ export default function PmsLayout() {
             onClick={() => setShowProfile(true)}
             className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-gray-50 transition"
           >
-            <div className="w-9 h-9 rounded-full bg-violet-800 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-violet-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
               {initials}
             </div>
             <div className="text-left min-w-0 flex-1">
@@ -150,7 +150,7 @@ export default function PmsLayout() {
         user={user}
         moduleLabel="PM"
         role={user?.roles?.pms}
-        accentClass="from-violet-800 to-violet-600"
+        accentClass="from-violet-700 to-violet-600"
       />
     </div>
   );

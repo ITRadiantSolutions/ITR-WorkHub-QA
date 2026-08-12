@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, FileText, X, Search, Users, Eye, EyeOff, UserCheck } from "lucide-react";
 import CycleTable from "./CycleTable";
@@ -147,7 +147,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
       icon: <UserCheck className="w-4 h-4" />,
       desc: "Only specific users can view",
       color: "border-slate-200 text-slate-600",
-      activeColor: "border-purple-500 bg-purple-50 text-purple-700",
+      activeColor: "border-violet-500 bg-violet-50 text-violet-700",
     },
   ];
 
@@ -174,8 +174,8 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                <FileText className="w-4 h-4 text-purple-600" />
+              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                <FileText className="w-4 h-4 text-violet-600" />
               </div>
               <div>
                 <p className="font-semibold text-slate-800 text-sm">Publish Report</p>
@@ -201,7 +201,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
               <select
                 value={selectedCycleId}
                 onChange={(e) => handleCycleChange(e.target.value)}
-                className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 text-slate-700"
+                className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 text-slate-700"
               >
                 <option value="">— Choose a cycle —</option>
                 {cycles.map((c) => (
@@ -257,7 +257,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search users..."
-                    className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400"
                   />
                 </div>
 
@@ -267,7 +267,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                     {selectedUsers.length} selected of {filteredUsers.length}
                   </span>
                   <div className="flex gap-2">
-                    <button onClick={selectAll} className="text-xs text-purple-600 hover:underline font-medium">
+                    <button onClick={selectAll} className="text-xs text-violet-600 hover:underline font-medium">
                       Select All
                     </button>
                     <span className="text-slate-300">|</span>
@@ -288,16 +288,16 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                         <label
                           key={user.id}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition
-                            ${checked ? "bg-purple-50 border border-purple-200" : "hover:bg-slate-50 border border-transparent"}`}
+                            ${checked ? "bg-violet-50 border border-violet-200" : "hover:bg-slate-50 border border-transparent"}`}
                         >
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleUser(user.id)}
-                            className="accent-purple-600 w-3.5 h-3.5 rounded"
+                            className="accent-violet-600 w-3.5 h-3.5 rounded"
                           />
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-[10px] font-bold shrink-0">
                               {(user.name || "?").slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -306,7 +306,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                             </div>
                           </div>
                           {checked && (
-                            <span className="text-[10px] font-semibold text-purple-500 shrink-0">✓</span>
+                            <span className="text-[10px] font-semibold text-violet-500 shrink-0">✓</span>
                           )}
                         </label>
                       );
@@ -332,7 +332,7 @@ function PublishReportPopup({ cycles, allUsers, onClose, onConfirm }) {
                 saving ||
                 (visibility === "selected" && selectedUsers.length === 0)
               }
-              className="px-5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition flex items-center gap-2"
+              className="px-5 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition flex items-center gap-2"
             >
               <FileText className="w-3.5 h-3.5" />
               {saving ? "Publishing..." : "Publish Report"}

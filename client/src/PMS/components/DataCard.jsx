@@ -1,4 +1,4 @@
-export default function DataCard({ avatarLabel, avatarClass, title, subtitle, topRight, dateLine, meta, actionLabel, onAction, actionIcon: ActionIcon }) {
+﻿export default function DataCard({ avatarLabel, avatarClass, title, subtitle, topRight, dateLine, meta, actionLabel, onAction, actionIcon: ActionIcon }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col hover:shadow-md hover:border-violet-200 transition">
       <div className="flex items-start justify-between gap-2">

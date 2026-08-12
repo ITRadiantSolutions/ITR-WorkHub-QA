@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+﻿import { ChevronRight } from "lucide-react";
 
 const ACCENTS = {
   violet: { icon: "bg-violet-100 text-violet-700", activeBg: "bg-violet-50/70 border-violet-100", bar: "from-violet-400 to-violet-600" },

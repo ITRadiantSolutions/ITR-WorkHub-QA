@@ -77,7 +77,10 @@ submissionSchema.index({ cycleId: 1, managerId: 1 });
 // Document#save() (e.g. a manager completing a review), so normalize them
 // here instead of failing on someone else's stale data.
 const KRA_RESPONSE_STATUSES = kraResponseSchema.path("status").enumValues;
-submissionSchema.pre("save", async function (next) {
+// Async pre-save hooks signal completion via their returned promise, not a
+// next() callback — declaring one here (and calling it) crashed every save
+// with "next is not a function" the moment this hook actually ran.
+submissionSchema.pre("save", async function () {
   for (const response of this.kraResponses) {
     if (!KRA_RESPONSE_STATUSES.includes(response.status)) {
       response.status = "pending";
@@ -88,8 +91,6 @@ submissionSchema.pre("save", async function (next) {
     const assignment = await mongoose.model("KraAssignment").findById(this.assignmentId).select("cycleId");
     if (assignment?.cycleId) this.cycleId = assignment.cycleId;
   }
-
-  next();
 });
 
 export default mongoose.model("Submission", submissionSchema);

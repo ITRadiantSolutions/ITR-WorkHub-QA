@@ -1,4 +1,4 @@
-export default function Loader({
+﻿export default function Loader({
   containerClass = "flex flex-col items-center justify-center h-[60vh] gap-3",
   message = "Please wait…",
 }) {

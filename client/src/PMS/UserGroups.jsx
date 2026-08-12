@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { API } from "../services/api";
 import Icons from "../components/Icons";
@@ -123,7 +123,7 @@ export default function UserGroups() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FB]">
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-slate-900">User groups</h2>
@@ -140,9 +140,9 @@ export default function UserGroups() {
         {loading ? (
           <div className="p-12 text-center text-slate-500">Loading...</div>
         ) : !groups.length ? (
-          <div className="bg-white/90 rounded-2xl border border-white/60 shadow-lg p-12 text-center text-slate-500">No groups yet.</div>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-slate-500">No groups yet.</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {groups.map((g) => (
               <div key={g._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <div className="flex items-start justify-between mb-1">

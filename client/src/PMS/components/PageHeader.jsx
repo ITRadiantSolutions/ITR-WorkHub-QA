@@ -1,9 +1,9 @@
-export default function PageHeader({ icon: Icon, title, subtitle, actions }) {
+﻿export default function PageHeader({ icon: Icon, title, subtitle, actions }) {
   return (
     <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
       <div className="flex items-center gap-3">
         {Icon && (
-          <div className="w-11 h-11 rounded-xl bg-violet-800 text-white flex items-center justify-center shadow-sm shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-violet-700 text-white flex items-center justify-center shadow-sm shrink-0">
             <Icon className="w-5 h-5" />
           </div>
         )}

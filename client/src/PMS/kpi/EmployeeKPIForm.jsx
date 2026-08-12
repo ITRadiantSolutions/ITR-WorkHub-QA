@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Save, X, AlertCircle } from "lucide-react";
 
 export default function EmployeeKPIForm({ kra, onSave, onCancel, setError }) {

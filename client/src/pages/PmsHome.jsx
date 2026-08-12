@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TrendingUp,
@@ -112,7 +112,7 @@ export default function PmsHome() {
     {
       key: "employees",
       icon: User,
-      accent: "blue",
+      accent: "violet",
       value: employeeOpenCount,
       label: "Open for Employees",
       caption: "KRAs pending action",
@@ -120,7 +120,7 @@ export default function PmsHome() {
     {
       key: "managers",
       icon: Users,
-      accent: "emerald",
+      accent: "violet",
       value: managerOpenCount,
       label: "Open for Managers",
       caption: "Reviews pending",

@@ -1,4 +1,4 @@
-import { Search, Download, RotateCcw } from "lucide-react";
+﻿import { Search, Download, RotateCcw } from "lucide-react";
 
 export default function FilterToolbar({ search, children, onExport, exportLabel = "Export", onClearFilters, showClear = false }) {
   return (
@@ -30,7 +30,7 @@ export default function FilterToolbar({ search, children, onExport, exportLabel 
         {onExport && (
           <button
             onClick={onExport}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-800 to-violet-600 text-white text-sm font-semibold shadow-sm hover:from-violet-900 hover:to-violet-700 transition"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-violet-500 text-white text-sm font-semibold shadow-sm hover:from-violet-800 hover:to-violet-600 transition"
           >
             <Download className="w-4 h-4" />
             {exportLabel}
