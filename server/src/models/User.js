@@ -24,14 +24,14 @@ const userSchema = new mongoose.Schema(
     shift: { type: String, default: null },
 
     // Sits above every per-module role tier, including "hr" — the one (or
-    // few) people who can grant/revoke manageAccessModules below. Never
-    // settable through a normal API call; only ever flipped by an existing
-    // super admin.
+    // few) people who can grant/revoke manageAccessModules below. Only ever
+    // flipped by an existing super admin via setSuperAdmin (Access Grants'
+    // Super Admins tab), which refuses to leave zero super admins.
     isSuperAdmin: { type: Boolean, default: false },
-    // Which modules' access (HRMS "Manage" page, assignRole, setArchived)
-    // this person can edit — per module, not all-or-nothing. Holding "hr" or
-    // "manager" on a module no longer implies edit rights by itself; a super
-    // admin decides which specific modules to hand out, via Access Grants.
+    // Which modules' access this person can edit — per module, not
+    // all-or-nothing. Holding "hr" or "manager" on a module no longer
+    // implies edit rights by itself; a super admin decides which specific
+    // modules to hand out, via Access Grants.
     manageAccessModules: { type: [String], default: [] },
 
     // HRMS-specific profile fields. `department`/`designation` are free-text

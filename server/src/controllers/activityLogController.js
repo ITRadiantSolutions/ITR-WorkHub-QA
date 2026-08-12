@@ -79,6 +79,33 @@ export const getAdminLogsSummary = async (req, res) => {
   });
 };
 
+const ACCESS_GRANT_EVENTS = [
+  "user.manageAccessGrant.updated",
+  "user.superAdmin.granted",
+  "user.superAdmin.revoked",
+  "user.role.updated",
+  "user.archive.updated",
+];
+
+// Super admin only — the Audit Logs tab on Access Grants. Scoped to just
+// the events that page can cause (module access grants + super admin
+// grant/revoke), not the full admin log firehose.
+export const getAccessGrantAuditLogs = async (req, res) => {
+  if (!req.user.isSuperAdmin) {
+    return res.status(403).json({ message: "Only a super admin can view this log." });
+  }
+  const requestedLimit = Number.parseInt(req.query.limit, 10);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 1000) : 500;
+
+  const logs = await ActivityLog.find({ logType: "audit", event: { $in: ACCESS_GRANT_EVENTS } })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ logs });
+};
+
 export const getMicrosoftLoginLogs = async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const { page = 1, limit = 50, email, step, status } = req.query;

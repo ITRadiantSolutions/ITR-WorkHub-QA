@@ -305,7 +305,7 @@ function Field({ label, required, children }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function QADashboard() {
-  const { user, logout } = useAuth();
+  const { user, confirmLogout } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -502,9 +502,8 @@ export default function QADashboard() {
       setLoading(false);
     }
   };
-  const handleLogout = () => {
-    toast.success("Logged out successfully");
-    logout();
+  const handleLogout = async () => {
+    if (await confirmLogout()) toast.success("Logged out successfully");
   };
   const counts = {
     total: bugs.length,

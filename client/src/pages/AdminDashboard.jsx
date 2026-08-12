@@ -195,7 +195,7 @@ function HBar({ label, count, total, color }) {
 }
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, confirmLogout } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [clientGroupDraft, setClientGroupDraft] = useState(null);
   const [clientResumeProject, setClientResumeProject] = useState(null);
@@ -450,9 +450,8 @@ export default function AdminDashboard() {
     };
   }, [activeTab]);
 
-  const handleLogout = () => {
-    toast.success("Logged out successfully");
-    logout();
+  const handleLogout = async () => {
+    if (await confirmLogout()) toast.success("Logged out successfully");
   };
 
   // Derived metrics

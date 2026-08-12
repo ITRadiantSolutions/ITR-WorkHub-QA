@@ -1,7 +1,7 @@
 import { Clock, Target, BookOpen, ShieldCheck, Zap, Briefcase } from "lucide-react";
 
-// Shared by Manage.jsx (module picker) and ManageModule.jsx (per-module
-// access list). Mirrors server/src/models/User.js `roles`/`archived` enums.
+// Used by AccessGrants.jsx to list the modules a super admin can grant
+// manage-access to. Mirrors server/src/models/User.js `roles`/`archived` enums.
 export const MANAGE_MODULES = [
   { key: "timesheet", label: "Time Flow", icon: Clock, accent: "emerald", roles: ["employee", "manager", "hr"], defaultRole: "employee", hasArchive: true },
   { key: "pms", label: "PMS", icon: Target, accent: "violet", roles: ["employee", "manager", "hr"], defaultRole: "employee", hasArchive: true },

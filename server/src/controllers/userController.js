@@ -4,6 +4,7 @@ import { notifyUsers } from "../utils/notify.js";
 import { getIO } from "../realtime/socket.js";
 import { toPublicUser } from "../utils/publicUser.js";
 import { getGraphAccessToken } from "../utils/graphMailer.js";
+import { writeAuditLog } from "../utils/activityLog.js";
 
 const MODULE_ROLE_ENUM = {
   timesheet: ["employee", "manager", "hr"],
@@ -180,12 +181,29 @@ export const assignRole = async (req, res) => {
   if (!isFullAccess(req.user) && !MANAGER_ROLE_CEILING[module]?.includes(role)) {
     return res.status(403).json({ message: `Managers cannot assign '${role}' for '${module}'` });
   }
+  const before = await User.findById(req.params.id).select("roles name email");
+  if (!before) return res.status(404).json({ message: "User not found" });
+  const previousRole = before.roles?.[module];
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { $set: { [`roles.${module}`]: role } },
     { new: true },
   ).select("-password");
-  if (!user) return res.status(404).json({ message: "User not found" });
+
+  writeAuditLog({
+    type: "change",
+    event: "user.role.updated",
+    action: "user.role.updated",
+    actorId: req.user._id,
+    actorName: req.user.name,
+    actorEmail: req.user.email,
+    targetId: user._id,
+    oldValue: { module, role: previousRole },
+    newValue: { module, role },
+    changes: { [`roles.${module}`]: role },
+    metadata: { targetName: user.name, targetEmail: user.email, module },
+  });
+
   res.json(user);
 };
 
@@ -206,6 +224,21 @@ export const setArchived = async (req, res) => {
     { new: true },
   ).select("-password");
   if (!user) return res.status(404).json({ message: "User not found" });
+
+  writeAuditLog({
+    type: "change",
+    event: "user.archive.updated",
+    action: "user.archive.updated",
+    actorId: req.user._id,
+    actorName: req.user.name,
+    actorEmail: req.user.email,
+    targetId: user._id,
+    oldValue: { module, archived: !archived },
+    newValue: { module, archived: Boolean(archived) },
+    changes: { [`archived.${module}`]: Boolean(archived) },
+    metadata: { targetName: user.name, targetEmail: user.email, module },
+  });
+
   res.json(user);
 };
 
@@ -224,12 +257,86 @@ export const setManageAccessGrant = async (req, res) => {
   if (modules.some((m) => !MODULE_ROLE_ENUM[m])) {
     return res.status(400).json({ message: "Invalid module in list" });
   }
+  const before = await User.findById(req.params.id).select("manageAccessModules name email");
+  if (!before) return res.status(404).json({ message: "User not found" });
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { $set: { manageAccessModules: modules } },
     { new: true },
   ).select("-password");
-  if (!user) return res.status(404).json({ message: "User not found" });
+
+  writeAuditLog({
+    type: "change",
+    event: "user.manageAccessGrant.updated",
+    action: "user.manageAccessGrant.updated",
+    actorId: req.user._id,
+    actorName: req.user.name,
+    actorEmail: req.user.email,
+    targetId: user._id,
+    oldValue: { modules: before.manageAccessModules || [] },
+    newValue: { modules: modules },
+    changes: { modules },
+    metadata: { targetName: user.name, targetEmail: user.email },
+  });
+
+  res.json(user);
+};
+
+// Super admin only — flips isSuperAdmin on another account. Deliberately
+// guarded beyond a plain role check: this bypasses every other permission
+// gate in the app, so (1) only an existing super admin can grant/revoke it,
+// and (2) revoking is refused if it would leave zero super admins — there
+// must always be at least one person able to fix access if something goes
+// wrong. Every change is written to the audit log (surfaced on Access
+// Grants' Audit Logs tab).
+// Permanently protected super admin — a deliberate, hardcoded exemption
+// (not just the "last super admin" rule) so this specific account can never
+// be locked out of Access Grants, even while other super admins exist.
+const PROTECTED_SUPER_ADMIN_EMAIL = "pulkit.bopche@itradiant.com";
+
+export const setSuperAdmin = async (req, res) => {
+  if (!req.user.isSuperAdmin) {
+    return res.status(403).json({ message: "Only a super admin can grant or revoke super admin." });
+  }
+  const nextValue = Boolean(req.body.isSuperAdmin);
+  const target = await User.findById(req.params.id).select("isSuperAdmin name email");
+  if (!target) return res.status(404).json({ message: "User not found" });
+
+  if (target.isSuperAdmin === nextValue) {
+    return res.json(await User.findById(target._id).select("-password"));
+  }
+
+  if (!nextValue && target.email?.toLowerCase() === PROTECTED_SUPER_ADMIN_EMAIL) {
+    return res.status(400).json({ message: "This super admin is protected and can't be removed." });
+  }
+
+  if (!nextValue) {
+    const remaining = await User.countDocuments({ isSuperAdmin: true, _id: { $ne: target._id } });
+    if (remaining === 0) {
+      return res.status(400).json({ message: "Can't remove the last super admin — grant it to someone else first." });
+    }
+  }
+
+  const user = await User.findByIdAndUpdate(
+    target._id,
+    { $set: { isSuperAdmin: nextValue } },
+    { new: true },
+  ).select("-password");
+
+  writeAuditLog({
+    type: "change",
+    event: nextValue ? "user.superAdmin.granted" : "user.superAdmin.revoked",
+    action: nextValue ? "user.superAdmin.granted" : "user.superAdmin.revoked",
+    actorId: req.user._id,
+    actorName: req.user.name,
+    actorEmail: req.user.email,
+    targetId: user._id,
+    oldValue: { isSuperAdmin: target.isSuperAdmin },
+    newValue: { isSuperAdmin: nextValue },
+    changes: { isSuperAdmin: nextValue },
+    metadata: { targetName: user.name, targetEmail: user.email },
+  });
+
   res.json(user);
 };
 

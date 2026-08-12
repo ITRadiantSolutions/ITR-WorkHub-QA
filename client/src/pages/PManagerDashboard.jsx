@@ -206,7 +206,7 @@ function Badge({ label, variant }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ManagerDashboard() {
-  const { user, logout } = useAuth();
+  const { user, confirmLogout } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -319,9 +319,8 @@ export default function ManagerDashboard() {
     critical: bugs.filter((b) => b.severity === "CRITICAL").length,
   };
 
-  const handleLogout = () => {
-    toast.success("Logged out successfully");
-    logout();
+  const handleLogout = async () => {
+    if (await confirmLogout()) toast.success("Logged out successfully");
   };
 
   const toDay = (d) => {

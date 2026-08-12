@@ -22,7 +22,7 @@ const MANAGER_TABS = [
 const ADMIN_TABS = MANAGER_TABS;
 
 export default function LmsLayout() {
-  const { user, logout } = useAuth();
+  const { user, confirmLogout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,7 +95,7 @@ export default function LmsLayout() {
             <span className="text-xs font-bold text-slate-400">{isDark ? "Dark" : "Light"}</span>
           </button>
           <button
-            onClick={() => logout()}
+            onClick={() => confirmLogout()}
             className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
           >
             <Icons.Logout />

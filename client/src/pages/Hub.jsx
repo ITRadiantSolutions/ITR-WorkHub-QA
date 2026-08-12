@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
@@ -6,6 +6,13 @@ import Icons from "../components/Icons";
 import WorkHubLogo from "../components/WorkHubLogo";
 import getInitials from "../utils/getInitials";
 import { isSuperAdmin } from "../utils/hrmsrolecheck";
+import { MANAGE_MODULES } from "../HRMS/moduleAccessConfig";
+
+const ROLE_LABELS = {
+  hr: "HR", admin: "Admin", manager: "Manager", employee: "Employee", host: "Host", receptionist: "Receptionist",
+  ADMIN: "Admin", PM: "PM", DEVELOPER: "Developer", QA: "QA", BUSINESS_USER: "Business User",
+};
+const formatRole = (role) => ROLE_LABELS[role] || role;
 
 const TRACKER_ROUTES = {
   ADMIN: "/admin",
@@ -312,8 +319,9 @@ const DECORS = {
 };
 
 export default function Hub() {
-  const { user, logout } = useAuth();
+  const { user, confirmLogout } = useAuth();
   const navigate = useNavigate();
+  const [showProfile, setShowProfile] = useState(false);
 
   // Dark mode is a per-workspace preference (Timesheet/PMS/Tracker) — the Hub
   // landing page always stays on the light theme regardless of that setting.
@@ -339,35 +347,83 @@ export default function Hub() {
         </div>
 
         <div className="flex items-center gap-2 lg:gap-4 justify-self-end min-w-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
-              {getInitials(user?.name)}
-            </div>
-            <div className="hidden lg:flex items-center gap-1 min-w-0">
-              <div className="leading-tight min-w-0">
-                <p className="text-sm font-bold text-slate-900 truncate max-w-[160px]">{user?.name || "there"}</p>
-                <p className="text-xs text-slate-500 truncate max-w-[160px]">{user?.email}</p>
-              </div>
-              <span className="text-slate-400 shrink-0"><Icons.ChevronDown /></span>
-            </div>
-          </div>
-
           {isSuperAdmin(user) && (
             <button
               onClick={() => navigate("/access-grants")}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 lg:px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shrink-0"
+              className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-3 lg:px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-500/40 transition shrink-0"
               title="Super admin — manage who can edit access across every module"
             >
               <Icons.Shield /> <span className="hidden sm:inline">Access Grants</span>
             </button>
           )}
 
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 lg:px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shrink-0"
-          >
-            <Icons.Logout /> <span className="hidden sm:inline">Sign out</span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowProfile((v) => !v)}
+              className={`flex items-center gap-2 min-w-0 rounded-xl pl-1.5 pr-2.5 py-1 transition ${showProfile ? "bg-slate-100" : "hover:bg-slate-50"}`}
+            >
+              <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
+                {getInitials(user?.name)}
+              </div>
+              <span className="hidden lg:inline text-sm font-bold text-slate-900 truncate max-w-[140px]">{user?.name || "there"}</span>
+              <span className={`hidden lg:inline text-slate-400 shrink-0 transition-transform ${showProfile ? "rotate-180" : ""}`}>
+                <Icons.ChevronDown />
+              </span>
+            </button>
+
+            {showProfile && (
+              <>
+                <div className="fixed inset-0 z-40 bg-slate-900/10" onClick={() => setShowProfile(false)} />
+                <div className="absolute right-0 top-[calc(100%+10px)] w-80 bg-white rounded-2xl ring-1 ring-slate-900/5 shadow-2xl z-50 overflow-hidden">
+                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
+                    <div className="w-11 h-11 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-sm">
+                      {getInitials(user?.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{user?.name || "there"}</p>
+                      <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="px-2.5 py-2.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400 px-2.5 pt-1 pb-2">Your access</p>
+                    <div className="space-y-0.5">
+                      {MANAGE_MODULES.map((m) => {
+                        const archived = m.hasArchive && Boolean(user?.archived?.[m.key]);
+                        const role = user?.roles?.[m.key] || m.defaultRole;
+                        const ModIcon = m.icon;
+                        return (
+                          <div key={m.key} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-50">
+                            <span className="w-6 h-6 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                              <ModIcon className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="text-sm text-slate-600 flex-1 truncate">{m.label}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${
+                                archived ? "bg-slate-100 text-slate-400" : "bg-blue-50 text-blue-700"
+                              }`}
+                            >
+                              {archived ? "No access" : formatRole(role)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      setShowProfile(false);
+                      await confirmLogout();
+                    }}
+                    className="w-full flex items-center gap-2 px-5 py-3 border-t border-slate-100 text-sm font-semibold text-red-600 hover:bg-red-50 transition"
+                  >
+                    <Icons.Logout /> Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 

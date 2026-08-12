@@ -7,8 +7,8 @@ import { employeesApi } from "../hrmsApi";
 // const ROLE_OPTIONS = ["employee", "manager", "hr"]; // only used by the disabled Role select below
 
 export default function Employees() {
-  // This page is view-only now — role and status changes happen exclusively
-  // on HRMS Manage (/hrms/manage), the single centralized place for module access.
+  // This page is view-only — role and module access are managed exclusively
+  // via the super-admin-gated Access Grants page.
   // const navigate = useNavigate(); // only used by the disabled Actions/View button below
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ export default function Employees() {
     }
   };
 
-  // Role/status editing moved to HRMS Manage (/hrms/manage) — kept here, commented, in case it's reinstated.
+  // Role/status editing now happens via Access Grants — kept here, commented, in case it's reinstated.
   // const setRole = async (emp, role) => {
   //   try {
   //     await employeesApi.setRole(emp._id, role);

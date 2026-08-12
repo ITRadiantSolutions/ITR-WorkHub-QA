@@ -9,6 +9,7 @@ import {
 } from "react";
 import io from "socket.io-client";
 import { clearApiGetCache, DATA_MUTATED_EVENT } from "../services/api.js";
+import { confirmDialog } from "../components/ConfirmDialog";
 
 const AuthContext = createContext();
 
@@ -258,6 +259,22 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // For user-clicked "Sign out" buttons — raw logout() stays confirm-free
+  // since it also runs automatically on token invalidation (see the
+  // flowtrack:auth-invalid listener below), where a dialog would just be a
+  // dead-end prompt for a session that's already gone.
+  const confirmLogout = useCallback(async () => {
+    const ok = await confirmDialog({
+      title: "Sign out?",
+      text: "You'll need to sign in again to continue.",
+      confirmText: "Sign out",
+      cancelText: "Cancel",
+      danger: true,
+    });
+    if (ok) logout();
+    return ok;
+  }, [logout]);
+
   // Listen for token invalidation events coming from the API layer
   useEffect(() => {
     const onAuthInvalid = () => {
@@ -298,6 +315,7 @@ export const AuthProvider = ({ children }) => {
       error,
       login,
       logout,
+      confirmLogout,
       refreshUser,
       setAuthError,
       isAuthenticated,
@@ -311,6 +329,7 @@ export const AuthProvider = ({ children }) => {
       error,
       login,
       logout,
+      confirmLogout,
       refreshUser,
       isAuthenticated,
       hasRole,

@@ -278,7 +278,7 @@ function getPriorityVariant(p) {
 
 // ══════════════════════════════════════════════════════════════════════════════
 export default function DeveloperDashboard() {
-  const { user, logout } = useAuth();
+  const { user, confirmLogout } = useAuth();
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [projects, setProjects] = useState([]);
@@ -631,9 +631,8 @@ export default function DeveloperDashboard() {
     setTaskPage(1);
   }, [taskSearch, filterTaskStatus, filterPriority, taskPageSize]);
 
-  const handleLogout = () => {
-    toast.success("Logged out successfully");
-    logout();
+  const handleLogout = async () => {
+    if (await confirmLogout()) toast.success("Logged out successfully");
   };
 
   const toDay = (d) => {

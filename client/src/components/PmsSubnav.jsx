@@ -15,7 +15,7 @@ const LINKS = [
 ];
 
 export default function PmsSubnav() {
-  const { user, logout } = useAuth();
+  const { user, confirmLogout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const hr = isPMS_HR(user);
@@ -37,7 +37,7 @@ export default function PmsSubnav() {
           <Icons.Back /> Hub
         </button>
         <h1 className="text-lg font-bold text-slate-900">Performance Management</h1>
-        <button onClick={logout} className="flex items-center gap-1.5 text-sm font-semibold text-violet-600 hover:text-violet-700">
+        <button onClick={() => confirmLogout()} className="flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700">
           <Icons.Logout /> Sign out
         </button>
       </div>

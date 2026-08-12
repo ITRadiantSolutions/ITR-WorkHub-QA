@@ -12,8 +12,8 @@ import ProfileModal from "./ProfileModal";
 // (Admin/PM/Developer/QA/Business) can plug in its own tab list while
 // keeping its existing internal activeTab state (no route restructuring).
 export default function TrackerSidebar({ title = "FlowTrack", navItems, activeId, onSelect, onLogout }) {
-  const { user, logout } = useAuth();
-  const handleLogout = onLogout || (() => logout());
+  const { user, confirmLogout } = useAuth();
+  const handleLogout = onLogout || (() => confirmLogout());
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const initials = getInitials(user?.name);

@@ -65,9 +65,8 @@ import HrmsReferrals from "./HRMS/pages/Referrals";
 import HrmsEmployees from "./HRMS/pages/Employees";
 import HrmsEmployeeProfile from "./HRMS/pages/EmployeeProfile";
 import HrmsMyTeam from "./HRMS/pages/MyTeam";
-import HrmsManage from "./HRMS/pages/Manage";
-import HrmsManageModule from "./HRMS/pages/ManageModule";
 import AccessGrants from "./pages/AccessGrants";
+import Guide from "./pages/Guide";
 import { Toaster } from "sonner";
 import { ConfirmDialogHost } from "./components/ConfirmDialog";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -431,22 +430,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/hrms/manage"
-                element={
-                  <ProtectedRoute>
-                    <HrmsManage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/hrms/manage/:moduleKey"
-                element={
-                  <ProtectedRoute>
-                    <HrmsManageModule />
-                  </ProtectedRoute>
-                }
-              />
             </Route>
 
             <Route
@@ -454,6 +437,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AccessGrants />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/guide"
+              element={
+                <ProtectedRoute>
+                  <Guide />
                 </ProtectedRoute>
               }
             />
