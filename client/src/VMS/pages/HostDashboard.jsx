@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 import { API } from "../../services/api.js";
 import InviteVisitorModal from "../components/InviteVisitorModal.jsx";
 
@@ -131,7 +132,7 @@ function ApprovalCenter({ visitors, loading, actionLoading, onRefresh, onDecisio
             disabled={loading}
             className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-pink-300 hover:text-pink-600 active:scale-[0.98] disabled:opacity-50"
           >
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </button>
         </div>
       </div>

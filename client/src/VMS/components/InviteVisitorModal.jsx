@@ -12,6 +12,12 @@ function FieldLabel({ children }) {
   return <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{children}</div>;
 }
 
+// Mirrors server/src/validators/vmsValidator.js's validateCreateVisitor —
+// keep in sync so the form fails fast instead of round-tripping a 400.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+const PURPOSE_MAX = 300;
+const NAME_MAX = 120;
+
 // Ported from the standalone VMS project's InviteVisitorModal.jsx. Adapted:
 // the original's "Host (optional)" field was a raw text box for pasting a
 // Mongo ID with no lookup at all — this modal only opens from a host's own
@@ -46,10 +52,20 @@ export default function InviteVisitorModal({ open, onClose, onInvited }) {
     if (!open) reset();
   }, [open]);
 
-  const canSend = useMemo(
-    () => fullName.trim().length >= 2 && mobileNumber.replace(/\D/g, "").length >= 10 && purpose.trim().length >= 2 && Boolean(visitDate),
-    [fullName, mobileNumber, purpose, visitDate],
-  );
+  const canSend = useMemo(() => {
+    const name = fullName.trim();
+    const digits = mobileNumber.replace(/\D/g, "");
+    const trimmedPurpose = purpose.trim();
+    return (
+      name.length >= 2 &&
+      name.length <= NAME_MAX &&
+      digits.length === 10 &&
+      trimmedPurpose.length >= 2 &&
+      trimmedPurpose.length <= PURPOSE_MAX &&
+      (!email.trim() || EMAIL_REGEX.test(email.trim())) &&
+      Boolean(visitDate)
+    );
+  }, [fullName, mobileNumber, purpose, email, visitDate]);
 
   const handleInviteSend = async () => {
     if (!canSend) {
@@ -123,16 +139,18 @@ export default function InviteVisitorModal({ open, onClose, onInvited }) {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter name"
+                  maxLength={NAME_MAX}
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-400/20"
                 />
               </div>
               <div>
                 <FieldLabel>Mobile number *</FieldLabel>
                 <input
-                  type="text"
+                  type="tel"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
+                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   placeholder="e.g. 9876543210"
+                  maxLength={10}
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-400/20"
                 />
               </div>
@@ -145,8 +163,10 @@ export default function InviteVisitorModal({ open, onClose, onInvited }) {
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 placeholder="Meeting / Delivery / Interview"
+                maxLength={PURPOSE_MAX}
                 className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-400/20"
               />
+              <div className="mt-1 text-right text-[10px] text-slate-400">{purpose.length}/{PURPOSE_MAX}</div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
