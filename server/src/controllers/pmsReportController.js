@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import Submission from "../models/Submission.js";
+import User from "../models/User.js";
 
 const requirePmsHr = (req, res) => {
   if (req.user.roles.pms !== "hr") {
@@ -43,6 +44,21 @@ export const exportCycleReport = async (req, res) => {
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", 'attachment; filename="pms-cycle-report.xlsx"');
   res.send(buffer);
+};
+
+// Who hasn't submitted at all (or, when cycleId is given, for that cycle
+// specifically) — a manager only ever gets their own team regardless of
+// what manager_id they pass; only HR may look up an arbitrary manager's team.
+export const listNonSubmitters = async (req, res) => {
+  if (!["manager", "hr"].includes(req.user.roles.pms)) return res.status(403).json({ message: "Forbidden" });
+  const managerId = req.user.roles.pms === "manager" ? req.user._id.toString() : req.query.managerId;
+  const userFilter = managerId ? { managerId } : {};
+  const users = await User.find(userFilter).select("name email");
+
+  const submissionFilter = req.query.cycleId ? { cycleId: req.query.cycleId } : {};
+  const submitted = new Set((await Submission.find(submissionFilter).select("employeeId")).map((s) => s.employeeId.toString()));
+  const nonSubmitters = users.filter((u) => !submitted.has(u._id.toString()));
+  res.json(nonSubmitters.map((u) => ({ id: u._id, name: u.name, email: u.email })));
 };
 
 export const getEmployeeReport = async (req, res) => {

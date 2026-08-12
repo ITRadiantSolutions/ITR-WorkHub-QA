@@ -28,21 +28,13 @@ import entriesRoutes from "./routes/timeflow/entries.routes.js";
 import hrRoutes from "./routes/timeflow/hr.routes.js";
 import timesheetFaqRoutes from "./routes/timeflow/timesheetFaq.routes.js";
 
-// PMS (performance management, including the legacy ITR_TimeFlow_Production-
-// compatible routes)
+// PMS (performance management)
 import pmsCycleRoutes from "./routes/pms/cycle.routes.js";
 import pmsKraRoutes from "./routes/pms/kra.routes.js";
 import pmsSubmissionRoutes from "./routes/pms/submission.routes.js";
 import pmsPipRoutes from "./routes/pms/pip.routes.js";
 import pmsUsersGroupRoutes from "./routes/pms/usersGroup.routes.js";
 import pmsReportRoutes from "./routes/pms/report.routes.js";
-import legacyCycleRoutes from "./routes/pms/legacyCycle.routes.js";
-import legacyKraLibraryRoutes from "./routes/pms/legacyKraLibrary.routes.js";
-import legacyPmsMiscRoutes from "./routes/pms/legacyPmsMisc.routes.js";
-import legacyReportsRoutes from "./routes/pms/legacyReports.routes.js";
-import legacyUsersGroupRoutes from "./routes/pms/legacyUsersGroup.routes.js";
-import legacyKraMasterTemplateRoutes from "./routes/pms/legacyKraMasterTemplate.routes.js";
-import legacyKraDraftRoutes from "./routes/pms/legacyKraDraft.routes.js";
 
 // VMS (Visitor Management System)
 import vmsVisitorRoutes from "./routes/vms/visitor.routes.js";
@@ -103,13 +95,6 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/user-issues", userIssueRoutes);
 app.use("/api/activity-logs", activityLogRoutes);
 app.use("/api/admin/logs", adminLogsRoutes);
-app.use("/api/cycles", legacyCycleRoutes);
-app.use("/api/kra-library", legacyKraLibraryRoutes);
-app.use("/api", legacyPmsMiscRoutes);
-app.use("/api/reports", legacyReportsRoutes);
-app.use("/api/usersgroup", legacyUsersGroupRoutes);
-app.use("/api", legacyKraMasterTemplateRoutes);
-app.use("/api/kras", legacyKraDraftRoutes);
 app.use("/api/vms/visitors", vmsVisitorRoutes);
 app.use("/api/vms/admin", vmsAdminRoutes);
 app.use("/api/lms/courses", lmsCourseRoutes);

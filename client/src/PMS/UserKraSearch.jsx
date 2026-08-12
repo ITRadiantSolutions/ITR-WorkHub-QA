@@ -61,7 +61,7 @@ const fetchProofUrl = async (path) => {
     if (!path) return null;
     try {
         const api = await getAuthAxios();
-        const res = await api.get("/pips/proof-url", { params: { blob_name: path } });
+        const res = await api.get("/pms/pips/proof-url", { params: { blob_name: path } });
         return res.data?.url || null;
     } catch (err) {
         console.error("Failed to get proof URL", err);
@@ -286,62 +286,11 @@ const PipGoalCard = memo(({ goal, index, savedGoal, employeeUpdatedAt, totalGoal
     );
 });
 
-// ── Library KRA Card ──────────────────────────────────────────────────────────
-const LibraryKraCard = memo(({ kra, alreadyAdded, onAdd }) => (
-    <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-200 hover:border-purple-300 hover:shadow-sm transition">
-        <div className="flex-1 pr-3">
-            <p className="text-sm font-semibold text-slate-800">{kra.name}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{kra.kpis?.length || 0} KPIs</p>
-        </div>
-        <button onClick={() => onAdd(kra)} disabled={alreadyAdded}
-            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition ${alreadyAdded ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-purple-600 text-white hover:bg-purple-700"}`}>
-            {alreadyAdded ? "✓ Added" : "+ Add"}
-        </button>
-    </div>
-));
-
-// ── Role Badge / Dropdown ──────────────────────────────────────────────────────
-const RoleCell = memo(({ userId, userName, role, isArchived, isSaving, onChangeRole }) => {
-    const meta = PMS_ROLE_META[role] || PMS_ROLE_META.employee;
-
-    if (isArchived) {
-        return (
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${meta.classes}`}>
-                <span>{meta.icon}</span>{meta.label}
-            </span>
-        );
-    }
-
-    return (
-        <div className="relative inline-block">
-            <select
-                value={role}
-                disabled={isSaving}
-                onChange={(e) => onChangeRole(userId, userName, e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                title="Change PMS role"
-                className={`appearance-none pl-6 pr-6 py-1 rounded-full border text-xs font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-wait transition ${meta.classes}`}
-            >
-                {PMS_ROLE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-            </select>
-            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs">
-                {isSaving ? "⏳" : meta.icon}
-            </span>
-            <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-current opacity-60"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-        </div>
-    );
-});
-
 // ── User Table Row ─────────────────────────────────────────────────────────────
 const UserRow = memo(({
     userData, isChecked, filterStatus, pms_role,
-    canEditKra, canManageReporting, canManageRoles, canManagePip,
-    pipSummary, savingRoleId, onView, onEdit, onReporting, onArchive, onPip, onToggleSelect, onChangeRole,
+    canManageReporting, canManagePip,
+    pipSummary, onView, onReporting, onArchive, onPip, onToggleSelect,
 }) => {
     const { date, time } = formatDateTime(userData.assignedAt);
     const isArchived = userData.isArchived === true;
@@ -405,18 +354,6 @@ const UserRow = memo(({
                     )}
                 </td>
             )}
-            {canManageRoles && (
-                <td className="px-4 py-3 text-center w-[12%]">
-                    <RoleCell
-                        userId={userData.id}
-                        userName={userData.name}
-                        role={userData.pms_role}
-                        isArchived={isArchived}
-                        isSaving={savingRoleId === userData.id}
-                        onChangeRole={onChangeRole}
-                    />
-                </td>
-            )}
             <td className="px-4 py-3 text-center w-[10%]">
                 {isArchived ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-100 text-orange-600 text-xs font-semibold">
@@ -442,12 +379,6 @@ const UserRow = memo(({
                             <button onClick={() => onView(userData)} title="View KRA Details"
                                 className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-50 text-purple-600 hover:bg-purple-100 transition shrink-0">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                            </button>
-                            <button onClick={() => canEditKra && userData.hasKra && onEdit(userData)}
-                                disabled={!(canEditKra && userData.hasKra)}
-                                title={!canEditKra ? "You don't have permission to edit" : !userData.hasKra ? "No KRA assigned yet" : "Edit KRA Assignment"}
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${canEditKra && userData.hasKra ? "bg-amber-50 text-amber-600 hover:bg-amber-100" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                             </button>
                             <button onClick={() => canManageReporting && onReporting(userData)}
                                 disabled={!canManageReporting}
@@ -495,8 +426,6 @@ export default function UserKraSearch() {
     // which carries both fields — so we read pms_role directly instead of
     // going through getUserRole(), which only ever reads `role`.
     const pms_role = (user?.roles?.pms || "employee").toLowerCase();
-    const managerName = user?.name || user?.username || user?.full_name ||
-        (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || "");
 
     // ── Core state ────────────────────────────────────────────────────────────
     const [allUsers, setAllUsers] = useState([]);
@@ -513,23 +442,12 @@ export default function UserKraSearch() {
     const [myReportIds, setMyReportIds] = useState(null);
     const [userPips, setUserPips] = useState({});
 
-    // ── Role management state ────────────────────────────────────────────────
-    const [savingRoleId, setSavingRoleId] = useState(null);
-
-    // ── KRA modal state ───────────────────────────────────────────────────────
+    // ── KRA modal state (view-only — editing weights/assignment now happens
+    // via Access Grants > Manage Roles and the /pms/templates assign flow) ──
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [userKraDetails, setUserKraDetails] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [pendingEdit, setPendingEdit] = useState(false);
-    const [editableKras, setEditableKras] = useState([]);
-    const [savingEdit, setSavingEdit] = useState(false);
-    const [libraryKras, setLibraryKras] = useState([]);
-    const [showLibraryPanel, setShowLibraryPanel] = useState(false);
-    const [libraryLoading, setLibraryLoading] = useState(false);
-    const [jobSearch, setJobSearch] = useState("");
-    const [orgSearch, setOrgSearch] = useState("");
 
     // ── PIP modal state ───────────────────────────────────────────────────────
     const [pipModalOpen, setPipModalOpen] = useState(false);
@@ -555,10 +473,7 @@ export default function UserKraSearch() {
 
     // ── Derived flags ─────────────────────────────────────────────────────────
     const canManagePip = pms_role === "hr" || pms_role === "manager" || pms_role === "admin";
-    const canEditKra = pms_role === "hr" || pms_role === "manager";
     const canManageReporting = pms_role === "hr";
-    // Role editing moved to HRMS Manage > PMS (single centralized place for module access).
-    const canManageRoles = false; // was: pms_role === "hr"
     const isPipDirty = pipOriginalForm.current !== JSON.stringify(pipForm);
     const tableLoading = filterStatus === "archived" ? archivedLoading : loading;
 
@@ -573,7 +488,7 @@ export default function UserKraSearch() {
         setLoading(true);
         try {
             const api = await getAuthAxios();
-            const res = await api.get("/kpi-template/search-user?name=&sort=recent&assignedBy=");
+            const res = await api.get("/pms/kra/users/search");
             const formatted = (res.data || []).map((u) => {
                 let latest = null, assignedBy = null;
                 (u.kras || []).forEach((k) => {
@@ -583,11 +498,10 @@ export default function UserKraSearch() {
                 });
                 return {
                     id: u.id, name: u.name, email: u.email,
-                    // ✅ backend now returns u.role = pms_role (see routes fix); normalize + default
                     pms_role: (u.role || "employee").toLowerCase(),
                     hasKra: u.hasKRA, kraCount: u.kras?.length || 0,
                     assignedBy, assignedAt: latest, isArchived: false,
-                    managerId: u.manager_id || null, managerName: u.manager_name || null,
+                    managerId: u.managerId || null, managerName: u.managerName || null,
                 };
             });
             setAllUsers(formatted);
@@ -602,13 +516,13 @@ export default function UserKraSearch() {
         setArchivedLoading(true);
         try {
             const api = await getAuthAxios();
-            const res = await api.get("/kpi-template/search-user?name=&sort=name&archived=true");
+            const res = await api.get("/pms/kra/users/search", { params: { archived: true } });
             setArchivedUsers((res.data || []).map((u) => ({
                 id: u.id, name: u.name, email: u.email,
                 pms_role: (u.role || "employee").toLowerCase(),
                 hasKra: u.hasKRA, kraCount: u.kras?.length || 0,
                 assignedBy: null, assignedAt: null, isArchived: true,
-                managerId: u.manager_id || null, managerName: u.manager_name || null,
+                managerId: u.managerId || null, managerName: u.managerName || null,
             })));
         } catch (error) {
             console.error("Error fetching archived users:", error);
@@ -620,10 +534,10 @@ export default function UserKraSearch() {
     const fetchAllPips = useCallback(async () => {
         try {
             const api = await getAuthAxios();
-            const pips = (await api.get("/pips")).data || [];
+            const pips = (await api.get("/pms/pips")).data || [];
             const pipMap = {};
             pips.forEach((pip) => {
-                const uid = pip.employee_id;
+                const uid = String(pip.employeeId?._id || pip.employeeId);
                 if (!pipMap[uid] || pip.status === "active") pipMap[uid] = pip;
             });
             setUserPips(pipMap);
@@ -636,7 +550,7 @@ export default function UserKraSearch() {
         setDetailsLoading(true);
         try {
             const api = await getAuthAxios();
-            const res = await api.get(`/kpi-template/search-user?name=${encodeURIComponent(userName)}&sort=recent&assignedBy=`);
+            const res = await api.get("/pms/kra/users/search", { params: { name: userName } });
             setUserKraDetails(res.data[0] || null);
         } catch (error) {
             console.error("Error fetching user details:", error);
@@ -648,7 +562,7 @@ export default function UserKraSearch() {
     const fetchManagers = useCallback(async () => {
         try {
             const api = await getAuthAxios();
-            const res = await api.get("/managers/");
+            const res = await api.get("/pms/kra/managers");
             setManagers(res.data || []);
         } catch (err) {
             console.error("Failed to load managers", err);
@@ -670,13 +584,6 @@ export default function UserKraSearch() {
         if (filterStatus === "archived") fetchArchivedUsers();
     }, [filterStatus, fetchArchivedUsers]);
 
-    useEffect(() => {
-        if (!detailsLoading && pendingEdit && userKraDetails) {
-            setPendingEdit(false);
-            enterEditMode(userKraDetails);
-        }
-    }, [detailsLoading, pendingEdit, userKraDetails]);
-
     // ── Archive ───────────────────────────────────────────────────────────────
     const handleArchive = useCallback(async (userId, userName, restore = false) => {
         const confirmed = await confirmDialog({
@@ -690,7 +597,7 @@ export default function UserKraSearch() {
         if (!confirmed) return;
         try {
             const api = await getAuthAxios();
-            await api.patch(`/pms/users/${userId}/archive`, { is_archived: !restore });
+            await api.patch(`/users/${userId}/archive`, { module: "pms", archived: !restore });
             if (restore) {
                 setArchivedUsers((prev) => prev.filter((u) => u.id !== userId));
                 // Restoring only removes the user from the archived list above —
@@ -706,38 +613,6 @@ export default function UserKraSearch() {
             toast.error(`Failed to ${restore ? "restore" : "archive"} user.`);
         }
     }, [fetchAllUsers]);
-
-    // ── Role management ──────────────────────────────────────────────────────
-    const handleChangeRole = useCallback(async (userId, userName, newRole) => {
-        const target = allUsers.find((u) => u.id === userId);
-        if (!target || target.pms_role === newRole) return;
-
-        const meta = PMS_ROLE_META[newRole] || PMS_ROLE_META.employee;
-        const confirmed = await confirmDialog({
-            title: "Change PMS Role?",
-            text: `Set ${userName}'s role to ${meta.label}?`,
-            confirmText: "Yes, Change",
-        });
-        if (!confirmed) return;
-
-        const prevRole = target.pms_role;
-        setSavingRoleId(userId);
-        // optimistic update
-        setAllUsers((prev) => prev.map((u) => u.id === userId ? { ...u, pms_role: newRole } : u));
-
-        try {
-            const api = await getAuthAxios();
-            await api.post("/assign-pms-role/", { user: userId, role: newRole });
-            showToast(`${userName}'s role updated to ${meta.label}`);
-        } catch (err) {
-            console.error("Role change failed", err);
-            // rollback on failure
-            setAllUsers((prev) => prev.map((u) => u.id === userId ? { ...u, pms_role: prevRole } : u));
-            showToast("Failed to update role. Please try again.", "error");
-        } finally {
-            setSavingRoleId(null);
-        }
-    }, [allUsers, showToast]);
 
     // ── Reporting ─────────────────────────────────────────────────────────────
     const openReportingModal = useCallback(async (userData) => {
@@ -848,132 +723,28 @@ export default function UserKraSearch() {
         }
     }, [savingBulk, managers, bulkManagerId, bulkSelected, showToast, closeBulkModal, fetchAllUsers]);
 
-    // ── KRA modal ─────────────────────────────────────────────────────────────
+    // ── KRA modal (view-only) ─────────────────────────────────────────────────
     const openViewModal = useCallback((userData) => {
-        setSelectedUser(userData); setIsEditing(false); setPendingEdit(false);
-        setModalOpen(true); fetchUserDetails(userData.name);
-    }, [fetchUserDetails]);
-
-    const openEditModal = useCallback((userData) => {
-        setSelectedUser(userData); setIsEditing(false); setPendingEdit(true);
+        setSelectedUser(userData);
         setModalOpen(true); fetchUserDetails(userData.name);
     }, [fetchUserDetails]);
 
     const closeModal = useCallback(() => {
         setModalOpen(false); setSelectedUser(null); setUserKraDetails(null);
-        setIsEditing(false); setPendingEdit(false); setEditableKras([]);
-        setShowLibraryPanel(false); setJobSearch(""); setOrgSearch("");
     }, []);
-
-    const enterEditMode = useCallback((details) => {
-        const kras = (details || userKraDetails)?.kras || [];
-        const seen = new Map();
-        kras.forEach((kra) => {
-            const ex = seen.get(kra.name);
-            if (!ex || new Date(kra.assignedAt || 0) > new Date(ex.assignedAt || 0)) seen.set(kra.name, kra);
-        });
-        setEditableKras(Array.from(seen.values()).map((kra) => ({
-            ...kra, instanceId: crypto.randomUUID(),
-            kpis: (kra.kpis || []).map((kpi) => ({ ...kpi, target: kpi.target || "", actual: kpi.actual || "" })),
-        })));
-        setIsEditing(true);
-    }, [userKraDetails]);
-
-    const updateEditKraWeight = useCallback((instanceId, value) => {
-        const num = parseFloat(value) || 0;
-        setEditableKras((prev) => {
-            const othersTotal = prev.reduce((sum, k) => k.instanceId !== instanceId ? sum + Number(k.weight || 0) : sum, 0);
-            if (othersTotal + num > 100) return prev;
-            return prev.map((k) => k.instanceId === instanceId ? { ...k, weight: num } : k);
-        });
-    }, []);
-
-    const updateEditKpiWeight = useCallback((instanceId, kpiIndex, value) => {
-        const num = parseFloat(value) || 0;
-        setEditableKras((prev) => prev.map((k) => {
-            if (k.instanceId !== instanceId) return k;
-            const otherTotal = k.kpis.reduce((sum, p, i) => i !== kpiIndex ? sum + Number(p.weight || 0) : sum, 0);
-            if (otherTotal + num > 100) return k;
-            return { ...k, kpis: k.kpis.map((p, i) => i === kpiIndex ? { ...p, weight: num } : p) };
-        }));
-    }, []);
-
-    const updateEditKpiTarget = useCallback((instanceId, kpiIndex, val) => {
-        setEditableKras((prev) => prev.map((k) =>
-            k.instanceId === instanceId
-                ? { ...k, kpis: k.kpis.map((p, i) => i === kpiIndex ? { ...p, target: val } : p) }
-                : k
-        ));
-    }, []);
-
-    const removeEditKra = useCallback((instanceId) => {
-        setEditableKras((prev) => prev.filter((k) => k.instanceId !== instanceId));
-    }, []);
-
-    const fetchLibrary = useCallback(async () => {
-        setLibraryLoading(true);
-        try {
-            const api = await getAuthAxios();
-            const res = await api.get("/kra-library");
-            setLibraryKras(res.data || []);
-            setShowLibraryPanel(true);
-        } catch (err) {
-            console.error("Failed to load KRA library", err);
-        } finally {
-            setLibraryLoading(false);
-        }
-    }, []);
-
-    const addKraFromLibrary = useCallback((kra) => {
-        setEditableKras((prev) => {
-            if (prev.some((k) => k.originalId === kra.id || k.name === kra.name)) return prev;
-            return [...prev, {
-                originalId: kra.id, name: kra.name, type: kra.type, weight: 0,
-                instanceId: crypto.randomUUID(),
-                kpis: (kra.kpis || []).map((kpi) => ({ name: kpi.name || kpi.title || "", weight: 0, target: "", actual: "" })),
-            }];
-        });
-    }, []);
-
-    const handleSaveEdit = useCallback(async () => {
-        const totalWeight = editableKras.reduce((sum, k) => sum + Number(k.weight || 0), 0);
-        if (totalWeight !== 100) { showToast(`Total KRA weight must be exactly 100%. Currently: ${totalWeight}%`, "error"); return; }
-        for (const kra of editableKras) {
-            if (!kra.weight || Number(kra.weight) <= 0) { showToast(`KRA "${kra.name}" must have a weight > 0`, "error"); return; }
-            if (kra.kpis?.length > 0) {
-                const kpiTotal = kra.kpis.reduce((sum, k) => sum + Number(k.weight || 0), 0);
-                if (kpiTotal !== 100) { showToast(`KPI weights for "${kra.name}" must total 100%. Currently: ${kpiTotal}%`, "error"); return; }
-                if (kra.kpis.some((k) => Number(k.weight || 0) <= 0)) { showToast(`All KPIs in "${kra.name}" must have weight > 0`, "error"); return; }
-            }
-        }
-        setSavingEdit(true);
-        try {
-            const api = await getAuthAxios();
-            await api.put(`/kpi-template/update-by-user/${selectedUser.id}`, { kras: editableKras, updatedBy: managerName });
-            await fetchUserDetails(selectedUser.name);
-            await fetchAllUsers();
-            setIsEditing(false); setShowLibraryPanel(false);
-            showToast("KRA assignment updated successfully!");
-        } catch (err) {
-            console.error("Save failed", err);
-            showToast("Failed to save changes. Please try again.", "error");
-        } finally {
-            setSavingEdit(false);
-        }
-    }, [editableKras, selectedUser, managerName, showToast, fetchUserDetails, fetchAllUsers]);
 
     // ── PIP ───────────────────────────────────────────────────────────────────
     const openPipModal = useCallback(async (userData) => {
         setPipUser(userData); setPipModalOpen(true);
         try {
             const api = await getAuthAxios();
-            const pips = (await api.get("/pips")).data || [];
+            const pips = (await api.get("/pms/pips")).data || [];
             const pipMap = {};
-            pips.forEach((pip) => { const uid = pip.employee_id; if (!pipMap[uid] || pip.status === "active") pipMap[uid] = pip; });
+            pips.forEach((pip) => { const uid = String(pip.employeeId?._id || pip.employeeId); if (!pipMap[uid] || pip.status === "active") pipMap[uid] = pip; });
             setUserPips(pipMap);
             const existing = pipMap[userData.id] || null;
             const formData = existing ? {
-                id: existing.id || existing._id || "",
+                id: existing._id || "",
                 employee_id: userData.id,
                 status: existing.status || "active",
                 outcome: existing.outcome || "pending",
@@ -1030,7 +801,7 @@ export default function UserKraSearch() {
         try {
             const api = await getAuthAxios();
             const payload = {
-                employee_id: pipForm.employee_id, status: pipForm.status,
+                employeeId: pipForm.employee_id, status: pipForm.status,
                 outcome: pipForm.outcome, startDate: pipForm.startDate,
                 targetEndDate: pipForm.targetEndDate, reason: pipForm.reason,
                 reviewNotes: pipForm.reviewNotes,
@@ -1038,7 +809,7 @@ export default function UserKraSearch() {
                     ...g, proofDocuments: g.proofDocuments || [], proofDocument: g.proofDocuments?.[0] || null,
                 })),
             };
-            pipForm.id ? await api.put(`/pips/${pipForm.id}`, payload) : await api.post("/pips", payload);
+            pipForm.id ? await api.put(`/pms/pips/${pipForm.id}`, payload) : await api.post("/pms/pips", payload);
             await fetchAllPips();
             closePipModal();
             showToast(pipForm.id ? "PIP updated successfully!" : "PIP created successfully!");
@@ -1255,9 +1026,6 @@ export default function UserKraSearch() {
                                         {canManageReporting && (
                                             <th className="px-4 py-3 text-center w-[13%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Reports To</th>
                                         )}
-                                        {canManageRoles && (
-                                            <th className="px-4 py-3 text-center w-[12%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Role</th>
-                                        )}
                                         <th className="px-4 py-3 text-center w-[10%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 flex-1 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -1270,19 +1038,14 @@ export default function UserKraSearch() {
                                             isChecked={bulkSelected.has(userData.id)}
                                             filterStatus={filterStatus}
                                             pms_role={pms_role}
-                                            canEditKra={canEditKra}
                                             canManageReporting={canManageReporting}
-                                            canManageRoles={canManageRoles}
                                             canManagePip={canManagePip}
                                             pipSummary={getPipSummary(userPips[userData.id])}
-                                            savingRoleId={savingRoleId}
                                             onView={openViewModal}
-                                            onEdit={openEditModal}
                                             onReporting={openReportingModal}
                                             onArchive={handleArchive}
                                             onPip={openPipModal}
                                             onToggleSelect={toggleBulkSelect}
-                                            onChangeRole={handleChangeRole}
                                         />
                                     ))}
                                 </tbody>
@@ -1464,16 +1227,14 @@ export default function UserKraSearch() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
                     <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className={`flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r ${isEditing ? "from-violet-500 to-purple-600" : "from-purple-600 to-purple-600"}`}>
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-purple-600 to-purple-600">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xl">
                                     {initials(selectedUser?.name)}
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">{selectedUser?.name}</h2>
-                                    <p className={`text-sm ${isEditing ? "text-violet-100" : "text-purple-200"}`}>
-                                        {isEditing ? "Edit KRA Assignment" : "KRA & KPI Details (View Only)"}
-                                    </p>
+                                    <p className="text-sm text-purple-200">KRA &amp; KPI Details</p>
                                 </div>
                             </div>
                             <button onClick={closeModal} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
@@ -1481,136 +1242,10 @@ export default function UserKraSearch() {
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6">
-                            {(detailsLoading || pendingEdit) ? (
+                            {detailsLoading ? (
                                 <div className="flex flex-col items-center justify-center py-16 gap-4">
                                     <Spinner />
-                                    <p className="text-slate-400 text-sm">{pendingEdit ? "Preparing edit mode…" : "Loading details…"}</p>
-                                </div>
-                            ) : isEditing ? (
-                                <div className="space-y-6">
-                                    {(() => {
-                                        const total = editableKras.reduce((s, k) => s + Number(k.weight || 0), 0);
-                                        const over = total > 100;
-                                        return (
-                                            <div className={`p-4 rounded-xl border flex items-center justify-between ${over ? "bg-red-50 border-red-200" : total === 100 ? "bg-emerald-50 border-emerald-200" : "bg-purple-50 border-purple-200"}`}>
-                                                <span className="text-sm font-semibold text-slate-600">Total KRA Weight</span>
-                                                <span className={`text-xl font-bold ${over ? "text-red-600" : total === 100 ? "text-emerald-600" : "text-purple-600"}`}>{total}% / 100%</span>
-                                            </div>
-                                        );
-                                    })()}
-                                    {editableKras.map((kra) => {
-                                        const kpiTotal = (kra.kpis || []).reduce((s, k) => s + Number(k.weight || 0), 0);
-                                        const isOrg = kra.type === "organizational";
-                                        return (
-                                            <div key={kra.instanceId} className={`rounded-xl border-2 overflow-hidden ${isOrg ? "border-purple-200" : "border-emerald-200"}`}>
-                                                <div className={`p-4 flex items-center justify-between gap-4 ${isOrg ? "bg-purple-100" : "bg-emerald-100"}`}>
-                                                    <div>
-                                                        <p className="font-semibold text-slate-800">{kra.name}</p>
-                                                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isOrg ? "bg-purple-200 text-purple-700" : "bg-emerald-200 text-emerald-700"}`}>
-                                                                {isOrg ? "Organizational" : "Job Specific"}
-                                                            </span>
-                                                            {kra.assignedBy && <span className="text-xs text-slate-500">{kra.assignedBy}</span>}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex items-center gap-1 bg-white rounded-lg border border-slate-200 px-3 py-1.5 shadow-sm">
-                                                            <input type="number" min={0} max={100} value={kra.weight}
-                                                                onWheel={(e) => e.target.blur()}
-                                                                onKeyDown={(e) => ["ArrowUp", "ArrowDown"].includes(e.key) && e.preventDefault()}
-                                                                onChange={(e) => updateEditKraWeight(kra.instanceId, e.target.value)}
-                                                                className="w-14 text-center font-bold text-purple-700 bg-transparent focus:outline-none text-sm" />
-                                                            <span className="text-slate-400 text-sm font-bold">%</span>
-                                                        </div>
-                                                        <button onClick={() => removeEditKra(kra.instanceId)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                {kra.kpis?.length > 0 && (
-                                                    <div className="p-4">
-                                                        <div className="flex items-center justify-between mb-3">
-                                                            <p className="text-sm font-semibold text-slate-600">KPI Distribution</p>
-                                                            <span className={`text-xs font-bold ${kpiTotal === 100 ? "text-emerald-600" : "text-red-500"}`}>{kpiTotal}% / 100%</span>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            {kra.kpis.map((kpi, kpiIndex) => (
-                                                                <div key={kpiIndex} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <span className="text-sm font-medium text-slate-700">{kpi.name}</span>
-                                                                        <div className="flex items-center gap-1 bg-white rounded-lg border px-2 py-1">
-                                                                            <input type="number" value={kpi.weight}
-                                                                                onChange={(e) => updateEditKpiWeight(kra.instanceId, kpiIndex, e.target.value)}
-                                                                                className="w-12 text-center text-sm font-bold text-purple-700 bg-transparent outline-none" />
-                                                                            <span className="text-xs text-slate-400">%</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex gap-3 mt-3 w-full">
-                                                                        <div className="flex flex-col gap-1 flex-1">
-                                                                            <label className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide">Target</label>
-                                                                            <input type="text" placeholder="Enter target" value={kpi.target || ""} disabled={!canEditKra}
-                                                                                onChange={(e) => updateEditKpiTarget(kra.instanceId, kpiIndex, e.target.value)}
-                                                                                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 ${!canEditKra ? "bg-gray-100 text-gray-400 cursor-not-allowed border-slate-200" : "bg-white border-violet-200 text-violet-700"}`} />
-                                                                        </div>
-                                                                        <div className="flex flex-col gap-1 flex-1">
-                                                                            <label className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Actual</label>
-                                                                            <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 min-h-[38px] flex items-center">
-                                                                                {kpi.actual || <span className="text-slate-300">—</span>}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                    <div>
-                                        <button onClick={fetchLibrary} disabled={libraryLoading}
-                                            className="w-full py-3 border-2 border-dashed border-purple-300 rounded-xl text-purple-600 font-semibold text-sm hover:border-purple-500 hover:bg-purple-50 transition flex items-center justify-center gap-2">
-                                            {libraryLoading ? <Spinner size="w-4 h-4" color="border-purple-400 border-t-transparent" /> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
-                                            Add KRA from Library
-                                        </button>
-                                        {showLibraryPanel && (() => {
-                                            const panels = [
-                                                { type: "functional", label: "Job Specified KRAs", color: "emerald", kras: libraryKras.filter((k) => k.type === "functional" && k.name.toLowerCase().includes(jobSearch.toLowerCase())), search: jobSearch, setSearch: setJobSearch, placeholder: "Search job specified…" },
-                                                { type: "organizational", label: "Organizational KRAs", color: "purple", kras: libraryKras.filter((k) => k.type === "organizational" && k.name.toLowerCase().includes(orgSearch.toLowerCase())), search: orgSearch, setSearch: setOrgSearch, placeholder: "Search organizational…" },
-                                            ];
-                                            return (
-                                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {panels.map(({ type, label, color, kras: list, search, setSearch, placeholder }) => (
-                                                        <div key={type} className={`bg-${color}-50 border-2 border-${color}-200 rounded-2xl overflow-hidden flex flex-col`}>
-                                                            <div className={`bg-${color}-100 px-4 py-3 flex items-center gap-2 border-b border-${color}-200`}>
-                                                                <span className={`w-2.5 h-2.5 rounded-full bg-${color}-500`} />
-                                                                <h4 className={`text-sm font-bold text-${color}-800 uppercase tracking-wide`}>{label}</h4>
-                                                                <span className={`ml-auto text-xs font-bold bg-${color}-200 text-${color}-700 px-2 py-0.5 rounded-full`}>
-                                                                    {libraryKras.filter((k) => k.type === type).length}
-                                                                </span>
-                                                            </div>
-                                                            <div className="px-3 pt-3">
-                                                                <div className="relative">
-                                                                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                                    <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={placeholder}
-                                                                        className={`w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-${color}-200 bg-white focus:outline-none focus:ring-2 focus:ring-${color}-400`} />
-                                                                </div>
-                                                            </div>
-                                                            <div className="p-3 space-y-2 max-h-64 overflow-y-auto flex-1">
-                                                                {list.length === 0
-                                                                    ? <p className="text-center text-xs text-slate-400 py-6 italic">{search ? "No results found" : `No ${label.toLowerCase()} in library`}</p>
-                                                                    : list.map((kra) => (
-                                                                        <LibraryKraCard key={kra.id} kra={kra}
-                                                                            alreadyAdded={editableKras.some((k) => k.originalId === kra.id || k.name === kra.name)}
-                                                                            onAdd={addKraFromLibrary} />
-                                                                    ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
+                                    <p className="text-slate-400 text-sm">Loading details…</p>
                                 </div>
                             ) : userKraDetails?.kras?.length > 0 ? (
                                 <div className="space-y-6">
@@ -1697,35 +1332,15 @@ export default function UserKraSearch() {
                                 <div className="text-center py-12">
                                     <svg className="w-16 h-16 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                     <p className="text-slate-500 mt-4">No KRA assigned to this user</p>
-                                    <button onClick={() => { closeModal(); navigate("/employeetemplate"); }}
+                                    <button onClick={() => { closeModal(); navigate("/pms/templates"); }}
                                         className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                        Add KRA
+                                        Assign a KRA Template
                                     </button>
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
-                            <div>
-                                {isEditing ? (
-                                    <div className="flex gap-2">
-                                        <button onClick={handleSaveEdit} disabled={savingEdit}
-                                            className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition flex items-center gap-2">
-                                            {savingEdit ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : "Save Changes"}
-                                        </button>
-                                        <button onClick={() => { setIsEditing(false); setShowLibraryPanel(false); }}
-                                            className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-300 transition">Cancel</button>
-                                    </div>
-                                ) : (
-                                    !detailsLoading && userKraDetails?.kras?.length > 0 && canEditKra && (
-                                        <button onClick={() => enterEditMode()}
-                                            className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition flex items-center gap-2">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                            Edit KRA
-                                        </button>
-                                    )
-                                )}
-                            </div>
+                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end items-center">
                             <button onClick={closeModal} className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Close</button>
                         </div>
                     </div>

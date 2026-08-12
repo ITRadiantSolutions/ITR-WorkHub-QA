@@ -36,25 +36,36 @@ const addMonthsMinusOneDay = (dateStr, months) => {
   return d.toISOString().split("T")[0];
 };
 
+// The API now returns the unified (nested) Cycle shape — employeeResponse/
+// managerResponse/reportVisibility sub-objects — instead of the flat legacy
+// fields this component was originally built against. Flatten it back out
+// here so the rest of the component (and CycleTable/CycleModal) can stay
+// unchanged.
 const normalizeCycle = (cycle) => ({
   id: cycle.id || cycle._id,
   name: cycle.name,
   type: cycle.type,
   start: cycle.start?.split("T")[0],
   end: cycle.end?.split("T")[0],
-  status: getStatus(cycle),   // ← was getStatus(cycle.start, cycle.end)
+  status: getStatus({
+    start: cycle.start,
+    employeeResponseEnabled: cycle.employeeResponse?.enabled,
+    employeeResponseExpiry: cycle.employeeResponse?.expiry,
+    managerResponseEnabled: cycle.managerResponse?.enabled,
+    managerResponseExpiry: cycle.managerResponse?.expiry,
+  }),
 
-  employeeResponseEnabled: cycle.employeeResponseEnabled ?? false,
-  employeeResponseExpiry: cycle.employeeResponseExpiry ?? null,
-  employeeResponseDurationDays: cycle.employeeResponseDurationDays ?? 7,
+  employeeResponseEnabled: cycle.employeeResponse?.enabled ?? false,
+  employeeResponseExpiry: cycle.employeeResponse?.expiry ?? null,
+  employeeResponseDurationDays: cycle.employeeResponse?.durationDays ?? 7,
 
-  managerResponseEnabled: cycle.managerResponseEnabled ?? false,
-  managerResponseExpiry: cycle.managerResponseExpiry ?? null,
-  managerResponseDurationDays: cycle.managerResponseDurationDays ?? 7,
-  reportVisibility: cycle.reportVisibility ?? "none",
-  selectedEmployees: cycle.selectedEmployees ?? [],
-  selectedManagers: cycle.selectedManagers ?? [],
-  reportVisibleTo: cycle.reportVisibleTo ?? [],
+  managerResponseEnabled: cycle.managerResponse?.enabled ?? false,
+  managerResponseExpiry: cycle.managerResponse?.expiry ?? null,
+  managerResponseDurationDays: cycle.managerResponse?.durationDays ?? 7,
+  reportVisibility: cycle.reportVisibility?.mode ?? "none",
+  selectedEmployees: cycle.employeeResponse?.selectedUserIds ?? [],
+  selectedManagers: cycle.managerResponse?.selectedUserIds ?? [],
+  reportVisibleTo: cycle.reportVisibility?.visibleTo ?? [],
 });
 
 const getRemainingTime = (expiry) => {
@@ -366,7 +377,7 @@ export default function Cycle() {
   const loadCycles = async () => {
     try {
       const api = await getAuthAxios();
-      const res = await api.get("/cycles/");
+      const res = await api.get("/pms/cycles");
       const normalized = res.data.map(normalizeCycle);
       setCycles(normalized);
 
@@ -465,8 +476,8 @@ export default function Cycle() {
       setLoading(true);
       const api = await getAuthAxios();
       const res = editingId
-        ? await api.put(`/cycles/${editingId}`, form)
-        : await api.post("/cycles/", form);
+        ? await api.put(`/pms/cycles/${editingId}`, form)
+        : await api.post("/pms/cycles", form);
       const data = normalizeCycle(res.data);
       setCycles((prev) =>
         editingId ? prev.map((c) => (c.id === editingId ? data : c)) : [...prev, data]
@@ -482,22 +493,38 @@ export default function Cycle() {
   const deleteCycle = async (id) => {
     try {
       const api = await getAuthAxios();
-      await api.delete(`/cycles/${id}`);
+      await api.delete(`/pms/cycles/${id}`);
       setCycles((p) => p.filter((c) => c.id !== id));
     } catch {
       setApiError("Failed to delete cycle");
     }
   };
 
+  // The new setEmployeeResponseWindow/setManagerResponseWindow endpoints set
+  // whatever `expiry` they're given verbatim — unlike the legacy toggle,
+  // they don't compute it from durationDays/extraDays server-side, so that
+  // math now happens here before the request goes out.
   const toggleResponse = async (cycleId, roleType, desiredEnabled, duration, selectedUserIds = [], extraDays = 0) => {
     try {
       const api = await getAuthAxios();
-      await api.patch(`/cycles/${cycleId}/toggle-response`, {
-        role: roleType,
+      const endpoint = roleType === "manager" ? "manager-response" : "employee-response";
+      const current = cycles.find((c) => c.id === cycleId);
+      const wasEnabled = current?.[`${roleType}ResponseEnabled`];
+      const currentExpiry = current?.[`${roleType}ResponseExpiry`];
+
+      let expiry = null;
+      if (desiredEnabled) {
+        expiry =
+          extraDays && wasEnabled && currentExpiry
+            ? new Date(new Date(currentExpiry).getTime() + extraDays * 24 * 60 * 60 * 1000)
+            : new Date(Date.now() + (duration ?? 7) * 24 * 60 * 60 * 1000);
+      }
+
+      await api.patch(`/pms/cycles/${cycleId}/${endpoint}`, {
         enabled: desiredEnabled,
-        durationDays: desiredEnabled ? (duration ?? 7) : null,
-        extraDays: extraDays,
-        selectedUsers: desiredEnabled ? selectedUserIds : [],
+        expiry,
+        durationDays: desiredEnabled ? (duration ?? 7) : undefined,
+        selectedUserIds: desiredEnabled ? selectedUserIds : [],
       });
       await loadCycles();
     } catch {
@@ -508,9 +535,9 @@ export default function Cycle() {
   const updateReportVisibility = async (cycleId, value, selectedUserIds = []) => {
     try {
       const api = await getAuthAxios();
-      await api.patch(`/cycles/${cycleId}/report-visibility`, {
-        reportVisibility: value,
-        selectedUsers: selectedUserIds,
+      await api.patch(`/pms/cycles/${cycleId}/report-visibility`, {
+        mode: value,
+        visibleTo: selectedUserIds,
       });
       await loadCycles();
     } catch {
@@ -518,10 +545,16 @@ export default function Cycle() {
     }
   };
 
+  // No single-user-toggle endpoint on the new system — compute the flipped
+  // visibleTo array here and send the full list via setReportVisibility
+  // (mode is omitted so the cycle's current visibility mode is untouched).
   const toggleUserReportAccess = async (cycleId, userId) => {
     try {
       const api = await getAuthAxios();
-      await api.patch(`/cycles/${cycleId}/report-visibility-toggle-user`, { userId });
+      const current = cycles.find((c) => c.id === cycleId);
+      const visibleTo = current?.reportVisibleTo || [];
+      const next = visibleTo.includes(userId) ? visibleTo.filter((id) => id !== userId) : [...visibleTo, userId];
+      await api.patch(`/pms/cycles/${cycleId}/report-visibility`, { visibleTo: next });
       loadCycles();
     } catch {
       setApiError("Failed to toggle user report access");

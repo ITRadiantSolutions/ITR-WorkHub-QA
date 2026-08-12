@@ -21,6 +21,8 @@ const EMPLOYEE_EDITABLE_STATUSES = ["draft", "manager_reviewed"];
 export const listSubmissions = async (req, res) => {
   const filter = {};
   if (req.query.cycleId) filter.cycleId = req.query.cycleId;
+  // e.g. status=final_manager_reviewed for HR's "finished reports" slice.
+  if (req.query.status) filter.status = req.query.status;
 
   if (req.user.roles.pms === "hr") {
     if (req.query.employeeId) filter.employeeId = req.query.employeeId;

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { API } from "../../services/api";
-import PmsSubnav from "../../components/PmsSubnav";
 import Icons from "../../components/Icons";
 
 const TYPES = [
@@ -178,12 +177,10 @@ export default function TemplateBuilder() {
   }, [library]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-purple-100">
-      <PmsSubnav />
-
+    <div className="min-h-screen bg-[#F5F7FB]">
       <main className="max-w-3xl mx-auto px-6 py-8">
         <button onClick={() => navigate("/pms/templates")} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4">
-          <Icons.Back /> KPI Studio
+          <Icons.Back /> KPI Templates
         </button>
 
         <h2 className="text-xl font-bold text-slate-900 mb-6">{isEdit ? "Edit template" : "New template"}</h2>

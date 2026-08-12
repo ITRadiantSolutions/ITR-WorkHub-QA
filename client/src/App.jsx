@@ -30,14 +30,11 @@ import TimesheetGuide from "./Timesheet/Guide";
 import PmsHome from "./pages/PmsHome";
 import PmsCycles from "./PMS/cycles/Cycle";
 import MyTemplate from "./PMS/templates/MyTemplate";
-import EmployeeTemplate from "./PMS/templates/EmployeeTemplate";
-import EmployeeKraBuilder from "./PMS/templates/EmployeeKraBuilder";
-import PMSReport from "./PMS/reports/PMSReport";
-import PMSUserGroup from "./PMS/UserGroup";
-import { CreateTemplete as CreateTemplate } from "./PMS/kpi/CreateTemplate";
-import AvailableTemplates from "./PMS/kpi/AvailableTemplates";
-import AssignIndividual from "./PMS/kpi/AssignIndividual";
-import EditTemplate from "./PMS/EditTemplate";
+import PMSReport from "./PMS/reports/Reports";
+import PMSUserGroup from "./PMS/UserGroups";
+import TemplatesList from "./PMS/kpi/TemplatesList";
+import TemplateBuilder from "./PMS/kpi/TemplateBuilder";
+import AssignTemplate from "./PMS/kpi/AssignTemplate";
 import UserKraSearch from "./PMS/UserKraSearch";
 import PmsLayout from "./PMS/PmsLayout";
 import ReviewQueue from "./PMS/reports/ReviewQueue";
@@ -142,39 +139,7 @@ function App() {
                 }
               />
               <Route
-                path="/employeetemplate"
-                element={
-                  <ProtectedRoute>
-                    <EmployeeTemplate />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/kra-builder"
-                element={
-                  <ProtectedRoute>
-                    <EmployeeKraBuilder />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/kra-builder/:kraId"
-                element={
-                  <ProtectedRoute>
-                    <EmployeeKraBuilder />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/PMS-reports"
-                element={
-                  <ProtectedRoute>
-                    <PMSReport />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reports/:employeeId"
                 element={
                   <ProtectedRoute>
                     <PMSReport />
@@ -190,34 +155,34 @@ function App() {
                 }
               />
               <Route
-                path="/create_template"
+                path="/pms/templates"
                 element={
                   <ProtectedRoute>
-                    <CreateTemplate />
+                    <TemplatesList />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/available_template"
+                path="/pms/templates/new"
                 element={
                   <ProtectedRoute>
-                    <AvailableTemplates />
+                    <TemplateBuilder />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/assign-individual"
+                path="/pms/templates/:id"
                 element={
                   <ProtectedRoute>
-                    <AssignIndividual />
+                    <TemplateBuilder />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/edit-template/:id"
+                path="/pms/assign/:id"
                 element={
                   <ProtectedRoute>
-                    <EditTemplate />
+                    <AssignTemplate />
                   </ProtectedRoute>
                 }
               />

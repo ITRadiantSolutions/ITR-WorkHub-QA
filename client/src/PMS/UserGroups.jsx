@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { API } from "../services/api";
-import PmsSubnav from "../components/PmsSubnav";
 import Icons from "../components/Icons";
 
-function GroupModal({ group, users, onClose, onSaved }) {
+function GroupModal({ group, users, groups, onClose, onSaved }) {
   const [name, setName] = useState(group?.name || "");
   const [description, setDescription] = useState(group?.description || "");
   const [members, setMembers] = useState(new Set((group?.members || []).map((m) => m._id || m)));
   const [saving, setSaving] = useState(false);
+
+  // Mirrors the server's one-group-per-user rule (usersGroupController.js
+  // findConflictingMembers) so the picker doesn't offer someone the save
+  // would just reject — the group being edited is excluded so its own
+  // existing members stay pickable.
+  const alreadyGroupedUserIds = new Set(
+    groups
+      .filter((g) => g._id !== group?._id)
+      .flatMap((g) => (g.members || []).map((m) => String(m._id || m))),
+  );
+  const availableUsers = users.filter((u) => members.has(u._id) || !alreadyGroupedUserIds.has(String(u._id)));
 
   const toggleMember = (id) =>
     setMembers((prev) => {
@@ -56,7 +66,7 @@ function GroupModal({ group, users, onClose, onSaved }) {
               Members ({members.size} selected)
             </label>
             <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
-              {users.map((u) => (
+              {availableUsers.map((u) => (
                 <label key={u._id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-slate-50">
                   <input type="checkbox" checked={members.has(u._id)} onChange={() => toggleMember(u._id)} className="accent-violet-600" />
                   <span className="font-medium text-slate-800">{u.name}</span>
@@ -112,9 +122,7 @@ export default function UserGroups() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-purple-100">
-      <PmsSubnav />
-
+    <div className="min-h-screen bg-[#F5F7FB]">
       <main className="max-w-4xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -173,6 +181,7 @@ export default function UserGroups() {
         <GroupModal
           group={editing}
           users={users}
+          groups={groups}
           onClose={() => setShowModal(false)}
           onSaved={() => { setShowModal(false); load(); }}
         />

@@ -364,32 +364,6 @@ export const bulkAssignManager = async (req, res) => {
   res.json({ updated: userIds.length });
 };
 
-// Legacy PMS compat: POST /assign-pms-role/ { user, role }
-export const assignPmsRoleLegacy = async (req, res) => {
-  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
-  const { user: userId, role } = req.body;
-  if (!MODULE_ROLE_ENUM.pms.includes(role)) {
-    return res.status(400).json({ message: `Invalid PMS role '${role}'` });
-  }
-  const user = await User.findByIdAndUpdate(userId, { $set: { "roles.pms": role } }, { new: true }).select(
-    "-password",
-  );
-  if (!user) return res.status(404).json({ message: "User not found" });
-  res.json(user);
-};
-
-// Legacy PMS compat: PATCH /pms/users/:id/archive { is_archived }
-export const archivePmsUserLegacy = async (req, res) => {
-  if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { $set: { "archived.pms": Boolean(req.body.is_archived) } },
-    { new: true },
-  ).select("-password");
-  if (!user) return res.status(404).json({ message: "User not found" });
-  res.json(user);
-};
-
 // Shift assignment is one notch broader than the rest of this file's
 // Admin/HR-only actions — a timesheet manager can assign shifts for their
 // own team too (matches Manage.jsx's Assign Shifts UI, which is shown to
