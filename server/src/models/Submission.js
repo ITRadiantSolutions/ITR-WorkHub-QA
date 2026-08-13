@@ -58,6 +58,12 @@ const submissionSchema = new mongoose.Schema(
     finalReport: {
       managerSubmitted: { type: Boolean, default: false },
       managerOverallResponse: { type: String, default: "" },
+      // employeeAvg/managerAvg are each a weight-adjusted average of the
+      // per-KRA ratings (kraResponses[].rating / .managerRating), computed
+      // in managerReview once every KRA has both sides filled in.
+      // overallRating defaults to their midpoint but can still be
+      // overridden by the manager via setFinalReport.
+      employeeAvg: { type: Number, default: null },
       managerAvg: { type: Number, default: null },
       overallRating: { type: Number, default: null },
       oneOnOneDate: { type: Date, default: null },

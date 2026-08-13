@@ -62,7 +62,10 @@ const canEditAccess = async (actor, targetUserId, module) => {
 // "account") lets HR screens show just their active roster or just the
 // archived-from-this-module list, without changing the default unfiltered call.
 export const listUsers = async (req, res) => {
-  const canViewAll = isAdminOrHr(req.user) || ["PM", "DEVELOPER", "QA"].includes(req.user.roles.tracker);
+  // PMS managers need the full directory to build User Groups (UserGroups.jsx)
+  // — isAdminOrHr() only covers PMS "hr", not "manager".
+  const canViewAll =
+    isAdminOrHr(req.user) || ["PM", "DEVELOPER", "QA"].includes(req.user.roles.tracker) || req.user.roles.pms === "manager";
   if (!canViewAll) return res.status(403).json({ message: "Insufficient permissions to view users" });
 
   const filter = {};

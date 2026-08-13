@@ -1,14 +1,44 @@
 import Submission from "../models/Submission.js";
 import KraAssignment from "../models/KraAssignment.js";
 import User from "../models/User.js";
+import Cycle from "../models/Cycle.js";
 
-const canView = (submission, user) =>
+// submission.managerId is a one-time snapshot taken when the employee first
+// opens their KRA card (see getOrCreateFromAssignment) — it never gets
+// resynced if the employee's manager is reassigned afterward, or was unset
+// at that moment. Falling back to the employee's *current* User.managerId
+// (the same source kraAssignmentController.js already trusts for assignment
+// access) keeps a reassigned manager from being silently locked out.
+const isCurrentManagerOf = async (submission, user) => {
+  if (user.roles.pms !== "manager") return false;
+  const employeeId = submission.employeeId?._id || submission.employeeId;
+  const employee = await User.findById(employeeId).select("managerId");
+  return Boolean(employee?.managerId?.equals(user._id));
+};
+
+const canView = async (submission, user) =>
   submission.employeeId.equals(user._id) ||
   (submission.managerId && submission.managerId.equals(user._id)) ||
-  user.roles.pms === "hr";
+  user.roles.pms === "hr" ||
+  (await isCurrentManagerOf(submission, user));
 
-const isAssignedManagerOrHr = (submission, user) =>
-  (submission.managerId && submission.managerId.equals(user._id)) || user.roles.pms === "hr";
+const isAssignedManagerOrHr = async (submission, user) =>
+  (submission.managerId && submission.managerId.equals(user._id)) ||
+  user.roles.pms === "hr" ||
+  (await isCurrentManagerOf(submission, user));
+
+// The Cycle's employeeResponse window (Review Cycles page) was, until now,
+// only enforced client-side (TemplateCard.jsx's canRespond) — the API
+// itself accepted saves/submits from any employee whose submission status
+// was otherwise editable, regardless of whether HR had actually opened (or
+// had since closed) the window for them.
+const isEmployeeResponseWindowOpen = async (cycleId, employeeId) => {
+  const cycle = await Cycle.findById(cycleId).select("employeeResponse");
+  const window = cycle?.employeeResponse;
+  if (!window?.enabled) return false;
+  if (window.expiry && new Date(window.expiry) < new Date()) return false;
+  return (window.selectedUserIds || []).some((id) => id.equals(employeeId));
+};
 
 // Individual ratings are a 1-5 star scale in the UI; null/undefined clears a rating.
 const isValidRating = (v) => v === null || v === undefined || (Number.isInteger(v) && v >= 1 && v <= 5);
@@ -27,7 +57,13 @@ export const listSubmissions = async (req, res) => {
   if (req.user.roles.pms === "hr") {
     if (req.query.employeeId) filter.employeeId = req.query.employeeId;
   } else if (req.user.roles.pms === "manager") {
-    filter.managerId = req.user._id;
+    // submission.managerId is a frozen snapshot from whenever the employee
+    // first opened their KRA card — it goes stale if the employee is
+    // reassigned to a different manager afterward. Also include anyone who
+    // *currently* reports to this manager so a reassignment doesn't strand
+    // their submissions in the old manager's queue only.
+    const directReports = await User.find({ managerId: req.user._id }).select("_id");
+    filter.$or = [{ managerId: req.user._id }, { employeeId: { $in: directReports.map((u) => u._id) } }];
   } else {
     filter.employeeId = req.user._id;
   }
@@ -46,7 +82,7 @@ export const getSubmission = async (req, res) => {
     { path: "managerId", select: "name" },
   ]);
   if (!submission) return res.status(404).json({ message: "Submission not found" });
-  if (!canView(submission, req.user)) return res.status(403).json({ message: "Forbidden" });
+  if (!(await canView(submission, req.user))) return res.status(403).json({ message: "Forbidden" });
   res.json(submission);
 };
 
@@ -116,6 +152,9 @@ export const saveResponses = async (req, res) => {
   if (!EMPLOYEE_EDITABLE_STATUSES.includes(submission.status)) {
     return res.status(409).json({ message: `Cannot edit responses in status '${submission.status}'` });
   }
+  if (!(await isEmployeeResponseWindowOpen(submission.cycleId, submission.employeeId))) {
+    return res.status(409).json({ message: "The response window for this cycle isn't open for you yet" });
+  }
 
   const incoming = Array.isArray(req.body.kraResponses) ? req.body.kraResponses : [];
   for (const item of incoming) {
@@ -144,6 +183,13 @@ export const employeeSubmit = async (req, res) => {
   if (!EMPLOYEE_EDITABLE_STATUSES.includes(submission.status)) {
     return res.status(409).json({ message: `Cannot submit from status '${submission.status}'` });
   }
+  if (!(await isEmployeeResponseWindowOpen(submission.cycleId, submission.employeeId))) {
+    return res.status(409).json({ message: "The response window for this cycle isn't open for you yet" });
+  }
+  const missingResponse = submission.kraResponses.find((r) => !r.response?.trim() || !r.rating);
+  if (missingResponse) {
+    return res.status(400).json({ message: `Fill in a response and rating for "${missingResponse.kraName}" before submitting` });
+  }
 
   const isFinal = submission.status === "manager_reviewed";
   submission.status = isFinal ? "final_employee_submitted" : "employee_submitted";
@@ -160,7 +206,7 @@ export const managerReview = async (req, res) => {
   const submission = await Submission.findById(req.params.id);
   if (!submission) return res.status(404).json({ message: "Submission not found" });
   if (!["manager", "hr"].includes(req.user.roles.pms)) return res.status(403).json({ message: "Forbidden" });
-  if (!isAssignedManagerOrHr(submission, req.user)) {
+  if (!(await isAssignedManagerOrHr(submission, req.user))) {
     return res.status(403).json({ message: "You are not the assigned manager for this submission" });
   }
   if (!["employee_submitted", "final_employee_submitted"].includes(submission.status)) {
@@ -173,6 +219,23 @@ export const managerReview = async (req, res) => {
       return res.status(400).json({ message: "Rating must be an integer between 1 and 5" });
     }
   }
+
+  // Completing a review round needs every KRA covered, not just whichever
+  // ones happened to be in this call — otherwise the submission rolls to
+  // "manager_reviewed" while some KRAs are left with no manager feedback at
+  // all (checked against the merged result, so KRAs reviewed in an earlier
+  // call still count).
+  const reviewsById = new Map((kraReviews || []).map((r) => [String(r.kraId), r]));
+  const incomplete = submission.kraResponses.find((r) => {
+    const review = reviewsById.get(String(r.kraId));
+    const managerResponse = review?.managerResponse ?? r.managerResponse;
+    const managerRating = review?.managerRating ?? r.managerRating;
+    return !managerResponse?.trim() || !managerRating;
+  });
+  if (incomplete) {
+    return res.status(400).json({ message: `Add a response and rating for "${incomplete.kraName}" before completing the review` });
+  }
+
   for (const review of kraReviews || []) {
     const target = submission.kraResponses.find((r) => String(r.kraId) === String(review.kraId));
     if (!target) continue;
@@ -180,6 +243,25 @@ export const managerReview = async (req, res) => {
     target.managerRating = review.managerRating ?? target.managerRating;
     target.status = "manager_reviewed";
     target.reviewedAt = new Date();
+  }
+
+  // Weight-adjusted average of one rating field across every KRA that has
+  // both a weight and that rating — normalized by the weight actually
+  // present rather than assuming weights sum to exactly 100.
+  const weightedAvg = (ratingField) => {
+    const rated = submission.kraResponses.filter((r) => r[ratingField] != null && r.weight);
+    const totalWeight = rated.reduce((sum, r) => sum + r.weight, 0);
+    if (!totalWeight) return null;
+    return rated.reduce((sum, r) => sum + r[ratingField] * r.weight, 0) / totalWeight;
+  };
+  const employeeAvg = weightedAvg("rating");
+  const managerAvg = weightedAvg("managerRating");
+  submission.finalReport.employeeAvg = employeeAvg;
+  submission.finalReport.managerAvg = managerAvg;
+  // Overall rating blends the employee's self-assessment and the manager's
+  // assessment 50/50 — the manager can still override it in setFinalReport.
+  if (employeeAvg != null && managerAvg != null) {
+    submission.finalReport.overallRating = Math.round((employeeAvg + managerAvg) / 2);
   }
 
   const isFinalRound = submission.status === "final_employee_submitted";
@@ -193,8 +275,11 @@ export const setFinalReport = async (req, res) => {
 
   const submission = await Submission.findById(req.params.id);
   if (!submission) return res.status(404).json({ message: "Submission not found" });
-  if (!isAssignedManagerOrHr(submission, req.user)) {
+  if (!(await isAssignedManagerOrHr(submission, req.user))) {
     return res.status(403).json({ message: "You are not the assigned manager for this submission" });
+  }
+  if (submission.status === "draft") {
+    return res.status(409).json({ message: "Cannot add a final report before the employee submits their self-review" });
   }
 
   const { managerSubmitted, managerOverallResponse, managerAvg, overallRating, oneOnOneDate, oneOnOneComment } = req.body;

@@ -35,6 +35,14 @@ const getProofDocuments = (goal) => {
 
 const emptyKraForm = () => ({ open: false, name: "", type: "functional", weight: "", kpis: [{ title: "", weight: "" }] });
 
+const NAME_MAX_LEN = 100;
+const KPI_TITLE_MAX_LEN = 100;
+const RESPONSE_MAX_LEN = 2000;
+const RESPONSE_MIN_LEN = 10;
+// Letters/numbers/spaces plus common punctuation — blocks stray markup-ish
+// characters (< > { } \ ` etc.) from free-text KRA/KPI names and responses.
+const SAFE_TEXT_RE = /^[\p{L}\p{N}\s.,()/&'":;!?_-]+$/u;
+
 // One card per KRA assignment — "My KRAs" tab talks to KraAssignment +
 // Submission (the new system), "PIP" tab talks to the independent Pip model.
 // The two are unrelated data-wise but share this card's chrome/toggle.
@@ -62,7 +70,14 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
 
   const totalWeight = useMemo(() => (assignment.kras || []).reduce((sum, k) => sum + (k.weight || 0), 0), [assignment.kras]);
 
-  const canRespond = Boolean(cycle?.employeeResponse?.enabled) && (cycle?.employeeResponse?.selectedUserIds || []).map(String).includes(String(userId));
+  // The Review Cycles page's user picker only lets HR place "employee"-role
+  // users into the Employee window and "manager"/"hr"-role users into the
+  // Manager/HR window (CycleTable.jsx), so a manager/HR-role person doing
+  // their own self-review can only ever land in the Manager/HR window —
+  // checking employeeResponse alone would make their self-review
+  // permanently unreachable regardless of which window HR opens for them.
+  const isWindowOpenFor = (window) => Boolean(window?.enabled) && (window?.selectedUserIds || []).map(String).includes(String(userId));
+  const canRespond = isWindowOpenFor(cycle?.employeeResponse) || isWindowOpenFor(cycle?.managerResponse);
 
   const isSubmitted = ["employee_submitted", "final_employee_submitted", "manager_reviewed", "final_manager_reviewed"].includes(submission?.status);
   // Editing needs both: the cycle's response window open for this person,
@@ -104,6 +119,10 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
     if (totalWeight !== 100) return toast.error("KRA weights must total 100% before you can submit");
     const incomplete = (submission?.kraResponses || []).some((r) => !r.response?.trim() || !r.rating);
     if (incomplete) return toast.error("Fill in a response and rating for every KRA first");
+    const tooShort = (submission?.kraResponses || []).find((r) => r.response.trim().length < RESPONSE_MIN_LEN);
+    if (tooShort) return toast.error(`Your response for "${tooShort.kraName}" is too short — add a bit more detail`);
+    const badChars = (submission?.kraResponses || []).find((r) => !SAFE_TEXT_RE.test(r.response.trim()));
+    if (badChars) return toast.error(`Your response for "${badChars.kraName}" has characters that aren't allowed`);
     setSubmitting(true);
     try {
       await saveResponses(true);
@@ -119,12 +138,21 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
   };
 
   const addKra = async () => {
-    if (!kraForm.name.trim()) return toast.error("KRA name is required");
+    const name = kraForm.name.trim();
+    if (!name) return toast.error("KRA name is required");
+    if (name.length > NAME_MAX_LEN) return toast.error(`KRA name must be ${NAME_MAX_LEN} characters or fewer`);
+    if (!SAFE_TEXT_RE.test(name)) return toast.error("KRA name has characters that aren't allowed");
+
     const kpis = kraForm.kpis.filter((k) => k.title.trim()).map((k) => ({ title: k.title.trim(), weight: Number(k.weight) || 0 }));
+    for (const kpi of kpis) {
+      if (kpi.title.length > KPI_TITLE_MAX_LEN) return toast.error(`KPI title must be ${KPI_TITLE_MAX_LEN} characters or fewer`);
+      if (!SAFE_TEXT_RE.test(kpi.title)) return toast.error("A KPI title has characters that aren't allowed");
+    }
+
     setSavingKra(true);
     try {
       await API.post(`/pms/kra/assignments/${assignment._id}/kras`, {
-        name: kraForm.name.trim(),
+        name,
         type: kraForm.type,
         weight: Number(kraForm.weight) || 0,
         kpis,
@@ -365,8 +393,12 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                           disabled={!canEditResponses}
                           placeholder="Your self-assessment for this KRA..."
                           rows={3}
+                          maxLength={RESPONSE_MAX_LEN}
                           className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm disabled:bg-slate-50 disabled:text-slate-500"
                         />
+                        {canEditResponses && (
+                          <p className="text-[11px] text-slate-400 text-right -mt-1.5">{(response?.response || "").length}/{RESPONSE_MAX_LEN}</p>
+                        )}
                         <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((n) => (
                             <button
@@ -407,11 +439,19 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                             <option value="functional">Functional</option>
                             <option value="organizational">Organizational</option>
                           </select>
-                          <input value={kraForm.name} onChange={(e) => setKraForm((f) => ({ ...f, name: e.target.value }))} placeholder="KRA name" className="flex-1 rounded-lg border border-slate-200 text-sm px-2.5 py-1.5" />
+                          <input
+                            value={kraForm.name}
+                            onChange={(e) => setKraForm((f) => ({ ...f, name: e.target.value }))}
+                            placeholder="KRA name"
+                            maxLength={NAME_MAX_LEN}
+                            className="flex-1 rounded-lg border border-slate-200 text-sm px-2.5 py-1.5"
+                          />
                           <input
                             value={kraForm.weight}
                             onChange={(e) => setKraForm((f) => ({ ...f, weight: e.target.value }))}
                             type="number"
+                            min={0}
+                            max={100}
                             placeholder="Weight %"
                             className="w-24 rounded-lg border border-slate-200 text-sm px-2.5 py-1.5"
                           />
@@ -422,12 +462,15 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                               value={kpi.title}
                               onChange={(e) => setKraForm((f) => ({ ...f, kpis: f.kpis.map((k, idx) => (idx === i ? { ...k, title: e.target.value } : k)) }))}
                               placeholder="KPI title"
+                              maxLength={KPI_TITLE_MAX_LEN}
                               className="flex-1 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5"
                             />
                             <input
                               value={kpi.weight}
                               onChange={(e) => setKraForm((f) => ({ ...f, kpis: f.kpis.map((k, idx) => (idx === i ? { ...k, weight: e.target.value } : k)) }))}
                               type="number"
+                              min={0}
+                              max={100}
                               placeholder="Weight %"
                               className="w-20 rounded-lg border border-slate-200 text-xs px-2 py-1.5"
                             />

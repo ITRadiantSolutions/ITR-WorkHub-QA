@@ -162,7 +162,20 @@ describe("PMS end-to-end flow (real HTTP + real database)", () => {
       .send({ kras: [{ ...templateKra, _id: baseKraId, weight: 80 }, addKraRes.body.kra] });
     expect(rebalanceRes.status).toBe(200);
 
-    // 7. Employee fills in and saves their self-review.
+    // 7. HR opens the employee response window before the employee can fill
+    // anything in — saveResponses/employeeSubmit enforce this server-side.
+    const windowRes = await request(app)
+      .patch(`/api/pms/cycles/${cycleId}/employee-response`)
+      .set(authHeader(hr))
+      .send({
+        enabled: true,
+        durationDays: 7,
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        selectedUserIds: [employee._id.toString()],
+      });
+    expect(windowRes.status).toBe(200);
+
+    // Employee fills in and saves their self-review.
     const saveRes = await request(app)
       .put(`/api/pms/submissions/${submissionId}/responses`)
       .set(authHeader(employee))
@@ -259,6 +272,114 @@ describe("PMS end-to-end flow (real HTTP + real database)", () => {
     const cycleReportRes = await request(app).get("/api/pms/reports/cycle").query({ cycleId }).set(authHeader(hr));
     expect(cycleReportRes.status).toBe(200);
     expect(cycleReportRes.body.some((row) => row.Employee === "Eve Employee" && row.OverallRating === 5)).toBe(true);
+  });
+
+  it("enforces the cycle's employee response window server-side: viewable but not fillable before HR opens it, fillable after, through to manager review", async () => {
+    // 1. HR creates a KRA in the library.
+    const libraryRes = await request(app)
+      .post("/api/pms/kra/library")
+      .set(authHeader(hr))
+      .send({ type: "functional", name: "Reduce bug backlog", kpis: [{ title: "Bugs closed", weight: 100 }] });
+    expect(libraryRes.status).toBe(201);
+    const libraryKra = libraryRes.body.kras[0];
+
+    // 2. HR opens a review cycle — response window starts disabled by default.
+    const cycleRes = await request(app)
+      .post("/api/pms/cycles")
+      .set(authHeader(hr))
+      .send({ name: "Q3 2026 Review", type: "Quarterly", start: "2026-07-01", end: "2026-09-30" });
+    expect(cycleRes.status).toBe(201);
+    const cycleId = cycleRes.body._id;
+    expect(cycleRes.body.employeeResponse.enabled).toBe(false);
+
+    // 3. HR assigns the KRA directly to the employee.
+    const assignRes = await request(app)
+      .post("/api/pms/kra/assignments/user")
+      .set(authHeader(hr))
+      .send({
+        cycleId,
+        userId: employee._id.toString(),
+        kras: [{ name: libraryKra.name, type: libraryKra.type, weight: 100, kpis: libraryKra.kpis }],
+      });
+    expect(assignRes.status).toBe(201);
+    const assignmentId = assignRes.body._id;
+    const kraId = assignRes.body.kras[0]._id;
+
+    // 4. Employee CAN view their assignment before the window opens — HR
+    // hasn't disabled visibility, only the ability to respond.
+    const viewRes = await request(app).get(`/api/pms/kra/assignments/${assignmentId}`).set(authHeader(employee));
+    expect(viewRes.status).toBe(200);
+
+    const openRes = await request(app)
+      .post(`/api/pms/submissions/from-assignment/${assignmentId}`)
+      .set(authHeader(employee))
+      .send({ managerId: manager._id.toString() });
+    expect(openRes.status).toBe(200);
+    const submissionId = openRes.body._id;
+
+    // 5. Window is still closed — the employee must NOT be able to save or
+    // submit responses via a direct API call, even though the status
+    // ("draft") is otherwise employee-editable.
+    const blockedFillRes = await request(app)
+      .put(`/api/pms/submissions/${submissionId}/responses`)
+      .set(authHeader(employee))
+      .send({ kraResponses: [{ kraId, response: "Trying to fill before the window opens", rating: 4 }] });
+    expect(blockedFillRes.status).toBe(409);
+
+    const blockedSubmitRes = await request(app).post(`/api/pms/submissions/${submissionId}/employee-submit`).set(authHeader(employee));
+    expect(blockedSubmitRes.status).toBe(409);
+
+    // 6. HR opens the employee response window, scoped to this employee.
+    const toggleRes = await request(app)
+      .patch(`/api/pms/cycles/${cycleId}/employee-response`)
+      .set(authHeader(hr))
+      .send({
+        enabled: true,
+        durationDays: 7,
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        selectedUserIds: [employee._id.toString()],
+      });
+    expect(toggleRes.status).toBe(200);
+    expect(toggleRes.body.employeeResponse.enabled).toBe(true);
+
+    // A different employee, not in selectedUserIds, is still blocked even
+    // with the window enabled cycle-wide.
+    const otherEmployee = await makeUser({ name: "Not Selected", managerId: manager._id });
+    const otherAssignRes = await request(app)
+      .post("/api/pms/kra/assignments/user")
+      .set(authHeader(hr))
+      .send({ cycleId, userId: otherEmployee._id.toString(), kras: [{ name: libraryKra.name, type: libraryKra.type, weight: 100, kpis: [] }] });
+    const otherOpenRes = await request(app)
+      .post(`/api/pms/submissions/from-assignment/${otherAssignRes.body._id}`)
+      .set(authHeader(otherEmployee))
+      .send({ managerId: manager._id.toString() });
+    const otherKraId = otherAssignRes.body.kras[0]._id;
+    const stillBlockedRes = await request(app)
+      .put(`/api/pms/submissions/${otherOpenRes.body._id}/responses`)
+      .set(authHeader(otherEmployee))
+      .send({ kraResponses: [{ kraId: otherKraId, response: "Not selected for this window", rating: 3 }] });
+    expect(stillBlockedRes.status).toBe(409);
+
+    // 7. Now the selected employee can fill in and save.
+    const fillRes = await request(app)
+      .put(`/api/pms/submissions/${submissionId}/responses`)
+      .set(authHeader(employee))
+      .send({ kraResponses: [{ kraId, response: "Closed 40 bugs this quarter, cleared the backlog.", rating: 5 }] });
+    expect(fillRes.status).toBe(200);
+    expect(fillRes.body.kraResponses.find((r) => String(r.kraId) === String(kraId)).rating).toBe(5);
+
+    // 8. And submit for review.
+    const submitRes = await request(app).post(`/api/pms/submissions/${submissionId}/employee-submit`).set(authHeader(employee));
+    expect(submitRes.status).toBe(200);
+    expect(submitRes.body.status).toBe("employee_submitted");
+
+    // 9. Manager reviews it end to end.
+    const reviewRes = await request(app)
+      .post(`/api/pms/submissions/${submissionId}/manager-review`)
+      .set(authHeader(manager))
+      .send({ kraReviews: [{ kraId, managerResponse: "Big backlog reduction, great focus.", managerRating: 5 }] });
+    expect(reviewRes.status).toBe(200);
+    expect(reviewRes.body.status).toBe("manager_reviewed");
   });
 
   it("lists an employee with no submission as a non-submitter for the cycle", async () => {
