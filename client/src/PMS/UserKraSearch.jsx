@@ -92,13 +92,6 @@ const getKraType = (kra) =>
         ? "organizational"
         : "job-specific";
 
-const getWeightStatus = (weight) => {
-    if (weight >= 75) return { label: "Excellent", color: "bg-emerald-300" };
-    if (weight >= 50) return { label: "Good", color: "bg-violet-300" };
-    if (weight >= 25) return { label: "Average", color: "bg-amber-300" };
-    return { label: "Low", color: "bg-red-300" };
-};
-
 const getPipSummary = (pip) => {
     if (!pip) return { label: "PIP", hasPip: false, tone: "bg-white text-slate-600 border-2 border-slate-300 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 shadow-sm", dot: "bg-slate-400" };
     if (pip.status === "active") return { label: "PIP", hasPip: true, tone: "bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 shadow-sm", dot: "bg-red-500" };
@@ -548,12 +541,17 @@ export default function UserKraSearch() {
         }
     }, []);
 
-    const fetchUserDetails = useCallback(async (userName) => {
+    // The search endpoint matches by name substring, so a name like "1234"
+    // can match multiple users (e.g. "1234" and "12345") — picking the exact
+    // id out of the result set avoids showing the wrong person's KRAs just
+    // because they sorted first.
+    const fetchUserDetails = useCallback(async (userId, userName) => {
         setDetailsLoading(true);
         try {
             const api = await getAuthAxios();
             const res = await api.get("/pms/kra/users/search", { params: { name: userName } });
-            setUserKraDetails(res.data[0] || null);
+            const match = (res.data || []).find((u) => u.id === userId) || res.data?.[0] || null;
+            setUserKraDetails(match);
         } catch (error) {
             console.error("Error fetching user details:", error);
         } finally {
@@ -728,7 +726,7 @@ export default function UserKraSearch() {
     // ── KRA modal (view-only) ─────────────────────────────────────────────────
     const openViewModal = useCallback((userData) => {
         setSelectedUser(userData);
-        setModalOpen(true); fetchUserDetails(userData.name);
+        setModalOpen(true); fetchUserDetails(userData.id, userData.name);
     }, [fetchUserDetails]);
 
     const closeModal = useCallback(() => {
@@ -1218,81 +1216,52 @@ export default function UserKraSearch() {
                                     <p className="text-slate-400 text-sm">Loading details…</p>
                                 </div>
                             ) : userKraDetails?.kras?.length > 0 ? (
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        {[
-                                            { label: "Total KRAs", value: userKraDetails.kras.length, bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700" },
-                                            { label: "Job Specific", value: userKraDetails.kras.filter((k) => getKraType(k) === "job-specific").length, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
-                                            { label: "Org", value: userKraDetails.kras.filter((k) => getKraType(k) === "organizational").length, bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
-                                            { label: "Total KPIs", value: userKraDetails.kras.reduce((acc, k) => acc + (k.kpis?.length || 0), 0), bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
-                                        ].map(({ label, value, bg, border, text }) => (
-                                            <div key={label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${bg} border ${border}`}>
-                                                <span className={`text-sm font-bold ${text}`}>{value}</span>
-                                                <span className="text-xs text-slate-500">{label}</span>
-                                            </div>
-                                        ))}
+                                <div className="space-y-5">
+                                    <div className="flex items-center gap-2 text-sm text-slate-500 pb-4 border-b border-slate-100 flex-wrap">
+                                        <span><span className="font-bold text-slate-800">{userKraDetails.kras.length}</span> KRAs</span>
+                                        <span className="text-slate-300">·</span>
+                                        <span><span className="font-bold text-slate-800">{userKraDetails.kras.filter((k) => getKraType(k) === "job-specific").length}</span> Job Specific</span>
+                                        <span className="text-slate-300">·</span>
+                                        <span><span className="font-bold text-slate-800">{userKraDetails.kras.filter((k) => getKraType(k) === "organizational").length}</span> Organizational</span>
+                                        <span className="text-slate-300">·</span>
+                                        <span><span className="font-bold text-slate-800">{userKraDetails.kras.reduce((acc, k) => acc + (k.kpis?.length || 0), 0)}</span> KPIs</span>
                                     </div>
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         {userKraDetails.kras.map((kra, index) => {
-                                            const kraType = getKraType(kra);
-                                            const weightStatus = getWeightStatus(kra.weight || 0);
-                                            const isOrg = kraType === "organizational";
-                                            const { date, time } = kra.assignedAt ? formatDateTime(kra.assignedAt) : { date: "N/A", time: "" };
+                                            const isOrg = getKraType(kra) === "organizational";
+                                            const { date } = kra.assignedAt ? formatDateTime(kra.assignedAt) : { date: "N/A" };
                                             return (
-                                                <div key={index} className={`rounded-xl border-2 overflow-hidden ${isOrg ? "border-violet-200 bg-violet-50/30" : "border-emerald-200 bg-emerald-50/30"}`}>
-                                                    <div className={`p-4 ${isOrg ? "bg-violet-100" : "bg-emerald-100"}`}>
-                                                        <div className="flex items-start justify-between gap-4">
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    <h3 className="font-semibold text-slate-800">{kra.name}</h3>
-                                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOrg ? "bg-violet-200 text-violet-700" : "bg-emerald-200 text-emerald-700"}`}>
-                                                                        {isOrg ? "Organizational" : "Job Specific"}
-                                                                    </span>
+                                                <div key={index} className="rounded-xl border border-slate-200 overflow-hidden">
+                                                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <h3 className="font-semibold text-slate-800 text-sm truncate">{kra.name}</h3>
+                                                                <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium ${isOrg ? "bg-violet-50 text-violet-600" : "bg-emerald-50 text-emerald-600"}`}>
+                                                                    {isOrg ? "Organizational" : "Job Specific"}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-400 mt-0.5 truncate">Assigned by {kra.assignedBy || "N/A"} · {date}</p>
+                                                        </div>
+                                                        <span className="shrink-0 text-sm font-bold text-slate-700">{kra.weight || 0}%</span>
+                                                    </div>
+                                                    <div className="h-1 bg-slate-100">
+                                                        <div className={`h-full ${isOrg ? "bg-violet-400" : "bg-emerald-400"}`} style={{ width: `${Math.min(100, kra.weight || 0)}%` }} />
+                                                    </div>
+                                                    {kra.kpis?.length > 0 && (
+                                                        <div className="px-4 py-3 space-y-2 border-t border-slate-100">
+                                                            {kra.kpis.map((kpi, kpiIndex) => (
+                                                                <div key={kpiIndex} className="flex items-center justify-between gap-3 text-sm">
+                                                                    <span className="text-slate-600 truncate">{kpi.name}</span>
+                                                                    <div className="flex items-center gap-2 shrink-0">
+                                                                        {(kpi.target || kpi.actual) && (
+                                                                            <span className="text-xs text-slate-400">{kpi.target ?? "—"} → {kpi.actual ?? "—"}</span>
+                                                                        )}
+                                                                        <span className="text-xs font-semibold text-slate-500">{kpi.weight || 0}%</span>
+                                                                    </div>
                                                                 </div>
-                                                                <p className="text-sm text-slate-500 mt-1">
-                                                                    Assigned by <span className="font-medium text-slate-700">{kra.assignedBy || "N/A"}</span> on {date}{time ? `, ${time}` : ""}
-                                                                </p>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-700 text-sm font-semibold ${weightStatus.color}`}>{kra.weight || 0}%</div>
-                                                                <p className="text-xs text-slate-500 mt-1">KRA Weight</p>
-                                                            </div>
+                                                            ))}
                                                         </div>
-                                                        <div className="mt-3">
-                                                            <div className="h-1.5 bg-slate-200/60 rounded-full overflow-hidden">
-                                                                <div className={`h-full rounded-full transition-all ${weightStatus.color} opacity-70`} style={{ width: `${Math.min(100, kra.weight || 0)}%` }} />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="p-4">
-                                                        <p className="text-sm font-semibold text-slate-600 mb-3">Key Performance Indicators ({kra.kpis?.length || 0})</p>
-                                                        {kra.kpis?.length > 0 ? (
-                                                            <div className="grid gap-2">
-                                                                {kra.kpis.map((kpi, kpiIndex) => {
-                                                                    const kpiStatus = getWeightStatus(kpi.weight || 0);
-                                                                    return (
-                                                                        <div key={kpiIndex} className="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200">
-                                                                            <div className="flex-1">
-                                                                                <p className="font-medium text-slate-700 text-sm">{kpi.name}</p>
-                                                                                <div className="mt-2 h-1 bg-slate-200/60 rounded-full overflow-hidden">
-                                                                                    <div className={`h-full rounded-full ${kpiStatus.color} opacity-70`} style={{ width: `${Math.min(100, kpi.weight || 0)}%` }} />
-                                                                                </div>
-                                                                                <div className="flex items-center gap-1.5 mt-1.5">
-                                                                                    <span className="text-[9px] text-slate-400">Target</span>
-                                                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-100">{kpi.target ?? "—"}</span>
-                                                                                    <span className="text-[9px] text-slate-400 ml-1">Actual</span>
-                                                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">{kpi.actual ?? "—"}</span>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="ml-4 text-right">
-                                                                                <span className={`inline-block px-2 py-1 rounded-md text-white text-xs font-semibold ${kpiStatus.color}`}>{kpi.weight || 0}%</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        ) : <p className="text-sm text-slate-400 italic">No KPIs assigned to this KRA</p>}
-                                                    </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}

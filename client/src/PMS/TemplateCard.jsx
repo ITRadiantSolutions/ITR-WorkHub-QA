@@ -65,7 +65,11 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
   const canRespond = Boolean(cycle?.employeeResponse?.enabled) && (cycle?.employeeResponse?.selectedUserIds || []).map(String).includes(String(userId));
 
   const isSubmitted = ["employee_submitted", "final_employee_submitted", "manager_reviewed", "final_manager_reviewed"].includes(submission?.status);
-  const canEditResponses = submission && ["draft", "manager_reviewed"].includes(submission.status);
+  // Editing needs both: the cycle's response window open for this person,
+  // and the submission itself in an editable status — missing either used
+  // to still render an active-looking form that the backend would then
+  // reject, instead of just not offering the controls in the first place.
+  const canEditResponses = canRespond && submission && ["draft", "manager_reviewed"].includes(submission.status);
 
   const completedKras = (submission?.kraResponses || []).filter((r) => r.response?.trim() && r.rating > 0).length;
   const totalKras = assignment.kras?.length || 0;
@@ -320,6 +324,12 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
               <div className="p-8 text-center text-slate-400">Loading...</div>
             ) : (
               <div className="space-y-3">
+                {!canRespond && !isSubmitted && (
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    Your manager or HR hasn't opened the response window for this cycle yet — you can see your KRAs below, but can't fill in or submit your self-review until it's open.
+                  </div>
+                )}
                 {(assignment.kras || []).map((kra) => {
                   const response = responseFor(kra._id);
                   return (

@@ -20,7 +20,13 @@ export default function MyTemplate() {
 
   const load = () => {
     setLoading(true);
-    Promise.all([API.get("/pms/kra/assignments"), API.get("/pms/cycles")])
+    // Explicitly asking for our own id, not a bare call — for an HR caller,
+    // GET /pms/kra/assignments with no userId intentionally means "every
+    // assignment in the system" (used elsewhere for admin views), so this
+    // page would otherwise show a jumble of everyone's KRAs instead of
+    // just the logged-in user's own.
+    const userId = user?._id || user?.id;
+    Promise.all([API.get("/pms/kra/assignments", { params: { userId } }), API.get("/pms/cycles")])
       .then(([aRes, cRes]) => {
         setAssignments(aRes.data || []);
         setCyclesById(Object.fromEntries((cRes.data || []).map((c) => [c._id, c])));
