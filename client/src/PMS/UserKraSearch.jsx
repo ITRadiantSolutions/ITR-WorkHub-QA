@@ -299,7 +299,7 @@ const UserRow = memo(({
                         className="w-3.5 h-3.5 rounded accent-violet-600 cursor-pointer" />
                 </td>
             )}
-            <td className={`px-6 py-3 min-w-0 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
+            <td className={`px-6 py-3 min-w-0 ${filterStatus !== "archived" && pms_role === "hr" ? "w-[26%]" : "w-[32%]"}`}>
                 <div className="flex items-start gap-2.5">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 ${isArchived ? "bg-slate-400" : "bg-gradient-to-br from-violet-700 to-violet-500"}`}>
                         {initials(userData.name)}
@@ -311,22 +311,10 @@ const UserRow = memo(({
                         {userData.email && (
                             <span className="text-xs text-slate-400 truncate block">{userData.email}</span>
                         )}
-                        {!isArchived && userData.assignedBy && (
-                            <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                <span className="text-slate-500 font-medium truncate">{userData.assignedBy}</span>
-                            </span>
-                        )}
-                        {!isArchived && userData.assignedAt && (
-                            <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                <span>{date}, {time}</span>
-                            </span>
-                        )}
                     </div>
                 </div>
             </td>
-            <td className="px-4 py-3 text-center w-[11%]">
+            <td className="px-4 py-3 text-center w-[10%]">
                 {userData.hasKra ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Yes
@@ -335,6 +323,21 @@ const UserRow = memo(({
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />No
                     </span>
+                )}
+            </td>
+            <td className="px-4 py-3 w-[16%] min-w-0">
+                {!isArchived && userData.assignedBy ? (
+                    <div className="min-w-0">
+                        <span className="text-xs font-medium text-slate-700 flex items-center gap-1 truncate">
+                            <svg className="w-3 h-3 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            <span className="truncate">{userData.assignedBy}</span>
+                        </span>
+                        {userData.assignedAt && (
+                            <span className="text-[11px] text-slate-400 block truncate mt-0.5">{date}, {time}</span>
+                        )}
+                    </div>
+                ) : (
+                    <span className="text-xs text-slate-300">—</span>
                 )}
             </td>
             {canManageReporting && (
@@ -980,7 +983,7 @@ export default function UserKraSearch() {
                                                     title={allFilteredSelected ? "Deselect all" : "Select all"} />
                                             </th>
                                         )}
-                                        <th className={`px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider ${filterStatus !== "archived" && pms_role === "hr" ? "w-[32%]" : "w-[40%]"}`}>
+                                        <th className={`px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider ${filterStatus !== "archived" && pms_role === "hr" ? "w-[26%]" : "w-[32%]"}`}>
                                             <button onClick={() => setSortType((s) => s === "name" ? "recent" : "name")}
                                                 className="flex items-center gap-1 hover:text-violet-600 transition group">
                                                 User Name
@@ -990,7 +993,8 @@ export default function UserKraSearch() {
                                                 </span>
                                             </button>
                                         </th>
-                                        <th className="px-6 py-3 text-center w-[11%] text-xs font-semibold text-slate-600 uppercase tracking-wider">KRA Assigned</th>
+                                        <th className="px-4 py-3 text-center w-[10%] text-xs font-semibold text-slate-600 uppercase tracking-wider">KRA Assigned</th>
+                                        <th className="px-4 py-3 text-left w-[16%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Assigned By</th>
                                         {canManageReporting && (
                                             <th className="px-4 py-3 text-center w-[13%] text-xs font-semibold text-slate-600 uppercase tracking-wider">Reports To</th>
                                         )}

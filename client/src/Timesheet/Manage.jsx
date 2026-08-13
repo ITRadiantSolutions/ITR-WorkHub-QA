@@ -4,7 +4,9 @@ import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import Icons from "../components/Icons";
 
-const PAGE_SIZE = 12;
+// 2 rows worth at the widest grid breakpoint (xl:grid-cols-4) — keeps the
+// page tall enough to view without scrolling.
+const PAGE_SIZE = 8;
 const AVATAR_COLORS = ["bg-emerald-600", "bg-green-600", "bg-teal-600", "bg-emerald-700", "bg-green-700", "bg-teal-700"];
 const colorFor = (str) => {
   const hash = [...(str || "")].reduce((h, c) => h * 31 + c.charCodeAt(0), 0);
@@ -878,6 +880,14 @@ export default function Manage() {
           <p className="text-sm text-slate-500">Manage your projects and workspace settings</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {tab !== "holidays" && (
+            <button
+              onClick={() => (tab === "projects" ? setProjectModal("new") : setNewEmployeeOpen(true))}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold shadow"
+            >
+              <Icons.Plus /> {tab === "projects" ? "New Project" : "New Employee"}
+            </button>
+          )}
           <button onClick={() => setBulkAssignOpen(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-teal-200 text-teal-700 text-sm font-bold hover:bg-teal-50">
             <Icons.Plus /> Bulk Assign
           </button>
@@ -988,14 +998,6 @@ export default function Manage() {
               </button>
             </div>
           </div>
-
-          <button
-            onClick={() => (tab === "projects" ? setProjectModal("new") : setNewEmployeeOpen(true))}
-            className="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-lg flex items-center justify-center text-2xl font-bold z-30"
-            title={tab === "projects" ? "New project" : "New employee"}
-          >
-            <Icons.Plus />
-          </button>
         </>
       )}
 
