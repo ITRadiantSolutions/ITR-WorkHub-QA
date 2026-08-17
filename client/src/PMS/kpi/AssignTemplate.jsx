@@ -18,6 +18,7 @@ export default function AssignTemplate() {
   const [mode, setMode] = useState("user"); // "user" | "group"
   const [cycleId, setCycleId] = useState("");
   const [targetId, setTargetId] = useState("");
+  const [targetSearch, setTargetSearch] = useState("");
   const [weights, setWeights] = useState({}); // kraId -> weight string
 
   useEffect(() => {
@@ -51,6 +52,18 @@ export default function AssignTemplate() {
     () => Object.values(weights).reduce((sum, w) => sum + (Number(w) || 0), 0),
     [weights],
   );
+
+  const filteredUsers = useMemo(() => {
+    const q = targetSearch.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+  }, [users, targetSearch]);
+
+  const filteredGroups = useMemo(() => {
+    const q = targetSearch.trim().toLowerCase();
+    if (!q) return groups;
+    return groups.filter((g) => g.name?.toLowerCase().includes(q));
+  }, [groups, targetSearch]);
 
   const submit = async () => {
     if (!cycleId) return toast.error("Select a cycle");
@@ -108,13 +121,13 @@ export default function AssignTemplate() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => { setMode("user"); setTargetId(""); }}
+                onClick={() => { setMode("user"); setTargetId(""); setTargetSearch(""); }}
                 className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold ${mode === "user" ? "border-violet-600 bg-violet-50 text-violet-700" : "border-slate-200 text-slate-500"}`}
               >
                 Individual
               </button>
               <button
-                onClick={() => { setMode("group"); setTargetId(""); }}
+                onClick={() => { setMode("group"); setTargetId(""); setTargetSearch(""); }}
                 className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold ${mode === "group" ? "border-violet-600 bg-violet-50 text-violet-700" : "border-slate-200 text-slate-500"}`}
               >
                 Group
@@ -125,13 +138,20 @@ export default function AssignTemplate() {
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                 {mode === "user" ? "Person" : "Group"}
               </label>
+              <input
+                type="text"
+                value={targetSearch}
+                onChange={(e) => setTargetSearch(e.target.value)}
+                placeholder={mode === "user" ? "Search by name or email..." : "Search by group name..."}
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm mb-2"
+              />
               <select value={targetId} onChange={(e) => setTargetId(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm">
                 <option value="">Select...</option>
                 {mode === "user"
-                  ? users.map((u) => (
+                  ? filteredUsers.map((u) => (
                       <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
                     ))
-                  : groups.map((g) => (
+                  : filteredGroups.map((g) => (
                       <option key={g._id} value={g._id}>{g.name} ({g.members?.length || 0} members)</option>
                     ))}
               </select>
@@ -150,8 +170,14 @@ export default function AssignTemplate() {
                     <span className="flex-1 text-sm text-slate-800">{k.name}</span>
                     <input
                       type="number"
+                      min={0}
+                      max={100}
                       value={weights[k._id] || ""}
-                      onChange={(e) => setWeights((prev) => ({ ...prev, [k._id]: e.target.value }))}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v !== "" && (Number(v) < 0 || Number(v) > 100)) return;
+                        setWeights((prev) => ({ ...prev, [k._id]: v }));
+                      }}
                       placeholder="0"
                       className="w-20 rounded-lg border border-slate-200 text-sm px-2 py-1 text-right"
                     />

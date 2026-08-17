@@ -426,6 +426,7 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                   );
                 })}
 
+                {/* "Add your own KRA" self-service form removed — KRAs are assigned by HR/manager only.
                 {canEditResponses && (
                   <div className="rounded-xl border-2 border-dashed border-slate-200 p-4">
                     {!kraForm.open ? (
@@ -491,6 +492,7 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                     )}
                   </div>
                 )}
+                */}
 
                 {canEditResponses && (
                   <div className="flex justify-end items-center gap-3 pt-2">

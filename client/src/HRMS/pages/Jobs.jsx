@@ -25,7 +25,7 @@ const Badge = ({ status }) => (
   </span>
 );
 
-function JobPostCard({ job, isHr, isManager, isEmployee, onRefer, onPublish, onClose, onArchive }) {
+function JobPostCard({ job, isHr, isManager, isEmployee, onRefer, onEdit, onPublish, onClose, onArchive }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -57,6 +57,9 @@ function JobPostCard({ job, isHr, isManager, isEmployee, onRefer, onPublish, onC
         )}
         {isHr && (
           <>
+            <button onClick={() => onEdit(job)} className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
+              Edit
+            </button>
             {job.status !== "published" && (
               <button onClick={() => onPublish(job)} className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">
                 Publish
@@ -79,14 +82,22 @@ function JobPostCard({ job, isHr, isManager, isEmployee, onRefer, onPublish, onC
   );
 }
 
-function CreateJobPostForm({ onSubmit, onClose, saving }) {
-  const [form, setForm] = useState({ title: "", department: "", location: "", positions: 1, employmentType: "Full-time", description: "" });
+function JobPostForm({ initial, onSubmit, onClose, saving }) {
+  const isEdit = Boolean(initial);
+  const [form, setForm] = useState(() => ({
+    title: initial?.title || "",
+    department: initial?.department || "",
+    location: initial?.location || "",
+    positions: initial?.positions || 1,
+    employmentType: initial?.employmentType || "Full-time",
+    description: initial?.description || "",
+  }));
   const set = (f) => (e) => setForm((p) => ({ ...p, [f]: e.target.value }));
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Create job post</h2>
+          <h2 className="text-lg font-bold text-slate-900">{isEdit ? "Edit job post" : "Create job post"}</h2>
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
         <input placeholder="Job title" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.title} onChange={set("title")} />
@@ -94,11 +105,21 @@ function CreateJobPostForm({ onSubmit, onClose, saving }) {
           <input placeholder="Department" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.department} onChange={set("department")} />
           <input placeholder="Location" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.location} onChange={set("location")} />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <input type="number" min="1" placeholder="Positions" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.positions} onChange={set("positions")} />
+          <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.employmentType} onChange={set("employmentType")}>
+            {["Full-time", "Part-time", "Contract", "Intern"].map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
         <textarea placeholder="Description" rows={3} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.description} onChange={set("description")} />
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold">Cancel</button>
-          <button disabled={saving || !form.title.trim()} onClick={() => onSubmit(form)} className="px-4 py-2 rounded-xl bg-cyan-700 text-white text-sm font-semibold disabled:opacity-60">
-            {saving ? "Creating..." : "Create"}
+          <button
+            disabled={saving || !form.title.trim()}
+            onClick={() => onSubmit({ ...form, positions: Number(form.positions) || 1 })}
+            className="px-4 py-2 rounded-xl bg-cyan-700 text-white text-sm font-semibold disabled:opacity-60"
+          >
+            {saving ? (isEdit ? "Saving..." : "Creating...") : (isEdit ? "Save changes" : "Create")}
           </button>
         </div>
       </div>
@@ -106,7 +127,7 @@ function CreateJobPostForm({ onSubmit, onClose, saving }) {
   );
 }
 
-function JobRequestDetailModal({ jobRequest, isHr, isOwner, onClose, onReview, onAskQuestion, onRespond, onPublish }) {
+function JobRequestDetailModal({ jobRequest, isHr, isOwner, onClose, onReview, onAskQuestion, onRespond, onPublish, onEdit }) {
   const [rejectionReason, setRejectionReason] = useState("");
   const [showReject, setShowReject] = useState(false);
 
@@ -139,6 +160,13 @@ function JobRequestDetailModal({ jobRequest, isHr, isOwner, onClose, onReview, o
           <JobRequestClarificationThread jobRequest={jobRequest} isHr={isHr} isOwner={isOwner} onAskQuestion={onAskQuestion} onRespond={onRespond} />
         </div>
 
+        {isOwner && ["draft", "clarification_required"].includes(jobRequest.status) && (
+          <div className="flex flex-wrap justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50">
+            <button onClick={onEdit} className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700">
+              Edit request
+            </button>
+          </div>
+        )}
         {isHr && (
           <div className="flex flex-wrap justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50">
             {["submitted", "under_review"].includes(jobRequest.status) && (
@@ -191,6 +219,8 @@ export default function Jobs() {
   const [search, setSearch] = useState("");
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editingRequest, setEditingRequest] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -236,6 +266,34 @@ export default function Jobs() {
       loadPublished();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to create job post");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdatePost = async (data) => {
+    setSaving(true);
+    try {
+      await jobPostsApi.update(editingPost._id, data);
+      toast.success("Job post updated");
+      setEditingPost(null);
+      loadPublished();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update job post");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateRequest = async (data) => {
+    setSaving(true);
+    try {
+      await jobRequestsApi.update(editingRequest._id, data);
+      toast.success("Job request updated");
+      setEditingRequest(null);
+      loadRequests();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update request");
     } finally {
       setSaving(false);
     }
@@ -357,6 +415,7 @@ export default function Jobs() {
                       isManager={isManager}
                       isEmployee={isEmployee}
                       onRefer={handleRefer}
+                      onEdit={(j) => setEditingPost(j)}
                       onPublish={(j) => jobPostsApi.publish(j._id).then(() => { toast.success("Published"); loadPublished(); })}
                       onClose={(j) => jobPostsApi.close(j._id).then(() => { toast.success("Closed"); loadPublished(); })}
                       onArchive={(j) => jobPostsApi.archive(j._id).then(() => { toast.success("Archived"); loadPublished(); })}
@@ -423,8 +482,21 @@ export default function Jobs() {
       {showRequestForm && (
         <JobRequestForm saving={saving} onClose={() => setShowRequestForm(false)} onSubmit={handleCreateRequest} />
       )}
-      {showCreatePost && (
-        <CreateJobPostForm saving={saving} onClose={() => setShowCreatePost(false)} onSubmit={handleCreatePost} />
+      {(showCreatePost || editingPost) && (
+        <JobPostForm
+          saving={saving}
+          initial={editingPost}
+          onClose={() => { setShowCreatePost(false); setEditingPost(null); }}
+          onSubmit={editingPost ? handleUpdatePost : handleCreatePost}
+        />
+      )}
+      {editingRequest && (
+        <JobRequestForm
+          saving={saving}
+          initial={editingRequest}
+          onClose={() => setEditingRequest(null)}
+          onSubmit={handleUpdateRequest}
+        />
       )}
       {selectedRequest && (
         <JobRequestDetailModal
@@ -436,6 +508,7 @@ export default function Jobs() {
           onAskQuestion={handleAskQuestion}
           onRespond={handleRespond}
           onPublish={handlePublishRequest}
+          onEdit={() => { setEditingRequest(selectedRequest); setSelectedRequest(null); }}
         />
       )}
     </main>

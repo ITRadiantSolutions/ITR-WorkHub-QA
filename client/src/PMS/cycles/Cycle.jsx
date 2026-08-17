@@ -451,7 +451,9 @@ export default function Cycle() {
     setEditingId(null);
     setErrors({});
     setApiError("");
-    skipAutoEndCalc.current = true;
+    // No skipAutoEndCalc here (unlike openEdit) — start begins empty, so the
+    // auto-end-date effect no-ops until the user actually picks a date, and
+    // that first pick is exactly when we want it to fire, not skip it.
     setForm({ name: "", type: "Half-Yearly", start: "", end: "" });
     setShowModal(true);
   };

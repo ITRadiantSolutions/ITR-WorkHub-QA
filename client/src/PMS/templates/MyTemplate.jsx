@@ -56,7 +56,7 @@ export default function MyTemplate() {
             No KRAs assigned to you yet — check back once HR or your manager assigns a template.
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+          <div className={assignments.length > 1 ? "grid grid-cols-1 xl:grid-cols-2 gap-5 items-start" : "space-y-5"}>
             {assignments.map((a, i) => (
               <TemplateCard key={a._id} assignment={a} cycle={cyclesById[a.cycleId]} loggedInUser={user} tIndex={i} onChanged={load} />
             ))}
