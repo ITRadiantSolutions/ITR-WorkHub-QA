@@ -284,7 +284,14 @@ export const submitTimesheet = async (req, res) => {
     return res.status(400).json({ message: "Selected manager is not a valid manager" });
   }
 
-  const resubmitted = ["rejected", "needs_edit"].includes(timesheet.status);
+  // Whether this is a resubmission has to be read off the history, not the
+  // current status: saveDraft always resets status to "draft" on every edit,
+  // so by the time an employee edits a rejected/needs_edit week and then
+  // submits, `timesheet.status` no longer reflects that it was ever
+  // rejected — but saveDraft never touches history, so the last entry there
+  // still does.
+  const lastAction = timesheet.history.at(-1)?.action;
+  const resubmitted = ["rejected", "needs_edit"].includes(lastAction);
   const resubmitComment = (req.body.resubmitComment || "").trim().slice(0, 1000);
   timesheet.status = "submitted";
   timesheet.submittedAt = new Date();
@@ -294,7 +301,7 @@ export const submitTimesheet = async (req, res) => {
     by: req.user._id,
     at: timesheet.submittedAt,
     comment: resubmitted
-      ? resubmitComment || "Resubmitted after " + (timesheet.history.at(-1)?.action || "edit")
+      ? resubmitComment || "Resubmitted after " + lastAction
       : "",
   });
   await timesheet.save();

@@ -393,4 +393,159 @@ describe("PMS end-to-end flow (real HTTP + real database)", () => {
     expect(res.status).toBe(200);
     expect(res.body.map((u) => u.id)).toContain(employee._id.toString());
   });
+
+  it("blocks employee responses once the cycle's response window has expired, even though HR marked it enabled", async () => {
+    const cycleRes = await request(app)
+      .post("/api/pms/cycles")
+      .set(authHeader(hr))
+      .send({ name: "H2 2026 Review", type: "Half-Yearly", start: "2026-07-01", end: "2026-12-31" });
+    const cycleId = cycleRes.body._id;
+
+    const assignRes = await request(app)
+      .post("/api/pms/kra/assignments/user")
+      .set(authHeader(hr))
+      .send({
+        cycleId,
+        userId: employee._id.toString(),
+        kras: [{ name: "Own the on-call rotation", type: "functional", weight: 100, kpis: [] }],
+      });
+    const assignmentId = assignRes.body._id;
+    const kraId = assignRes.body.kras[0]._id;
+
+    const openRes = await request(app)
+      .post(`/api/pms/submissions/from-assignment/${assignmentId}`)
+      .set(authHeader(employee))
+      .send({ managerId: manager._id.toString() });
+    const submissionId = openRes.body._id;
+
+    // HR opens the window but backdates the expiry to a moment already in
+    // the past — "enabled" alone isn't enough, the window must also not
+    // have closed yet.
+    const toggleRes = await request(app)
+      .patch(`/api/pms/cycles/${cycleId}/employee-response`)
+      .set(authHeader(hr))
+      .send({
+        enabled: true,
+        durationDays: 7,
+        expiry: new Date(Date.now() - 60 * 1000).toISOString(),
+        selectedUserIds: [employee._id.toString()],
+      });
+    expect(toggleRes.status).toBe(200);
+    expect(toggleRes.body.employeeResponse.enabled).toBe(true);
+
+    const blockedFillRes = await request(app)
+      .put(`/api/pms/submissions/${submissionId}/responses`)
+      .set(authHeader(employee))
+      .send({ kraResponses: [{ kraId, response: "Trying to fill after the window closed", rating: 4 }] });
+    expect(blockedFillRes.status).toBe(409);
+
+    const blockedSubmitRes = await request(app).post(`/api/pms/submissions/${submissionId}/employee-submit`).set(authHeader(employee));
+    expect(blockedSubmitRes.status).toBe(409);
+
+    // Re-opening with a future expiry immediately unblocks the same submission.
+    const reopenRes = await request(app)
+      .patch(`/api/pms/cycles/${cycleId}/employee-response`)
+      .set(authHeader(hr))
+      .send({
+        enabled: true,
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        selectedUserIds: [employee._id.toString()],
+      });
+    expect(reopenRes.status).toBe(200);
+
+    const unblockedFillRes = await request(app)
+      .put(`/api/pms/submissions/${submissionId}/responses`)
+      .set(authHeader(employee))
+      .send({ kraResponses: [{ kraId, response: "Resolved every incident within SLA this half.", rating: 5 }] });
+    expect(unblockedFillRes.status).toBe(200);
+  });
+
+  it("computes the overall rating as the weight-adjusted average of employee and manager ratings once the manager completes their review", async () => {
+    const cycleRes = await request(app)
+      .post("/api/pms/cycles")
+      .set(authHeader(hr))
+      .send({ name: "Q1 2026 Review", type: "Quarterly", start: "2026-01-01", end: "2026-03-31" });
+    const cycleId = cycleRes.body._id;
+
+    // Two KRAs with different weights so the average is actually weighted,
+    // not a plain mean.
+    const assignRes = await request(app)
+      .post("/api/pms/kra/assignments/user")
+      .set(authHeader(hr))
+      .send({
+        cycleId,
+        userId: employee._id.toString(),
+        kras: [
+          { name: "Ship features on time", type: "functional", weight: 60, kpis: [] },
+          { name: "Mentor teammates", type: "organizational", weight: 40, kpis: [] },
+        ],
+      });
+    const assignmentId = assignRes.body._id;
+    const [kraA, kraB] = assignRes.body.kras;
+
+    const openRes = await request(app)
+      .post(`/api/pms/submissions/from-assignment/${assignmentId}`)
+      .set(authHeader(employee))
+      .send({ managerId: manager._id.toString() });
+    const submissionId = openRes.body._id;
+
+    await request(app)
+      .patch(`/api/pms/cycles/${cycleId}/employee-response`)
+      .set(authHeader(hr))
+      .send({
+        enabled: true,
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        selectedUserIds: [employee._id.toString()],
+      });
+
+    // Employee self-rates: 4 on the 60%-weighted KRA, 2 on the 40%-weighted one.
+    await request(app)
+      .put(`/api/pms/submissions/${submissionId}/responses`)
+      .set(authHeader(employee))
+      .send({
+        kraResponses: [
+          { kraId: kraA._id, response: "Shipped every sprint commitment.", rating: 4 },
+          { kraId: kraB._id, response: "Mentored two new hires.", rating: 2 },
+        ],
+      });
+    const submitRes = await request(app).post(`/api/pms/submissions/${submissionId}/employee-submit`).set(authHeader(employee));
+    expect(submitRes.status).toBe(200);
+
+    // Manager rates: 5 on the 60%-weighted KRA, 3 on the 40%-weighted one.
+    const reviewRes = await request(app)
+      .post(`/api/pms/submissions/${submissionId}/manager-review`)
+      .set(authHeader(manager))
+      .send({
+        kraReviews: [
+          { kraId: kraA._id, managerResponse: "Strong delivery.", managerRating: 5 },
+          { kraId: kraB._id, managerResponse: "Great mentorship.", managerRating: 3 },
+        ],
+      });
+    expect(reviewRes.status).toBe(200);
+
+    // employeeAvg = (4*60 + 2*40) / 100 = 3.2, managerAvg = (5*60 + 3*40) / 100 = 4.2
+    // overallRating = round((3.2 + 4.2) / 2) = round(3.7) = 4
+    expect(reviewRes.body.finalReport.employeeAvg).toBeCloseTo(3.2, 5);
+    expect(reviewRes.body.finalReport.managerAvg).toBeCloseTo(4.2, 5);
+    expect(reviewRes.body.finalReport.overallRating).toBe(4);
+  });
+
+  it("an employee can never view another employee's report, regardless of the cycle's report visibility", async () => {
+    const otherEmployee = await makeUser({
+      name: "Owen Other",
+      roles: { timesheet: "employee", pms: "employee", tracker: "BUSINESS_USER" },
+      managerId: manager._id,
+    });
+
+    const blocked = await request(app).get(`/api/pms/reports/employee/${otherEmployee._id}`).set(authHeader(employee));
+    expect(blocked.status).toBe(403);
+
+    // The employee can still see their own (empty) report list...
+    const own = await request(app).get(`/api/pms/reports/employee/${employee._id}`).set(authHeader(employee));
+    expect(own.status).toBe(200);
+
+    // ...and HR can see anyone's.
+    const hrView = await request(app).get(`/api/pms/reports/employee/${otherEmployee._id}`).set(authHeader(hr));
+    expect(hrView.status).toBe(200);
+  });
 });
