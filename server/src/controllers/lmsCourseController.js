@@ -15,7 +15,7 @@ import { uploadAttachment, deleteAttachments, createReadUrl } from "../config/bl
 // multer-disk-then-upload helper; thumbnails/material files store a blob name and are
 // resolved to a short-lived signed URL on the way out, same pattern as VMS visitor photos.
 
-const isManager = (user) => ["manager", "admin"].includes(user.roles.lms);
+const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
 const resolveThumbnail = (value) => (value && !value.startsWith("http") ? createReadUrl(value) : value);
 

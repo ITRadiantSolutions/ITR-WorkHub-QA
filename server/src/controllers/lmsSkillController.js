@@ -8,7 +8,7 @@ import Course from "../models/Course.js";
 // source's disk storage, so the workbook is parsed straight from the
 // buffer — no temp file to clean up afterward.
 
-const isManager = (user) => ["manager", "admin"].includes(user.roles.lms);
+const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
 const DEFAULT_CATEGORIES = [
   "Frontend", "Backend", "Full Stack", "Mobile Development", "Programming Language", "Database",

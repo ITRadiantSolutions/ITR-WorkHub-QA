@@ -130,8 +130,10 @@ function BadgesTab() {
 
 function SkillsTab() {
   const [skills, setSkills] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(null);
+  const [newCategory, setNewCategory] = useState("");
 
   const load = () =>
     skillsApi
@@ -140,9 +142,41 @@ function SkillsTab() {
       .catch(() => toast.error("Failed to load skills"))
       .finally(() => setLoading(false));
 
+  const loadCategories = () =>
+    skillsApi
+      .categories()
+      .then((res) => setCategories(res.data))
+      .catch(() => toast.error("Failed to load categories"));
+
   useEffect(() => {
     load();
+    loadCategories();
   }, []);
+
+  const addCategory = async (e) => {
+    e.preventDefault();
+    const name = newCategory.trim();
+    if (!name) return;
+    try {
+      await skillsApi.createCategory(name);
+      toast.success("Category added");
+      setNewCategory("");
+      loadCategories();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to add category");
+    }
+  };
+
+  const removeCategory = async (id) => {
+    if (!window.confirm("Delete this category?")) return;
+    try {
+      await skillsApi.deleteCategory(id);
+      toast.success("Category deleted");
+      loadCategories();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete category");
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -172,6 +206,32 @@ function SkillsTab() {
 
   return (
     <div className="space-y-3">
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-3">
+        <p className="text-xs font-bold text-slate-700">Categories</p>
+        <form onSubmit={addCategory} className="flex gap-2">
+          <input
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            placeholder="New category name"
+            className="text-xs rounded-lg border border-slate-200 px-3 py-1.5 flex-1"
+          />
+          <button type="submit" className="text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5">
+            Add
+          </button>
+        </form>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <span key={cat._id} className="inline-flex items-center gap-1.5 text-[10px] font-semibold rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600">
+              {cat.name}
+              <button onClick={() => removeCategory(cat._id)} className="text-red-500 hover:text-red-600">
+                <Icons.Trash />
+              </button>
+            </span>
+          ))}
+          {categories.length === 0 && <p className="text-xs text-slate-400">No categories yet.</p>}
+        </div>
+      </div>
+
       <button onClick={() => setForm({ name: "", category: "", description: "", status: "Active" })} className="text-xs font-semibold text-amber-600 hover:underline">
         + Add Skill
       </button>
@@ -179,7 +239,14 @@ function SkillsTab() {
       {form && (
         <form onSubmit={submit} className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
           <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name" className="text-xs rounded-lg border border-slate-200 px-3 py-1.5" />
-          <input value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="Category" className="text-xs rounded-lg border border-slate-200 px-3 py-1.5" />
+          <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="text-xs rounded-lg border border-slate-200 px-3 py-1.5">
+            <option value="">Select category</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat.name}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
           <input
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}

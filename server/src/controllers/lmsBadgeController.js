@@ -4,7 +4,7 @@ import { uploadAttachment, deleteAttachments, createReadUrl } from "../config/bl
 
 // Ported from the standalone LMS project's badgeController.js.
 
-const isManager = (user) => ["manager", "admin"].includes(user.roles.lms);
+const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
 const resolveBadge = (badge) => {
   if (!badge) return badge;

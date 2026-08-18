@@ -6,7 +6,7 @@ import Skill from "../models/Skill.js";
 // Ported from the standalone LMS project's courseAssessmentController.js.
 // Admin/manager-only quiz & final-assignment definitions attached to a course.
 
-const isManager = (user) => ["manager", "admin"].includes(user.roles.lms);
+const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
 const resolveBadgeOrSkill = async ({ badge, skill }) => {
   // In the source app, the badge <select> may actually submit a Skill id —

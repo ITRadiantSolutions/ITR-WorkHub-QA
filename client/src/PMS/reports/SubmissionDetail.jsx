@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -63,7 +63,8 @@ export default function SubmissionDetail() {
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [finalReport, setFinalReport] = useState({ managerOverallResponse: "", overallRating: "", oneOnOneComment: "" });
+  const [finalReport, setFinalReport] = useState({ managerOverallResponse: "", overallRating: "", oneOnOneDate: "", oneOnOneComment: "" });
+  const finalReportSubmitting = useRef(false);
 
   const load = () => {
     setLoading(true);
@@ -73,6 +74,7 @@ export default function SubmissionDetail() {
         setFinalReport({
           managerOverallResponse: res.data.finalReport?.managerOverallResponse || "",
           overallRating: res.data.finalReport?.overallRating || "",
+          oneOnOneDate: res.data.finalReport?.oneOnOneDate ? res.data.finalReport.oneOnOneDate.slice(0, 10) : "",
           oneOnOneComment: res.data.finalReport?.oneOnOneComment || "",
         });
       })
@@ -147,12 +149,20 @@ export default function SubmissionDetail() {
     }
   };
 
+  const canSaveFinalReport =
+    finalReport.managerOverallResponse.trim().length > 0 &&
+    Number(finalReport.overallRating) >= 1 &&
+    Number(finalReport.overallRating) <= 5;
+
   const saveFinalReport = async () => {
+  if (finalReportSubmitting.current || !canSaveFinalReport) return;
+    finalReportSubmitting.current = true;
     setSaving(true);
     try {
       await API.patch(`/pms/submissions/${id}/final-report`, {
         ...finalReport,
         overallRating: Number(finalReport.overallRating) || null,
+        oneOnOneDate: finalReport.oneOnOneDate || null,
         managerSubmitted: true,
       });
       toast.success("Final report saved");
@@ -161,6 +171,7 @@ export default function SubmissionDetail() {
       toast.error(err.response?.data?.message || "Failed to save final report");
     } finally {
       setSaving(false);
+      finalReportSubmitting.current = false;
     }
   };
 
@@ -314,6 +325,13 @@ export default function SubmissionDetail() {
                           )}
                         </div>
                         <div>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">1:1 meeting date</label>
+                          <input
+                            type="date"
+                            value={finalReport.oneOnOneDate}
+                            onChange={(e) => setFinalReport((p) => ({ ...p, oneOnOneDate: e.target.value }))}
+                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm mb-2.5"
+                          />
                           <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">1:1 notes</label>
                           <textarea
                             value={finalReport.oneOnOneComment}
@@ -327,8 +345,9 @@ export default function SubmissionDetail() {
                       <div className="flex justify-end">
                         <button
                           onClick={saveFinalReport}
-                          disabled={saving}
-                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold shadow disabled:opacity-50"
+                          disabled={saving || !canSaveFinalReport}
+                          title={!canSaveFinalReport ? "Add an overall summary and rating before saving" : undefined}
+                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <CheckCircle2 className="w-4 h-4" /> Save final report
                         </button>

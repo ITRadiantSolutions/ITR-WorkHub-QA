@@ -16,12 +16,14 @@ export default function EmployeeProfile() {
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("overview");
   const [form, setForm] = useState({ department: "", designation: "", joiningDate: "", employmentStatus: "active" });
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(null);
     employeesApi
       .byId(id)
       .then((res) => {
@@ -33,7 +35,11 @@ export default function EmployeeProfile() {
           employmentStatus: res.data.employee.employmentStatus || "active",
         });
       })
-      .catch(() => toast.error("Failed to load employee"))
+      .catch((err) => {
+        const message = err.response?.data?.message || "Failed to load employee";
+        setLoadError(message);
+        toast.error(message);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -54,8 +60,19 @@ export default function EmployeeProfile() {
     }
   };
 
-  if (loading || !employee) {
+  if (loading) {
     return <main className="max-w-4xl mx-auto px-6 py-8 text-center text-slate-500">Loading...</main>;
+  }
+
+  if (loadError || !employee) {
+    return (
+      <main className="max-w-4xl mx-auto px-6 py-8 text-center">
+        <p className="text-sm text-slate-500 mb-4">{loadError || "Employee not found."}</p>
+        <button onClick={() => navigate("/hrms/employees")} className="flex items-center gap-1.5 mx-auto text-sm font-semibold text-slate-600 hover:text-slate-900">
+          <ArrowLeft className="w-[18px] h-[18px]" /> Back to Employees
+        </button>
+      </main>
+    );
   }
 
   const input = "w-full rounded-xl border border-slate-200 px-3 py-2 text-sm";
