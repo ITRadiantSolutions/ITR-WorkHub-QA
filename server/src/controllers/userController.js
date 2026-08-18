@@ -88,9 +88,23 @@ export const getMe = async (req, res) => {
 
 export const createUser = async (req, res) => {
   if (!isAdminOrHr(req.user)) return res.status(403).json({ message: "Admin/HR access required" });
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, roles } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ message: "name, email and password are required" });
+  }
+
+  // Every non-tracker module role used to be hard-coded to its schema
+  // default here, with no way to set e.g. Time Flow/PMS role at creation
+  // time (only FlowTrack's `role` was settable) — an admin had to create the
+  // user, then separately edit each module's role afterward. Accept an
+  // optional per-module override instead, validated against the same enum
+  // assignRole uses, falling back to the previous defaults untouched.
+  const moduleRoleDefaults = { timesheet: "employee", pms: "employee", hrms: "employee", lms: "employee", vms: "host" };
+  const moduleRoles = { ...moduleRoleDefaults };
+  if (roles && typeof roles === "object") {
+    for (const key of Object.keys(moduleRoleDefaults)) {
+      if (roles[key] && MODULE_ROLE_ENUM[key]?.includes(roles[key])) moduleRoles[key] = roles[key];
+    }
   }
 
   const existing = await User.findOne({ email: email.toLowerCase() });
@@ -116,11 +130,7 @@ export const createUser = async (req, res) => {
     // schema defaults for hrms/lms/vms) so a manually onboarded user is
     // immediately usable across the whole app, not just timesheet/pms/tracker.
     roles: {
-      timesheet: "employee",
-      pms: "employee",
-      hrms: "employee",
-      lms: "employee",
-      vms: "host",
+      ...moduleRoles,
       tracker: role || "BUSINESS_USER",
     },
     approvalStatus: "Approved",

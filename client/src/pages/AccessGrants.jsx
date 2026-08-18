@@ -117,6 +117,10 @@ function GrantModal({ employee, onClose, onSaved }) {
 }
 
 const TRACKER_ROLES = MANAGE_MODULES.find((m) => m.key === "tracker").roles;
+// Every module except tracker (which gets its own dedicated selector below,
+// for legacy-naming reasons) needs a role picker in CreateUserModal — the
+// server used to silently hard-code all of these to their schema default.
+const OTHER_MODULES = MANAGE_MODULES.filter((m) => m.key !== "tracker");
 
 const generatePassword = () => {
   // Readable-enough temp password: a word-ish chunk + 4 digits, not aiming
@@ -138,6 +142,7 @@ function CreateUserModal({ onClose, onSaved, canGrantAccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(generatePassword());
   const [trackerRole, setTrackerRole] = useState("BUSINESS_USER");
+  const [moduleRoles, setModuleRoles] = useState(() => Object.fromEntries(OTHER_MODULES.map((m) => [m.key, m.defaultRole])));
   const [selected, setSelected] = useState(new Set(canGrantAccess ? MANAGE_MODULES.map((m) => m.key) : []));
   const [saving, setSaving] = useState(false);
   const allSelected = selected.size === MANAGE_MODULES.length;
@@ -162,6 +167,7 @@ function CreateUserModal({ onClose, onSaved, canGrantAccess }) {
         email: email.trim(),
         password,
         role: trackerRole,
+        roles: moduleRoles,
         ...(canGrantAccess ? { manageAccessModules: [...selected] } : {}),
       });
       toast.success(`${name.trim()} was created`);
@@ -234,10 +240,30 @@ function CreateUserModal({ onClose, onSaved, canGrantAccess }) {
             </select>
           </div>
 
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Role for every other module</label>
+            <div className="grid grid-cols-2 gap-2">
+              {OTHER_MODULES.map((m) => (
+                <div key={m.key}>
+                  <label className="block text-[11px] text-slate-400 mb-0.5">{m.label}</label>
+                  <select
+                    value={moduleRoles[m.key]}
+                    onChange={(e) => setModuleRoles((prev) => ({ ...prev, [m.key]: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs bg-white capitalize focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                  >
+                    {m.roles.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {canGrantAccess && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-500">Module access</label>
+                <label className="text-xs font-semibold text-slate-500">Manage-access grants (admin over other people)</label>
                 <button
                   type="button"
                   onClick={() => setSelected(allSelected ? new Set() : new Set(MANAGE_MODULES.map((m) => m.key)))}

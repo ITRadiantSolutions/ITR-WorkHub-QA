@@ -75,11 +75,12 @@ export const searchUsers = async (req, res) => {
   );
 };
 
-// Reporting-line picker in UserKraSearch.jsx.
+// Reporting-line picker in UserKraSearch.jsx — HR can be someone's reporting
+// manager too, not just users holding the "manager" tier.
 export const listPmsManagers = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
-  const managers = await User.find({ "roles.pms": "manager" }).select("name email");
-  res.json(managers.map((u) => ({ id: u._id, name: u.name, email: u.email })));
+  const managers = await User.find({ "roles.pms": { $in: ["manager", "hr"] } }).select("name email roles.pms");
+  res.json(managers.map((u) => ({ id: u._id, name: u.name, email: u.email, role: u.roles.pms })));
 };
 
 // Name autocomplete for the assign-KRA search box.

@@ -35,9 +35,14 @@ export default function AssignTemplate() {
         setCycles(cRes.data || []);
         setUsers(uRes.data || []);
         setGroups(gRes.data || []);
+        // Pre-fill from the template's own suggested per-KRA weight (set on
+        // the New/Edit Template page) instead of always starting blank —
+        // previously every KRA here started at "" regardless of what the
+        // template specified, so only whichever field someone happened to
+        // type into first ever ended up with a real value.
         const initialWeights = {};
         (tRes.data.kras || []).forEach((k) => {
-          initialWeights[k._id] = "";
+          initialWeights[k._id] = k.weight != null ? String(k.weight) : "";
         });
         setWeights(initialWeights);
       })
@@ -68,6 +73,7 @@ export default function AssignTemplate() {
   const submit = async () => {
     if (!cycleId) return toast.error("Select a cycle");
     if (!targetId) return toast.error(mode === "user" ? "Select a person" : "Select a group");
+    if (totalWeight !== 100) return toast.error(`KRA weights must total exactly 100% (currently ${totalWeight}%)`);
 
     const kras = (template.kras || []).map((k) => ({
       defRef: k._id,
@@ -145,16 +151,41 @@ export default function AssignTemplate() {
                 placeholder={mode === "user" ? "Search by name or email..." : "Search by group name..."}
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm mb-2"
               />
-              <select value={targetId} onChange={(e) => setTargetId(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm">
-                <option value="">Select...</option>
-                {mode === "user"
-                  ? filteredUsers.map((u) => (
-                      <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+              <div className="max-h-56 overflow-y-auto space-y-1 rounded-xl border border-slate-100 p-1">
+                {mode === "user" ? (
+                  filteredUsers.length === 0 ? (
+                    <p className="text-center text-xs text-slate-400 py-4">No matches</p>
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <button
+                        key={u._id}
+                        type="button"
+                        onClick={() => setTargetId(u._id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
+                          targetId === u._id ? "bg-violet-50 border border-violet-200 text-violet-700 font-semibold" : "hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        {u.name} <span className="text-xs text-slate-400">({u.email})</span>
+                      </button>
                     ))
-                  : filteredGroups.map((g) => (
-                      <option key={g._id} value={g._id}>{g.name} ({g.members?.length || 0} members)</option>
-                    ))}
-              </select>
+                  )
+                ) : filteredGroups.length === 0 ? (
+                  <p className="text-center text-xs text-slate-400 py-4">No matches</p>
+                ) : (
+                  filteredGroups.map((g) => (
+                    <button
+                      key={g._id}
+                      type="button"
+                      onClick={() => setTargetId(g._id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
+                        targetId === g._id ? "bg-violet-50 border border-violet-200 text-violet-700 font-semibold" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      {g.name} <span className="text-xs text-slate-400">({g.members?.length || 0} members)</span>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
 
             <div>
@@ -175,7 +206,15 @@ export default function AssignTemplate() {
                       value={weights[k._id] || ""}
                       onChange={(e) => {
                         const v = e.target.value;
-                        if (v !== "" && (Number(v) < 0 || Number(v) > 100)) return;
+                        if (v === "") return setWeights((prev) => ({ ...prev, [k._id]: v }));
+                        const n = Number(v);
+                        if (n < 0) return;
+                        // Cap this field so the running total across all KRAs can never exceed 100%.
+                        const othersTotal = Object.entries(weights).reduce(
+                          (sum, [kraId, w]) => (kraId === k._id ? sum : sum + (Number(w) || 0)),
+                          0,
+                        );
+                        if (n > 100 - othersTotal) return;
                         setWeights((prev) => ({ ...prev, [k._id]: v }));
                       }}
                       placeholder="0"

@@ -45,7 +45,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50];
 // ── PMS Role management (HR only) ──────────────────────────────────────────────
 const PMS_ROLE_META = {
     hr: { label: "HR", icon: "🛡️", classes: "bg-violet-100 text-violet-700 border-violet-200" },
-    manager: { label: "Manager", icon: "⭐", classes: "bg-teal-100 text-teal-700 border-teal-200" },
+    manager: { label: "Manager", icon: "⭐", classes: "bg-violet-100 text-violet-700 border-violet-200" },
     employee: { label: "Employee", icon: "👤", classes: "bg-slate-100 text-slate-600 border-slate-200" },
 };
 const PMS_ROLE_OPTIONS = [
@@ -355,8 +355,8 @@ const UserRow = memo(({
             {canManageReporting && (
                 <td className="px-4 py-3 text-center w-[13%]">
                     {userData.managerName ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-medium border border-teal-200 max-w-full truncate">
-                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 text-xs font-medium border border-violet-200 max-w-full truncate">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
                             <span className="truncate">{userData.managerName}</span>
                         </span>
                     ) : (
@@ -393,7 +393,7 @@ const UserRow = memo(({
                             <button onClick={() => canManageReporting && onReporting(userData)}
                                 disabled={!canManageReporting}
                                 title={canManageReporting ? "Manage Reporting Line" : "You don't have permission to manage reporting"}
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${canManageReporting ? "bg-teal-50 text-teal-600 hover:bg-teal-100" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 ${canManageReporting ? "bg-violet-50 text-violet-600 hover:bg-violet-100" : "bg-slate-50 text-slate-300 cursor-not-allowed"}`}>
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                             </button>
                             {/* Archive moved to HRMS Manage > PMS (single centralized place for module access).
@@ -1090,10 +1090,10 @@ export default function UserKraSearch() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeBulkModal} />
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-teal-600 to-cyan-600">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-violet-700 to-violet-500">
                             <div>
                                 <h2 className="text-lg font-bold text-white">Assign Manager</h2>
-                                <p className="text-teal-100 text-sm mt-0.5">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</p>
+                                <p className="text-violet-100 text-sm mt-0.5">{bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""} selected</p>
                             </div>
                             <button onClick={closeBulkModal} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1104,12 +1104,12 @@ export default function UserKraSearch() {
                             <div className="space-y-2">
                                 {[{ id: "", name: "No manager", sub: "Clear reporting line for selected users" }, ...managers].map((m) => (
                                     <label key={m.id ?? "none"}
-                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition ${bulkManagerId === (m.id ?? "") ? "border-teal-400 bg-teal-50" : "border-slate-200 hover:border-teal-200 hover:bg-slate-50"}`}>
+                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition ${bulkManagerId === (m.id ?? "") ? "border-violet-400 bg-violet-50" : "border-slate-200 hover:border-violet-200 hover:bg-slate-50"}`}>
                                         <input type="radio" name="bulkManager" value={m.id ?? ""}
                                             checked={bulkManagerId === (m.id ?? "")}
                                             onChange={() => setBulkManagerId(m.id ?? "")}
-                                            className="accent-teal-600" />
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!m.id ? "bg-slate-200" : "bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-bold text-sm"}`}>
+                                            className="accent-violet-600" />
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!m.id ? "bg-slate-200" : "bg-gradient-to-br from-violet-600 to-violet-400 text-white font-bold text-sm"}`}>
                                             {!m.id ? <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                                                 : initials(m.username || m.name || "")}
                                         </div>
@@ -1124,7 +1124,7 @@ export default function UserKraSearch() {
                         <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
                             <button onClick={closeBulkModal} disabled={savingBulk} className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-300 transition disabled:opacity-50">Cancel</button>
                             <button onClick={handleBulkManagerAssign} disabled={savingBulk}
-                                className="px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 transition flex items-center gap-2">
+                                className="px-6 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-40 transition flex items-center gap-2">
                                 {savingBulk ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : <>Assign Manager to {bulkSelected.size} user{bulkSelected.size !== 1 ? "s" : ""}</>}
                             </button>
                         </div>
@@ -1137,14 +1137,14 @@ export default function UserKraSearch() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeReportingModal} />
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-teal-600 to-cyan-600">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-violet-700 to-violet-500">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg">
                                     {initials(reportingUser?.name)}
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-bold text-white">Manage Reporting Line</h2>
-                                    <p className="text-teal-100 text-sm">{reportingUser?.name}</p>
+                                    <p className="text-violet-100 text-sm">{reportingUser?.name}</p>
                                 </div>
                             </div>
                             <button onClick={closeReportingModal} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
@@ -1156,7 +1156,7 @@ export default function UserKraSearch() {
                                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Current Reporting Line</p>
                                 {reportingUser?.managerName ? (
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white font-semibold text-xs">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-violet-400 flex items-center justify-center text-white font-semibold text-xs">
                                             {initials(reportingUser.managerName)}
                                         </div>
                                         <div>
@@ -1169,25 +1169,25 @@ export default function UserKraSearch() {
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Assign Manager</label>
                                 {managersLoading ? (
-                                    <div className="flex items-center gap-3 py-3"><Spinner size="w-5 h-5" color="border-teal-400 border-t-transparent" /><span className="text-sm text-slate-400">Loading managers…</span></div>
+                                    <div className="flex items-center gap-3 py-3"><Spinner size="w-5 h-5" color="border-violet-400 border-t-transparent" /><span className="text-sm text-slate-400">Loading managers…</span></div>
                                 ) : managers.length === 0 ? (
                                     <p className="text-sm text-slate-400 italic">No managers found in the system.</p>
                                 ) : (
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                                         {[{ id: "", name: "No manager", sub: "Clear reporting line" }, ...managers.filter((m) => m.id !== reportingUser?.id)].map((m) => (
                                             <label key={m.id ?? "none"}
-                                                className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition ${selectedManagerId === (m.id ?? "") ? "border-teal-400 bg-teal-50" : "border-slate-200 hover:border-teal-200 hover:bg-slate-50"}`}>
+                                                className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition ${selectedManagerId === (m.id ?? "") ? "border-violet-400 bg-violet-50" : "border-slate-200 hover:border-violet-200 hover:bg-slate-50"}`}>
                                                 <input type="radio" name="manager" value={m.id ?? ""}
                                                     checked={selectedManagerId === (m.id ?? "")}
                                                     onChange={() => setSelectedManagerId(m.id ?? "")}
-                                                    className="accent-teal-600" />
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!m.id ? "bg-slate-200" : "bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-bold text-sm"}`}>
+                                                    className="accent-violet-600" />
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!m.id ? "bg-slate-200" : "bg-gradient-to-br from-violet-600 to-violet-400 text-white font-bold text-sm"}`}>
                                                     {!m.id ? <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                                                         : initials(m.username || m.name || "")}
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-medium text-slate-700 truncate">{m.name || m.full_name || m.username || "No manager"}</p>
-                                                    {m.sub && <p className="text-xs text-slate-400">{m.sub}</p>}
+                                                    {(m.sub || m.role) && <p className="text-xs text-slate-400">{m.sub || (m.role === "hr" ? "HR" : "Manager")}</p>}
                                                 </div>
                                             </label>
                                         ))}
@@ -1197,7 +1197,7 @@ export default function UserKraSearch() {
                         </div>
                         <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
                             <button onClick={handleAssignManager} disabled={savingManager}
-                                className="px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition flex items-center gap-2">
+                                className="px-6 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition flex items-center gap-2">
                                 {savingManager ? <><Spinner size="w-4 h-4" color="border-white border-t-transparent" />Saving…</> : "Save Reporting Line"}
                             </button>
                             <button onClick={closeReportingModal} className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition">Cancel</button>

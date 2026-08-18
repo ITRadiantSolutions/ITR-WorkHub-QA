@@ -3,6 +3,7 @@ import { protect } from "../../middleware/authMiddleware.js";
 import {
   listLibrary,
   addLibraryKra,
+  updateLibraryKra,
   removeLibraryKra,
   listMasterTemplates,
   getMasterTemplate,
@@ -29,6 +30,7 @@ router.use(protect);
 
 router.get("/library", listLibrary);
 router.post("/library", addLibraryKra);
+router.put("/library/:type/:kraId", updateLibraryKra);
 router.delete("/library/:type/:kraId", removeLibraryKra);
 
 router.get("/templates", listMasterTemplates);

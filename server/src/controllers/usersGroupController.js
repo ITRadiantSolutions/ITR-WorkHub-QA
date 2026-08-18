@@ -1,4 +1,5 @@
 import UsersGroup from "../models/UsersGroup.js";
+import { escapeRegex } from "../utils/taskFilters.js";
 
 const requirePmsHrOrManager = (req, res) => {
   if (!["hr", "manager"].includes(req.user.roles.pms)) {
@@ -34,6 +35,14 @@ const findConflictingMembers = async (memberIds, excludeGroupId) => {
   return [...names];
 };
 
+// Case-insensitive — "Testor" and "testor" would otherwise both be allowed
+// and be indistinguishable in every group picker across the app.
+const findDuplicateGroupName = async (name, excludeGroupId) => {
+  const filter = { name: { $regex: `^${escapeRegex(name.trim())}$`, $options: "i" } };
+  if (excludeGroupId) filter._id = { $ne: excludeGroupId };
+  return UsersGroup.findOne(filter);
+};
+
 export const listGroups = async (req, res) => {
   res.json(await UsersGroup.find({}).populate("members", "name email"));
 };
@@ -48,6 +57,9 @@ export const createGroup = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
   const { name, description, members } = req.body;
   if (!name) return res.status(400).json({ message: "name is required" });
+  if (await findDuplicateGroupName(name)) {
+    return res.status(409).json({ message: `A group named "${name.trim()}" already exists` });
+  }
 
   const memberIds = normalizeMemberIds(members);
   const conflicts = await findConflictingMembers(memberIds);
@@ -65,6 +77,10 @@ export const updateGroup = async (req, res) => {
 
   const group = await UsersGroup.findById(req.params.id);
   if (!group) return res.status(404).json({ message: "Group not found" });
+
+  if (name !== undefined && (await findDuplicateGroupName(name, group._id))) {
+    return res.status(409).json({ message: `A group named "${name.trim()}" already exists` });
+  }
 
   if (members !== undefined) {
     const conflicts = await findConflictingMembers(members, group._id);

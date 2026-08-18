@@ -289,6 +289,9 @@ export const setFinalReport = async (req, res) => {
   if (!isValidAvgRating(managerAvg)) {
     return res.status(400).json({ message: "Manager average must be a number between 0 and 5" });
   }
+  if (oneOnOneDate && new Date(oneOnOneDate) > new Date()) {
+    return res.status(400).json({ message: "1:1 meeting date can't be in the future" });
+  }
 
   if (managerSubmitted !== undefined) submission.finalReport.managerSubmitted = managerSubmitted;
   if (managerOverallResponse !== undefined) submission.finalReport.managerOverallResponse = managerOverallResponse;

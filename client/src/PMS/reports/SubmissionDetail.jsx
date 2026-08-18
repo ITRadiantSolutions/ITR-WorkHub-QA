@@ -7,6 +7,12 @@ import { API } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import StatusBadge from "../components/StatusBadge";
 
+// Local-timezone yyyy-mm-dd, matching what a native <input type="date"> reads/writes.
+const todayISODate = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 const STATUS_LABELS = {
   draft: "Draft",
   pending_manager_approval: "Pending manager approval",
@@ -167,13 +173,21 @@ export default function SubmissionDetail() {
     }
   };
 
-  const canSaveFinalReport =
-    finalReport.managerOverallResponse.trim().length > 0 &&
-    Number(finalReport.overallRating) >= 1 &&
-    Number(finalReport.overallRating) <= 5;
-
   const saveFinalReport = async () => {
-  if (finalReportSubmitting.current || !canSaveFinalReport) return;
+    if (finalReportSubmitting.current) return;
+    // Previously this checked a canSaveFinalReport flag and just silently
+    // returned when it was false — the button looked clickable (only greyed
+    // out ~50%) but did nothing, so a manager who filled in summary/date/notes
+    // but forgot to click a star rating would lose all of it with zero
+    // feedback the moment they navigated away, reading exactly like "the data vanished".
+    if (!finalReport.managerOverallResponse.trim()) {
+      toast.error("Add an overall summary before saving");
+      return;
+    }
+    if (!(Number(finalReport.overallRating) >= 1 && Number(finalReport.overallRating) <= 5)) {
+      toast.error("Pick an overall rating (1-5 stars) before saving");
+      return;
+    }
     finalReportSubmitting.current = true;
     setSaving(true);
     try {
@@ -335,7 +349,7 @@ export default function SubmissionDetail() {
                   ) : (
                     <div className="space-y-3.5">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Overall summary</label>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Overall summary <span className="text-red-500">*</span></label>
                         <textarea
                           value={finalReport.managerOverallResponse}
                           onChange={(e) => setFinalReport((p) => ({ ...p, managerOverallResponse: e.target.value }))}
@@ -346,8 +360,11 @@ export default function SubmissionDetail() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Overall rating</label>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Overall rating <span className="text-red-500">*</span></label>
                           <StarPicker value={Number(finalReport.overallRating) || null} onChange={(v) => setFinalReport((p) => ({ ...p, overallRating: v }))} tone="violet" />
+                          {!(Number(finalReport.overallRating) >= 1) && (
+                            <p className="text-[11px] text-red-500 mt-1">Required — pick a star rating before saving.</p>
+                          )}
                           {submission.finalReport?.employeeAvg != null && submission.finalReport?.managerAvg != null && (
                             <p className="text-[11px] text-slate-400 mt-1">
                               Suggested from self ({submission.finalReport.employeeAvg.toFixed(1)}) + manager ({submission.finalReport.managerAvg.toFixed(1)}) averages — adjust if needed.
@@ -359,7 +376,11 @@ export default function SubmissionDetail() {
                           <input
                             type="date"
                             value={finalReport.oneOnOneDate}
-                            onChange={(e) => setFinalReport((p) => ({ ...p, oneOnOneDate: e.target.value }))}
+                            max={todayISODate()}
+                            onChange={(e) => {
+                              if (e.target.value > todayISODate()) return;
+                              setFinalReport((p) => ({ ...p, oneOnOneDate: e.target.value }));
+                            }}
                             className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm mb-2.5"
                           />
                           <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">1:1 notes</label>
@@ -375,8 +396,7 @@ export default function SubmissionDetail() {
                       <div className="flex justify-end">
                         <button
                           onClick={saveFinalReport}
-                          disabled={saving || !canSaveFinalReport}
-                          title={!canSaveFinalReport ? "Add an overall summary and rating before saving" : undefined}
+                          disabled={saving}
                           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <CheckCircle2 className="w-4 h-4" /> Save final report
