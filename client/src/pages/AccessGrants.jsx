@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, ShieldCheck, ShieldPlus, ShieldMinus, History, Search, Pencil, Check, Settings2 } from "lucide-react";
+import { ArrowLeft, ShieldCheck, ShieldPlus, ShieldMinus, History, Search, Pencil, Check, Settings2, UserPlus, Shuffle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { isSuperAdmin } from "../utils/hrmsrolecheck";
 import { employeesApi } from "../HRMS/hrmsApi";
@@ -109,6 +109,178 @@ function GrantModal({ employee, onClose, onSaved }) {
           </button>
           <button onClick={save} disabled={saving} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow disabled:opacity-60">
             {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TRACKER_ROLES = MANAGE_MODULES.find((m) => m.key === "tracker").roles;
+
+const generatePassword = () => {
+  // Readable-enough temp password: a word-ish chunk + 4 digits, not aiming
+  // for max entropy — this is a starter credential the employee is expected
+  // to change, not a long-term secret.
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let out = "";
+  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+};
+
+// Manual onboarding: a super admin fills in the required details themselves
+// instead of the employee self-registering — useful for people who need
+// access before they'd otherwise sign up (e.g. day-one hires). Defaults to
+// every module checked ("access for all projects") since that's the
+// common case for this flow; the admin can still uncheck any they don't want.
+function CreateUserModal({ onClose, onSaved, canGrantAccess }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState(generatePassword());
+  const [trackerRole, setTrackerRole] = useState("BUSINESS_USER");
+  const [selected, setSelected] = useState(new Set(canGrantAccess ? MANAGE_MODULES.map((m) => m.key) : []));
+  const [saving, setSaving] = useState(false);
+  const allSelected = selected.size === MANAGE_MODULES.length;
+
+  const toggle = (key) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const canSave = name.trim() && email.trim() && password.trim().length >= 6;
+
+  const save = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await employeesApi.create({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        role: trackerRole,
+        ...(canGrantAccess ? { manageAccessModules: [...selected] } : {}),
+      });
+      toast.success(`${name.trim()} was created`);
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to create user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="bg-gradient-to-br from-blue-700 to-blue-500 px-6 py-5 text-white shrink-0">
+          <p className="text-xs font-bold uppercase tracking-wide text-white/80">Onboard employee</p>
+          <h2 className="text-lg font-extrabold">Create User</h2>
+        </div>
+
+        <div className="px-6 py-5 space-y-3.5 overflow-y-auto">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Full name</label>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Jane Doe"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="jane.doe@company.com"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Temporary password</label>
+            <div className="flex items-center gap-2">
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+              />
+              <button
+                type="button"
+                onClick={() => setPassword(generatePassword())}
+                title="Generate a new password"
+                className="w-9 h-9 shrink-0 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50"
+              >
+                <Shuffle className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">Share this with them directly — it isn't emailed automatically.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">FlowTrack role</label>
+            <select
+              value={trackerRole}
+              onChange={(e) => setTrackerRole(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            >
+              {TRACKER_ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+
+          {canGrantAccess && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-500">Module access</label>
+                <button
+                  type="button"
+                  onClick={() => setSelected(allSelected ? new Set() : new Set(MANAGE_MODULES.map((m) => m.key)))}
+                  className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  {allSelected ? "Clear all" : "Select all"}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {MANAGE_MODULES.map((m) => {
+                  const Icon = m.icon;
+                  const checked = selected.has(m.key);
+                  return (
+                    <button
+                      type="button"
+                      key={m.key}
+                      onClick={() => toggle(m.key)}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition ${
+                        checked ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate flex-1 text-left">{m.label}</span>
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${checked ? "bg-blue-600 border-blue-600" : "border-slate-300"}`}>
+                        {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                Every module gets base employee-level access either way — this grants them the ability to manage <em>other people's</em> access too.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700">
+            Cancel
+          </button>
+          <button onClick={save} disabled={saving || !canSave} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow disabled:opacity-60">
+            {saving ? "Creating..." : "Create user"}
           </button>
         </div>
       </div>
@@ -597,6 +769,7 @@ export default function AccessGrants() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
   const [superAdminAction, setSuperAdminAction] = useState(null); // { employee, action }
+  const [creatingUser, setCreatingUser] = useState(false);
 
   const switchTab = (key) => {
     setTab(key);
@@ -677,7 +850,7 @@ export default function AccessGrants() {
       </aside>
 
       <main className="flex-1 min-w-0 px-8 py-8">
-        <div className="mb-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
           {tab === "manage" && manageModule ? (
             <div className="flex items-center gap-3">
               <button
@@ -696,11 +869,18 @@ export default function AccessGrants() {
               </div>
             </div>
           ) : (
-            <>
+            <div>
               <h1 className="text-xl font-extrabold text-slate-900">{active.label}</h1>
               <p className="text-sm text-slate-500 mt-0.5">{active.description}</p>
-            </>
+            </div>
           )}
+
+          <button
+            onClick={() => setCreatingUser(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm shrink-0"
+          >
+            <UserPlus className="w-4 h-4" /> Create User
+          </button>
         </div>
 
         {tab !== "audit" && !(tab === "manage" && !manageModule) && (
@@ -805,6 +985,17 @@ export default function AccessGrants() {
           onClose={() => setSuperAdminAction(null)}
           onSaved={() => {
             setSuperAdminAction(null);
+            load();
+          }}
+        />
+      )}
+
+      {creatingUser && (
+        <CreateUserModal
+          canGrantAccess={isSuperAdmin(user)}
+          onClose={() => setCreatingUser(false)}
+          onSaved={() => {
+            setCreatingUser(false);
             load();
           }}
         />

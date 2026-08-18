@@ -3,6 +3,7 @@
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, Check, X, Flag, RefreshCw, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import getAuthAxios from "../utils/authAxios";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
@@ -106,7 +107,8 @@ const initials = (name = "") =>
 
 const buildDownloadCSV = (filteredUsers, formatDateTimeFn) => () => {
     if (!filteredUsers.length) return;
-    const rows = [["User Name", "PMS Role", "KRA Assigned", "Assigned By", "Assigned Date", "Assigned Time", "Reports To"]];
+    const header = ["User Name", "PMS Role", "KRA Assigned", "Assigned By", "Assigned Date", "Assigned Time", "Reports To"];
+    const rows = [header];
     filteredUsers.forEach((u) => {
         const { date, time } = formatDateTimeFn(u.assignedAt);
         rows.push([
@@ -119,12 +121,22 @@ const buildDownloadCSV = (filteredUsers, formatDateTimeFn) => () => {
             u.managerName || "-",
         ]);
     });
-    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "user-kra-assignments.csv"; a.click();
-    URL.revokeObjectURL(url);
+
+    // A plain CSV carries no column-width info, so Excel auto-fits each
+    // column to its narrowest default and dates/times show up as "####" —
+    // writing a real .xlsx with explicit column widths avoids that.
+    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    sheet["!cols"] = [
+        { wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 22 },
+    ];
+    header.forEach((_, colIdx) => {
+        const addr = XLSX.utils.encode_cell({ r: 0, c: colIdx });
+        if (sheet[addr]) sheet[addr].s = { font: { bold: true }, fill: { fgColor: { rgb: "EDE9FE" } } };
+    });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "User KRA Assignments");
+    XLSX.writeFile(workbook, "user-kra-assignments.xlsx");
 };
 
 // ── Shared spinner ─────────────────────────────────────────────────────────────
@@ -847,7 +859,7 @@ export default function UserKraSearch() {
                         <button onClick={downloadCSV} disabled={!filteredUsers.length}
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-violet-500 text-white text-sm font-semibold shadow-sm hover:opacity-90 transition disabled:opacity-50">
                             <Download className="w-4 h-4" />
-                            Export CSV
+                            Export Excel
                         </button>
                     </div>
                 </div>
@@ -1255,7 +1267,7 @@ export default function UserKraSearch() {
                                                         <div className="px-4 py-3 space-y-2 border-t border-slate-100">
                                                             {kra.kpis.map((kpi, kpiIndex) => (
                                                                 <div key={kpiIndex} className="flex items-center justify-between gap-3 text-sm">
-                                                                    <span className="text-slate-600 truncate">{kpi.name}</span>
+                                                                    <span className="text-slate-600 truncate">{kpi.title || kpi.name || "Untitled KPI"}</span>
                                                                     <div className="flex items-center gap-2 shrink-0">
                                                                         {(kpi.target || kpi.actual) && (
                                                                             <span className="text-xs text-slate-400">{kpi.target ?? "—"} → {kpi.actual ?? "—"}</span>

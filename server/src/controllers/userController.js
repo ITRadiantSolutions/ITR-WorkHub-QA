@@ -93,15 +93,57 @@ export const createUser = async (req, res) => {
     return res.status(400).json({ message: "name, email and password are required" });
   }
 
+  const existing = await User.findOne({ email: email.toLowerCase() });
+  if (existing) {
+    return res.status(409).json({ message: "An account with this email already exists" });
+  }
+
+  // Only a super admin can hand out manage-access at creation time — mirrors
+  // setManageAccessGrant's own guard below, so a plain admin/HR caller
+  // creating a user just gets the normal per-module defaults (every module
+  // role defaults to its schema default, e.g. "employee"), not the power to
+  // manage other people's access.
+  let manageAccessModules = [];
+  if (req.user.isSuperAdmin && Array.isArray(req.body.manageAccessModules)) {
+    manageAccessModules = [...new Set(req.body.manageAccessModules)].filter((m) => MODULE_ROLE_ENUM[m]);
+  }
+
   const user = await User.create({
     name,
     email: email.toLowerCase(),
     password,
-    roles: { timesheet: "employee", pms: "employee", tracker: role || "BUSINESS_USER" },
+    // Every module gets an explicit role at creation (instead of leaning on
+    // schema defaults for hrms/lms/vms) so a manually onboarded user is
+    // immediately usable across the whole app, not just timesheet/pms/tracker.
+    roles: {
+      timesheet: "employee",
+      pms: "employee",
+      hrms: "employee",
+      lms: "employee",
+      vms: "host",
+      tracker: role || "BUSINESS_USER",
+    },
     approvalStatus: "Approved",
     approvedBy: req.user._id,
     approvedAt: new Date(),
+    manageAccessModules,
   });
+
+  if (manageAccessModules.length) {
+    writeAuditLog({
+      type: "change",
+      event: "user.manageAccessGrant.updated",
+      action: "user.manageAccessGrant.updated",
+      actorId: req.user._id,
+      actorName: req.user.name,
+      actorEmail: req.user.email,
+      targetId: user._id,
+      oldValue: { modules: [] },
+      newValue: { modules: manageAccessModules },
+      changes: { modules: manageAccessModules },
+      metadata: { targetName: user.name, targetEmail: user.email },
+    });
+  }
 
   const userData = user.toObject();
   delete userData.password;

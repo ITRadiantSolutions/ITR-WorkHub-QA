@@ -61,6 +61,7 @@ export default function SubmissionDetail() {
   const { user } = useAuth();
 
   const [submission, setSubmission] = useState(null);
+  const [cycle, setCycle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [finalReport, setFinalReport] = useState({ managerOverallResponse: "", overallRating: "", oneOnOneDate: "", oneOnOneComment: "" });
@@ -84,9 +85,26 @@ export default function SubmissionDetail() {
 
   useEffect(load, [id]);
 
+  // TemplateCard.jsx (the "My KRAs" page) gates the same self-review form on
+  // whether HR has actually opened the cycle's response window for this
+  // person — this page reaches the identical submission via a different
+  // route (Overview → My Reviews) and was missing that check entirely, so it
+  // let the employee type/submit right up until the server rejected it.
+  useEffect(() => {
+    if (!submission?.cycleId) return;
+    API.get(`/pms/cycles/${submission.cycleId}`)
+      .then((res) => setCycle(res.data))
+      .catch(() => setCycle(null));
+  }, [submission?.cycleId]);
+
   const isEmployee = submission && String(submission.employeeId?._id || submission.employeeId) === String(user?._id || user?.id);
   const isManagerOrHr = submission && (String(submission.managerId) === String(user?._id || user?.id) || user?.roles?.pms === "hr");
-  const canEditResponses = isEmployee && ["draft", "manager_reviewed"].includes(submission?.status);
+
+  const userId = user?._id || user?.id;
+  const isWindowOpenFor = (window) => Boolean(window?.enabled) && (window?.selectedUserIds || []).map(String).includes(String(userId));
+  const employeeWindowOpen = isWindowOpenFor(cycle?.employeeResponse);
+
+  const canEditResponses = isEmployee && employeeWindowOpen && ["draft", "manager_reviewed"].includes(submission?.status);
   // The employee has to submit their self-rating before the manager's side
   // opens up — "draft" is the only status that means they haven't yet.
   const canManagerRespond = isManagerOrHr && submission?.status !== "draft";
@@ -199,6 +217,11 @@ export default function SubmissionDetail() {
                   <div className="min-w-0">
                     <h2 className="text-lg font-bold text-slate-900 truncate">{submission.employeeId?.name || "Review"}</h2>
                     <p className="text-xs text-slate-500 truncate">{submission.employeeId?.email}</p>
+                    {submission.managerId?.name && (
+                      <p className="text-xs text-slate-400 truncate">
+                        Reports to: <span className="font-medium text-slate-600">{submission.managerId.name}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -214,6 +237,13 @@ export default function SubmissionDetail() {
                 </div>
               </div>
             </motion.div>
+
+            {isEmployee && !employeeWindowOpen && ["draft", "manager_reviewed"].includes(submission.status) && (
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700">
+                <Lock className="w-4 h-4 shrink-0" />
+                HR hasn't opened the response window for this cycle yet — you can't fill in or submit your self-review until they do.
+              </div>
+            )}
 
             {isManagerOrHr && !canManagerRespond && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700">

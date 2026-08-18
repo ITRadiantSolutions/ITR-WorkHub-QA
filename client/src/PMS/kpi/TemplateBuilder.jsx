@@ -21,16 +21,24 @@ function AddLibraryKraForm({ onAdded }) {
   const updateKpi = (i, field, value) =>
     setKpis((prev) => prev.map((k, idx) => (idx === i ? { ...k, [field]: value } : k)));
 
+  const namedKpis = kpis.filter((k) => k.title.trim());
+  const totalKpiWeight = namedKpis.reduce((sum, k) => sum + (Number(k.weight) || 0), 0);
+  const kpiWeightsValid = namedKpis.length === 0 || (namedKpis.every((k) => Number(k.weight) > 0) && totalKpiWeight === 100);
+
   const submit = async () => {
     if (!name.trim()) return toast.error("KRA name is required");
+    if (namedKpis.some((k) => !(Number(k.weight) > 0))) {
+      return toast.error("Every KPI needs a weight greater than 0");
+    }
+    if (namedKpis.length > 0 && totalKpiWeight !== 100) {
+      return toast.error(`KPI weights must add up to 100% (currently ${totalKpiWeight}%)`);
+    }
     setSaving(true);
     try {
       await API.post("/pms/kra/library", {
         type,
         name: name.trim(),
-        kpis: kpis
-          .filter((k) => k.title.trim())
-          .map((k) => ({ title: k.title.trim(), description: k.description.trim(), weight: Number(k.weight) || 0 })),
+        kpis: namedKpis.map((k) => ({ title: k.title.trim(), description: k.description.trim(), weight: Number(k.weight) || 0 })),
       });
       toast.success("Added to library");
       setName("");
@@ -92,8 +100,19 @@ function AddLibraryKraForm({ onAdded }) {
         + Add KPI row
       </button>
 
+      {namedKpis.length > 0 && (
+        <p className={`text-[11px] font-semibold ${totalKpiWeight === 100 ? "text-emerald-600" : "text-amber-600"}`}>
+          KPI weight total: {totalKpiWeight}% {totalKpiWeight !== 100 && "(must equal 100%)"}
+        </p>
+      )}
+
       <div className="flex items-center gap-2 pt-1">
-        <button onClick={submit} disabled={saving} className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold">
+        <button
+          onClick={submit}
+          disabled={saving || !kpiWeightsValid}
+          title={!kpiWeightsValid ? "Give every KPI a weight greater than 0 that adds up to 100%" : undefined}
+          className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {saving ? "Saving..." : "Save to library"}
         </button>
         <button onClick={() => setOpen(false)} className="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold">

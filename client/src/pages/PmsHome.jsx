@@ -11,6 +11,8 @@ import {
   LayoutGrid,
   List,
   FileText,
+  ClipboardList,
+  CheckCircle2,
 } from "lucide-react";
 import { API } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -71,8 +73,18 @@ export default function PmsHome() {
   }, []);
 
   const isPmsHr = user?.roles?.pms === "hr";
+  const isPmsManager = user?.roles?.pms === "manager";
   const employeeOpenCount = cycles.filter((c) => c.employeeResponse?.enabled).length;
   const managerOpenCount = cycles.filter((c) => c.managerResponse?.enabled).length;
+
+  // A plain employee's `submissions` list from the API is already scoped to
+  // their own reviews only (see listSubmissions), so these are safe to
+  // derive straight from it — no separate "is this open for me" fetch needed.
+  const myPendingCount = submissions.filter((s) => ["draft", "manager_reviewed"].includes(s.status)).length;
+  const myAwaitingManagerCount = submissions.filter((s) =>
+    ["pending_manager_approval", "employee_submitted", "final_employee_submitted"].includes(s.status),
+  ).length;
+  const myCompletedCount = submissions.filter((s) => s.status === "final_manager_reviewed").length;
 
   const cycleForSubmission = (s) => cycles.find((c) => String(c._id) === String(s.cycleId));
 
@@ -100,32 +112,64 @@ export default function PmsHome() {
 
   useEffect(() => setReviewPage(1), [pageSize, cycleFilter, sortBy, submissions.length]);
 
-  const statCards = [
-    {
-      key: "cycles",
-      icon: Calendar,
-      accent: "violet",
-      value: cycles.length,
-      label: "Review Cycles",
-      caption: "Active review cycles",
-    },
-    {
-      key: "employees",
-      icon: User,
-      accent: "violet",
-      value: employeeOpenCount,
-      label: "Open for Employees",
-      caption: "KRAs pending action",
-    },
-    {
-      key: "managers",
-      icon: Users,
-      accent: "violet",
-      value: managerOpenCount,
-      label: "Open for Managers",
-      caption: "Reviews pending",
-    },
-  ];
+  // HR (and managers, who also need to watch cross-team windows) see the
+  // cycle-wide admin stats. A plain employee isn't a manager and can never
+  // act on "Open for Managers", so they get stats scoped to their own
+  // reviews instead — see myPendingCount/myAwaitingManagerCount/myCompletedCount above.
+  const isEmployeeView = !isPmsHr && !isPmsManager;
+  const statCards = isEmployeeView
+    ? [
+        {
+          key: "pending",
+          icon: ClipboardList,
+          accent: "violet",
+          value: myPendingCount,
+          label: "My KRAs Pending",
+          caption: "Need your response or rating",
+        },
+        {
+          key: "awaiting-manager",
+          icon: Users,
+          accent: "violet",
+          value: myAwaitingManagerCount,
+          label: "Awaiting Manager",
+          caption: "Submitted, waiting on review",
+        },
+        {
+          key: "completed",
+          icon: CheckCircle2,
+          accent: "violet",
+          value: myCompletedCount,
+          label: "Completed Reviews",
+          caption: "Finished this cycle",
+        },
+      ]
+    : [
+        {
+          key: "cycles",
+          icon: Calendar,
+          accent: "violet",
+          value: cycles.length,
+          label: "Review Cycles",
+          caption: "Active review cycles",
+        },
+        {
+          key: "employees",
+          icon: User,
+          accent: "violet",
+          value: employeeOpenCount,
+          label: "Open for Employees",
+          caption: "KRAs pending action",
+        },
+        {
+          key: "managers",
+          icon: Users,
+          accent: "violet",
+          value: managerOpenCount,
+          label: "Open for Managers",
+          caption: "Reviews pending",
+        },
+      ];
 
   return (
     <main className="w-[92%] max-w-[1400px] mx-auto px-2 py-8">
@@ -146,8 +190,8 @@ export default function PmsHome() {
                 value={s.value}
                 label={s.label}
                 caption={s.caption}
-                onClick={isPmsHr ? () => navigate("/pms/cycles") : undefined}
-                chevron={isPmsHr}
+                onClick={isPmsHr ? () => navigate("/pms/cycles") : isEmployeeView ? () => navigate("/pms/reviews") : undefined}
+                chevron={isPmsHr || isEmployeeView}
               />
             ))}
           </div>

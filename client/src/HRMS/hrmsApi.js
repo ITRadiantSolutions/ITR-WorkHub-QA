@@ -17,6 +17,7 @@ export const employeesApi = {
   setArchived: (id, archived, module = "hrms") => API.patch(`/users/${id}/archive`, { module, archived }),
   setManager: (id, managerId) => API.patch(`/users/${id}/manager`, { managerId }),
   setManageAccessGrant: (id, modules) => API.patch(`/users/${id}/manage-access-grant`, { modules }),
+  create: (data) => API.post("/users", data),
   setSuperAdmin: (id, isSuperAdmin) => API.patch(`/users/${id}/super-admin`, { isSuperAdmin }),
   accessAuditLogs: (params) => API.get("/users/access-audit-logs", { params }),
 };
