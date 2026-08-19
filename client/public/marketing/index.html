@@ -163,8 +163,8 @@
 
   [id] { scroll-margin-top: 88px; }
   .wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
-  section { padding: 80px 0; }
-  @media (max-width: 720px) { section { padding: 64px 0; } .wrap { padding: 0 20px; } }
+  section { padding: 64px 0; }
+  @media (max-width: 720px) { section { padding: 52px 0; } .wrap { padding: 0 20px; } }
 
   /* ---- Nav ---- */
   .nav {
@@ -337,6 +337,44 @@
   .mock-tile h6 { font-size: 0.85rem; font-weight: 800; margin: 0 0 4px; }
   .mock-tile p { font-size: 0.72rem; color: var(--ink-soft); margin: 0; line-height: 1.45; }
 
+  /* ---- Module sections (full, one after another) ---- */
+  .module-section { padding: 52px 0; }
+  .module-section-head { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 34px; }
+  .ms-icon { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--accent); box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .ms-icon svg { width: 26px; height: 26px; color: #fff; }
+  .module-section-head h3 { font-size: clamp(1.3rem, 2.4vw, 1.7rem); font-weight: 800; margin: 8px 0 8px; }
+  .module-section-head p { font-size: 0.98rem; color: var(--ink-soft); margin: 0; max-width: 62ch; }
+
+  /* ---- App mockup (sidebar + stats) ---- */
+  .app-mock { border-radius: 16px 16px 8px 8px; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: 0 40px 80px -24px var(--shadow-strong), 0 14px 28px -14px var(--shadow); overflow: hidden; display: flex; margin-bottom: 34px; }
+  .app-sidebar { width: 180px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--line); padding: 16px 12px; }
+  .app-sidebar .sb-brand { display: flex; align-items: center; gap: 8px; padding: 4px 6px 16px; }
+  .app-sidebar .sb-brand .dot { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .app-sidebar .sb-brand .dot svg { width: 14px; height: 14px; color: #fff; }
+  .app-sidebar .sb-brand strong { font-size: 0.8rem; font-weight: 800; }
+  .app-nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 8px; font-size: 0.74rem; font-weight: 600; color: var(--ink-soft); }
+  .app-nav-item svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .app-nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .app-body { flex: 1; min-width: 0; padding: 22px clamp(16px, 3vw, 28px) 26px; background: var(--bg-hero); }
+  .app-body h5 { font-size: 0.98rem; font-weight: 800; margin: 0 0 3px; }
+  .app-body > p { font-size: 0.78rem; color: var(--ink-soft); margin: 0 0 16px; }
+  .app-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 640px) { .app-stat-grid { grid-template-columns: 1fr 1fr; } }
+  .app-stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 13px; }
+  .app-stat-card .asc-ic { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; background: var(--accent); }
+  .app-stat-card .asc-ic svg { width: 13px; height: 13px; color: #fff; }
+  .app-stat-card .num { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 700; }
+  .app-stat-card .lbl { font-size: 0.66rem; color: var(--ink-faint); margin-top: 3px; }
+  @media (max-width: 760px) {
+    .app-mock { flex-direction: column; }
+    .app-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 12px 14px; }
+    .app-sidebar .sb-brand { padding: 0 8px 0 0; }
+    .app-nav-item span { display: none; }
+  }
+  .module-section .roles-row { margin-top: 26px; }
+  .module-section-foot { margin-top: 26px; padding-top: 18px; border-top: 1px dashed var(--line); font-size: 0.84rem; color: var(--ink-faint); font-style: italic; }
+  .module-section-foot b { color: var(--accent); font-style: normal; font-weight: 700; }
+
   /* ---- Feature strip ---- */
   .feature-strip { padding: 52px 0; border-bottom: 1px solid var(--line); }
   .feature-row { display: flex; flex-wrap: wrap; align-items: center; gap: 36px; justify-content: space-between; }
@@ -348,7 +386,7 @@
   .feature-item p { font-size: 0.78rem; color: var(--ink-soft); margin: 0; line-height: 1.5; }
   .feature-stats { display: flex; gap: 36px; padding-left: 32px; border-left: 1px solid var(--line); }
   @media (max-width: 900px) { .feature-stats { border-left: none; padding-left: 0; } }
-  .feature-stat .num { font-family: 'Manrope', sans-serif; font-size: 2.1rem; font-weight: 800; color: var(--primary); line-height: 1; }
+  .feature-stat .num { font-family: 'Manrope', sans-serif; font-size: 2.6rem; font-weight: 800; color: var(--primary); line-height: 1; }
   .feature-stat .lbl { font-size: 0.74rem; color: var(--ink-soft); margin-top: 4px; font-weight: 600; }
 
   /* ---- Compact dark banner ---- */
@@ -471,41 +509,11 @@
   .compare-panel.after li::before { content: ""; position: absolute; left: 0; top: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
 
   /* ---- Section heads ---- */
-  .section-head { max-width: 620px; margin-bottom: 48px; }
-  .section-head h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin: 10px 0 12px; }
+  .section-head { max-width: 660px; margin-bottom: 48px; }
+  .section-head h2 { font-size: clamp(1.7rem, 3.2vw, 2.5rem); font-weight: 800; margin: 10px 0 12px; }
   .section-head p { color: var(--ink-soft); font-size: 1.02rem; margin: 0; }
 
-  /* ---- Modules ---- */
-  .modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-  @media (max-width: 980px) { .modules-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 640px) { .modules-grid { grid-template-columns: 1fr; } }
-  .module-card {
-    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l);
-    padding: 26px 24px 24px; display: flex; flex-direction: column; gap: 16px;
-    position: relative; overflow: hidden;
-  }
-  .module-card::before {
-    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: var(--accent);
-  }
-  .module-head { display: flex; align-items: center; gap: 12px; }
-  .module-ic { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); flex-shrink: 0; }
-  .module-ic svg { width: 22px; height: 22px; color: var(--accent); }
-  .module-head h3 { font-size: 1.15rem; font-weight: 800; }
-  .module-tagline { font-size: 0.92rem; font-weight: 700; color: var(--accent); margin-top: -6px; }
-  .module-desc { font-size: 0.88rem; color: var(--ink-soft); line-height: 1.6; margin: 0; }
-  .module-card ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-  .module-card li { font-size: 0.88rem; color: var(--ink-soft); padding-left: 17px; position: relative; }
-  .module-card li::before { content: ""; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-  .module-why { margin-top: auto; padding-top: 14px; border-top: 1px dashed var(--line); font-size: 0.84rem; color: var(--ink-faint); font-style: italic; }
-  .module-why b { color: var(--accent); font-style: normal; font-weight: 700; }
-
-  .m-flowtrack { --accent: var(--indigo); --accent-soft: var(--indigo-soft); }
-  .m-timeflow  { --accent: var(--emerald); --accent-soft: var(--emerald-soft); }
-  .m-pms       { --accent: var(--violet); --accent-soft: var(--violet-soft); }
-  .m-lms       { --accent: var(--amber); --accent-soft: var(--amber-soft); }
-  .m-vms       { --accent: var(--rose); --accent-soft: var(--rose-soft); }
-  .m-hrms      { --accent: var(--cyan); --accent-soft: var(--cyan-soft); }
+  /* ---- Modules (mock-stage, module-section, app-mock, sec-grid CSS defined further below) ---- */
 
   /* ---- Platform layer ---- */
   .platform-panel {
@@ -541,8 +549,8 @@
   @media (max-width: 980px) { .sec-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 560px) { .sec-grid { grid-template-columns: 1fr; } }
   .sec-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 22px 20px; }
-  .sec-card .ic { width: 38px; height: 38px; border-radius: 10px; background: var(--primary-soft); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
-  .sec-card .ic svg { width: 19px; height: 19px; color: var(--primary); }
+  .sec-card .ic { width: 38px; height: 38px; border-radius: 10px; background: var(--accent-soft, var(--primary-soft)); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .sec-card .ic svg { width: 19px; height: 19px; color: var(--accent, var(--primary)); }
   .sec-card h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; }
   .sec-card p { font-size: 0.84rem; color: var(--ink-soft); margin: 0; line-height: 1.5; }
 
@@ -575,7 +583,7 @@
   .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-l); overflow: hidden; }
   @media (max-width: 720px) { .stats-strip { grid-template-columns: repeat(2, 1fr); } }
   .stat-tile { background: var(--surface); padding: 30px 22px; text-align: center; }
-  .stat-tile .num { font-size: clamp(2rem, 4vw, 2.7rem); font-weight: 700; color: var(--primary); display: block; }
+  .stat-tile .num { font-size: clamp(2.3rem, 4.6vw, 3.2rem); font-weight: 700; color: var(--primary); display: block; }
   .stat-tile .label { font-size: 0.82rem; color: var(--ink-soft); margin-top: 6px; }
 
   /* ---- Closing CTA ---- */
@@ -673,6 +681,32 @@
     </symbol>
     <symbol id="ic-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
       <circle cx="9" cy="12" r="4.3"/><circle cx="15" cy="12" r="4.3"/>
+    </symbol>
+    <symbol id="ic-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M4 6.5C4 5.7 4.7 5 5.5 5H10L12 7.5H18.5C19.3 7.5 20 8.2 20 9V17.5C20 18.3 19.3 19 18.5 19H5.5C4.7 19 4 18.3 4 17.5V6.5Z"/>
+    </symbol>
+    <symbol id="ic-checklist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="5.5" width="4" height="4" rx="1"/><path d="M4.8 7.5 5.6 8.3 7.2 6.5"/><line x1="10.5" y1="7.5" x2="20" y2="7.5"/>
+      <rect x="4" y="14.5" width="4" height="4" rx="1"/><path d="M4.8 16.5 5.6 17.3 7.2 15.5"/><line x1="10.5" y1="16.5" x2="20" y2="16.5"/>
+    </symbol>
+    <symbol id="ic-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+      <circle cx="12" cy="13" r="5"/><line x1="12" y1="8" x2="12" y2="5"/><line x1="7.5" y1="10" x2="5" y2="8"/><line x1="16.5" y1="10" x2="19" y2="8"/>
+      <line x1="6" y1="13" x2="3" y2="13"/><line x1="18" y1="13" x2="21" y2="13"/><line x1="7.5" y1="17" x2="5" y2="19"/><line x1="16.5" y1="17" x2="19" y2="19"/>
+    </symbol>
+    <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"/><circle cx="17.5" cy="9.5" r="2.4"/><path d="M15 13.7c2.4.3 4 2.1 4 5.3"/>
+    </symbol>
+    <symbol id="ic-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M20.5 3.5 3 10.5 10.5 13.5 13.5 21 20.5 3.5Z"/><path d="M10.5 13.5 20.5 3.5"/>
+    </symbol>
+    <symbol id="ic-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+      <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 9.5 4.5H14.5L16 7"/><circle cx="12" cy="13.5" r="3.6"/>
+    </symbol>
+    <symbol id="ic-badge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <circle cx="12" cy="9.5" r="5.5"/><path d="M8.5 14 7 21 12 18.5 17 21 15.5 14"/>
+    </symbol>
+    <symbol id="ic-otp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <rect x="3" y="9" width="4" height="6" rx="1"/><rect x="10" y="9" width="4" height="6" rx="1"/><rect x="17" y="9" width="4" height="6" rx="1"/>
     </symbol>
     <symbol id="ic-linkedin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <rect x="3" y="3" width="18" height="18" rx="4"/>
@@ -939,104 +973,298 @@
         </div>
       </div>
 
-      <div class="modules-grid">
+    </div>
 
-        <article class="module-card m-flowtrack">
-          <div class="module-head">
-            <span class="module-ic"><svg><use href="#ic-flow"/></svg></span>
-            <h3>FlowTrack</h3>
+    <div class="module-section" style="--accent:var(--indigo); --accent-soft:var(--indigo-soft);">
+      <div class="wrap">
+        <div class="module-section-head">
+          <span class="ms-icon"><svg><use href="#ic-flow"/></svg></span>
+          <div>
+            <p class="eyebrow pill">FlowTrack</p>
+            <h3>Plan, ship, and track every project in one workspace.</h3>
+            <p>Projects break down into sprints, sprints into stories, tasks, and bugs — and every item carries its own history, owner, and status. Bugs run through a dedicated QA workflow, and each role opens a dashboard curated to the handful of tools it actually needs.</p>
           </div>
-          <p class="module-tagline">Plan, ship, and track every project in one workspace.</p>
-          <p class="module-desc">FlowTrack is where delivery actually happens: projects break down into sprints, sprints into tasks, and every task carries its own history, owner, and status. Bugs run through a dedicated QA workflow instead of a side conversation, and each role — PM, developer, QA, business stakeholder — opens their own dashboard tuned to what they need to see first.</p>
-          <ul>
-            <li>Project, sprint, and task boards</li>
-            <li>Bug &amp; issue tracking with a QA workflow</li>
-            <li>Role dashboards for PM, developer, QA, and business users</li>
-            <li>Clone projects and bulk-import tasks to start fast</li>
-          </ul>
-          <p class="module-why"><b>Why it matters —</b> one shared source of truth for delivery status, instead of spreadsheets and disconnected trackers.</p>
-        </article>
-
-        <article class="module-card m-timeflow">
-          <div class="module-head">
-            <span class="module-ic"><svg><use href="#ic-clock"/></svg></span>
-            <h3>Time Flow</h3>
+        </div>
+        <div class="app-mock">
+          <div class="app-sidebar">
+            <div class="sb-brand"><span class="dot"><svg><use href="#ic-flow"/></svg></span><strong>FlowTrack</strong></div>
+            <div class="app-nav-item active"><svg><use href="#ic-target"/></svg><span>Dashboard</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-folder"/></svg><span>Projects</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-bolt"/></svg><span>Sprints</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-checklist"/></svg><span>Tasks</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-bug"/></svg><span>Bugs</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-trend"/></svg><span>Reports</span></div>
           </div>
-          <p class="module-tagline">Log hours and keep approvals moving.</p>
-          <p class="module-desc">Every employee logs hours against the work they actually did, on a daily or weekly rhythm, and managers work through submissions in a single approval queue instead of chasing them individually. A team status view shows exactly who's logged their time and who hasn't, before it becomes a payroll problem.</p>
-          <ul>
-            <li>Daily &amp; weekly timesheet entry, with history</li>
-            <li>Manager review and approval queue</li>
-            <li>Team status view — who's logged, who hasn't</li>
-            <li>Non-standard attendance &amp; exportable reports</li>
-          </ul>
-          <p class="module-why"><b>Why it matters —</b> accurate, auditable time data for billing and payroll, without the spreadsheet chasing.</p>
-        </article>
-
-        <article class="module-card m-pms">
-          <div class="module-head">
-            <span class="module-ic"><svg><use href="#ic-target"/></svg></span>
-            <h3>PMS</h3>
+          <div class="app-body">
+            <h5>Good morning, PM</h5>
+            <p>Here's how delivery is tracking across your projects.</p>
+            <div class="app-stat-grid">
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-folder"/></svg></span><div class="num mono">12</div><div class="lbl">Active projects</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-checklist"/></svg></span><div class="num mono">47</div><div class="lbl">Tasks this sprint</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-bug"/></svg></span><div class="num mono">6</div><div class="lbl">Bugs in QA</div></div>
+            </div>
           </div>
-          <p class="module-tagline">Run performance cycles that actually get finished.</p>
-          <p class="module-desc">HR sets up a review cycle once — timelines, KRA/KPI templates, who's being reviewed by whom — and PMS carries every employee through self-review, manager review, and sign-off without a single spreadsheet changing hands. Goals and feedback stay attached to the person, cycle after cycle, so performance history is never lost.</p>
-          <ul>
-            <li>Configurable review cycles with clear timelines</li>
-            <li>KRA/KPI templates, built once and assigned to teams</li>
-            <li>Self-review and manager review queue</li>
-            <li>Goal tracking, feedback, and cycle-level reports</li>
-          </ul>
-          <p class="module-why"><b>Why it matters —</b> turns appraisal season from an email scramble into a structured, trackable process.</p>
-        </article>
+        </div>
+        <div class="sec-grid">
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-folder"/></svg></span><h4>Project &amp; sprint planning</h4><p>Break work into projects and sprints, each with a clear timeline, owner, and status at a glance.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-checklist"/></svg></span><h4>Stories &amp; tasks</h4><p>Track stories through To Do, In Progress, Testing, and Done, with threaded comments on every item.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-bug"/></svg></span><h4>Bug tracking &amp; QA workflow</h4><p>Report, triage, and resolve bugs through a dedicated QA workflow instead of a side conversation.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-users"/></svg></span><h4>Role-based dashboards</h4><p>Admins, PMs, developers, QA, and business users each land on a dashboard curated for their job.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-log"/></svg></span><h4>Clone &amp; bulk import</h4><p>Clone an existing project as a starting point, or bulk-import a task list straight from Excel.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-trend"/></svg></span><h4>Reports &amp; export</h4><p>A dedicated reports view with delivery stats and bug breakdowns, exportable for stakeholders.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-target"/></svg></span><h4>Full detail views</h4><p>Drill into any project, sprint, or task to see its complete history — who touched it, and when.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-help"/></svg></span><h4>Built-in guide</h4><p>A searchable, role-aware walkthrough lives inside FlowTrack itself.</p></div>
+        </div>
+        <div class="roles-row">
+          <span class="role-chip">ADMIN</span>
+          <span class="role-chip">PROJECT MANAGER</span>
+          <span class="role-chip">DEVELOPER</span>
+          <span class="role-chip">QA</span>
+          <span class="role-chip">BUSINESS USER</span>
+        </div>
+        <p class="module-section-foot"><b>Why it matters —</b> one shared source of truth for delivery status, instead of spreadsheets and disconnected trackers.</p>
+      </div>
+    </div>
 
-        <article class="module-card m-lms">
-          <div class="module-head">
-            <span class="module-ic"><svg><use href="#ic-book"/></svg></span>
-            <h3>LMS</h3>
+    <div class="module-section" style="background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line); --accent:var(--emerald); --accent-soft:var(--emerald-soft);">
+      <div class="wrap">
+        <div class="module-section-head">
+          <span class="ms-icon"><svg><use href="#ic-clock"/></svg></span>
+          <div>
+            <p class="eyebrow pill">Time Flow</p>
+            <h3>Log hours and keep approvals moving.</h3>
+            <p>Every employee logs hours against real work, managers clear a single approval queue instead of chasing submissions, and a team status view catches gaps before they become a payroll problem.</p>
           </div>
-          <p class="module-tagline">Build courses, assign learning, track completion.</p>
-          <p class="module-desc">Training stops living in email attachments. Course authors build lessons and assessments once in the course builder, assign them to a person or an entire team, and the platform tracks who's enrolled, in progress, or done — with badges and skills recorded against each employee as proof of completion.</p>
-          <ul>
-            <li>Course builder with assessments &amp; guided player</li>
-            <li>Course catalog employees browse and enroll in</li>
-            <li>Assign courses to individuals or whole teams</li>
-            <li>Badges, skills, and completion reports</li>
-          </ul>
-          <p class="module-why"><b>Why it matters —</b> one place to onboard new hires and prove who's actually completed required training.</p>
-        </article>
-
-        <article class="module-card m-vms">
-          <div class="module-head">
-            <span class="module-ic"><svg><use href="#ic-shield"/></svg></span>
-            <h3>VMS</h3>
+        </div>
+        <div class="app-mock">
+          <div class="app-sidebar">
+            <div class="sb-brand"><span class="dot"><svg><use href="#ic-clock"/></svg></span><strong>Time Flow</strong></div>
+            <div class="app-nav-item active"><svg><use href="#ic-target"/></svg><span>Dashboard</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-calendar"/></svg><span>Timesheet</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-log"/></svg><span>History</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-check"/></svg><span>Review</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-users"/></svg><span>Team Status</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-trend"/></svg><span>Reports</span></div>
           </div>
-          <p class="module-tagline">A secure, professional front desk — digitized.</p>
-          <p class="module-desc">Visitors check themselves in at a kiosk, verify with an OTP, and have their photo captured — no sign-in book, no guessing who's on-site. Hosts get expected and walk-in visitors in one approval dashboard, and every visit — scheduled or not — lands in an admin log that's ready for a security audit at any time.</p>
-          <ul>
-            <li>Self-service visitor kiosk with OTP verification</li>
-            <li>Photo capture at check-in</li>
-            <li>Host approval dashboard for expected &amp; walk-in visitors</li>
-            <li>Invitations, appointments, and a full audit log</li>
-          </ul>
-          <p class="module-why"><b>Why it matters —</b> replaces the paper sign-in book with a secure, searchable record of every visitor.</p>
-        </article>
-
-        <article class="module-card m-hrms">
-          <div class="module-head">
-            <span class="module-ic"><svg><use href="#ic-briefcase"/></svg></span>
-            <h3>HRMS</h3>
+          <div class="app-body">
+            <h5>Good afternoon</h5>
+            <p>Here's what's happening with your time tracking.</p>
+            <div class="app-stat-grid">
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-trend"/></svg></span><div class="num mono">32.0</div><div class="lbl">Hours logged</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-clock"/></svg></span><div class="num mono">5</div><div class="lbl">Pending approval</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-check"/></svg></span><div class="num mono">11</div><div class="lbl">Approved</div></div>
+            </div>
           </div>
-          <p class="module-tagline">The org's single source of truth for people data.</p>
-          <p class="module-desc">Every employee's profile, team, and job history lives here, and every other module reads from it — so a name, a manager, or a role only ever has to be entered once. Hiring runs through a requisition and clarification workflow instead of a scattered email thread, and referrals are tracked end to end.</p>
-          <ul>
-            <li>Employee directory &amp; detailed profiles</li>
-            <li>Job openings with a requisition workflow</li>
-            <li>Employee referral tracking &amp; "My Team" view</li>
-            <li>Granular, module-level access grants</li>
-          </ul>
-          <p class="module-why"><b>Why it matters —</b> every other module reads from the same accurate employee record — no re-entry, no drift.</p>
-        </article>
+        </div>
+        <div class="sec-grid">
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-calendar"/></svg></span><h4>Daily &amp; weekly entry</h4><p>Log hours against real project work, on whichever rhythm fits how your teams actually work.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-log"/></svg></span><h4>Submission history</h4><p>Every past submission stays visible, so nothing gets logged twice and nothing quietly disappears.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-check"/></svg></span><h4>Review &amp; approval queue</h4><p>Managers work through pending timesheets in a single queue instead of chasing people individually.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-users"/></svg></span><h4>Team status view</h4><p>See exactly who's logged their time and who hasn't, before it turns into a payroll problem.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-checklist"/></svg></span><h4>Non-standard attendance</h4><p>Exceptions — leave, holidays, irregular schedules — are tracked separately from regular hours.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-folder"/></svg></span><h4>Manage projects &amp; people</h4><p>Managers and HR manage the projects and employees timesheets are logged against, in the same module.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-trend"/></svg></span><h4>Visual dashboards</h4><p>An at-a-glance view of activity distribution and weekly hour trends, for you or your whole team.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-help"/></svg></span><h4>Its own detailed guide</h4><p>A full, searchable walkthrough of every screen — reviewers included.</p></div>
+        </div>
+        <div class="roles-row">
+          <span class="role-chip">EMPLOYEE</span>
+          <span class="role-chip">MANAGER</span>
+          <span class="role-chip">HR</span>
+        </div>
+        <p class="module-section-foot"><b>Why it matters —</b> accurate, auditable time data for billing and payroll, without the spreadsheet chasing.</p>
+      </div>
+    </div>
 
+    <div class="module-section" style="--accent:var(--violet); --accent-soft:var(--violet-soft);">
+      <div class="wrap">
+        <div class="module-section-head">
+          <span class="ms-icon"><svg><use href="#ic-target"/></svg></span>
+          <div>
+            <p class="eyebrow pill">PMS</p>
+            <h3>Run performance cycles that actually get finished.</h3>
+            <p>HR sets up a review cycle once — timelines, KRA/KPI templates, who's reviewed by whom — and PMS carries every employee through self-review, manager review, and sign-off without a spreadsheet changing hands.</p>
+          </div>
+        </div>
+        <div class="app-mock">
+          <div class="app-sidebar">
+            <div class="sb-brand"><span class="dot"><svg><use href="#ic-target"/></svg></span><strong>PMS</strong></div>
+            <div class="app-nav-item active"><svg><use href="#ic-target"/></svg><span>Dashboard</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-calendar"/></svg><span>Cycles</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-checklist"/></svg><span>KPI Templates</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-check"/></svg><span>Review Queue</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-users"/></svg><span>User Groups</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-trend"/></svg><span>Reports</span></div>
+          </div>
+          <div class="app-body">
+            <h5>This cycle, at a glance</h5>
+            <p>Q3 performance review — in progress.</p>
+            <div class="app-stat-grid">
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-calendar"/></svg></span><div class="num mono">1</div><div class="lbl">Active cycle</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-check"/></svg></span><div class="num mono">14</div><div class="lbl">Pending reviews</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-checklist"/></svg></span><div class="num mono">6</div><div class="lbl">KPI templates</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec-grid">
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-calendar"/></svg></span><h4>Configurable review cycles</h4><p>Set a cycle's timeline and participants once, and PMS carries every employee through it on schedule.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-target"/></svg></span><h4>KRA/KPI template builder</h4><p>Build a KPI template once and assign it to a team, instead of rebuilding a scorecard every cycle.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-checklist"/></svg></span><h4>Self-review &amp; manager review</h4><p>Employees submit self-reviews; managers work through a dedicated review queue, not a shared inbox.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-log"/></svg></span><h4>Full submission detail</h4><p>Reviewers see the complete picture — goals, KPIs, prior feedback — before they sign off.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-flow"/></svg></span><h4>Goal &amp; feedback tracking</h4><p>Goals and feedback stay attached to the person, cycle after cycle, instead of getting lost in email.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-users"/></svg></span><h4>User groups</h4><p>Group employees once for template assignment and reporting, instead of re-tagging people every cycle.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-trend"/></svg></span><h4>Cycle &amp; individual reports</h4><p>Cycle-level and individual performance reports, ready the moment leadership asks for them.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-help"/></svg></span><h4>Built-in guide</h4><p>A role-aware walkthrough covers both filling out a review and reviewing one.</p></div>
+        </div>
+        <div class="roles-row">
+          <span class="role-chip">EMPLOYEE</span>
+          <span class="role-chip">MANAGER</span>
+          <span class="role-chip">HR</span>
+        </div>
+        <p class="module-section-foot"><b>Why it matters —</b> turns appraisal season from an email scramble into a structured, trackable process.</p>
+      </div>
+    </div>
+
+    <div class="module-section" style="background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line); --accent:var(--amber); --accent-soft:var(--amber-soft);">
+      <div class="wrap">
+        <div class="module-section-head">
+          <span class="ms-icon"><svg><use href="#ic-book"/></svg></span>
+          <div>
+            <p class="eyebrow pill">LMS</p>
+            <h3>Build courses, assign learning, track completion.</h3>
+            <p>Training stops living in email attachments. Course authors build lessons and assessments once, assign them to a person or a whole team, and LMS tracks who's enrolled, in progress, or done.</p>
+          </div>
+        </div>
+        <div class="app-mock">
+          <div class="app-sidebar">
+            <div class="sb-brand"><span class="dot"><svg><use href="#ic-book"/></svg></span><strong>LMS</strong></div>
+            <div class="app-nav-item active"><svg><use href="#ic-target"/></svg><span>My Learning</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-log"/></svg><span>Course Catalog</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-folder"/></svg><span>Manage Courses</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-send"/></svg><span>Assign Courses</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-badge"/></svg><span>Badges &amp; Skills</span></div>
+          </div>
+          <div class="app-body">
+            <h5>My Learning</h5>
+            <p>Your assigned and enrolled courses.</p>
+            <div class="app-stat-grid">
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-book"/></svg></span><div class="num mono">5</div><div class="lbl">Courses enrolled</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-trend"/></svg></span><div class="num mono">2</div><div class="lbl">In progress</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-badge"/></svg></span><div class="num mono">7</div><div class="lbl">Badges earned</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec-grid">
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-folder"/></svg></span><h4>Course builder</h4><p>Build a course from scratch — lessons, materials, and a scored assessment at the end.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-book"/></svg></span><h4>Guided lesson player</h4><p>Employees move through lessons in a structured player, not a pile of shared PDFs.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-log"/></svg></span><h4>Searchable course catalog</h4><p>Browse and enroll in courses relevant to your role, all in one place.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-send"/></svg></span><h4>Assign to teams</h4><p>Push a course to one person or an entire team in a couple of clicks — no chasing sign-ups.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-badge"/></svg></span><h4>Badges &amp; skills</h4><p>Completed courses earn badges and record skills against an employee's profile.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-trend"/></svg></span><h4>Progress tracking</h4><p>See exactly where a learner is — enrolled, in progress, or done — at any point in the course.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-checklist"/></svg></span><h4>Manage courses</h4><p>Course owners update lessons and assessments themselves, without needing a developer.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-check"/></svg></span><h4>Completion reports</h4><p>Prove who's actually finished required training, not just who was assigned it.</p></div>
+        </div>
+        <div class="roles-row">
+          <span class="role-chip">EMPLOYEE</span>
+          <span class="role-chip">MANAGER</span>
+          <span class="role-chip">ADMIN</span>
+        </div>
+        <p class="module-section-foot"><b>Why it matters —</b> one place to onboard new hires and prove who's actually completed required training.</p>
+      </div>
+    </div>
+
+    <div class="module-section" style="--accent:var(--rose); --accent-soft:var(--rose-soft);">
+      <div class="wrap">
+        <div class="module-section-head">
+          <span class="ms-icon"><svg><use href="#ic-shield"/></svg></span>
+          <div>
+            <p class="eyebrow pill">VMS</p>
+            <h3>A secure, professional front desk — digitized.</h3>
+            <p>Visitors check themselves in at a kiosk, verify with an OTP, and have their photo captured. Hosts approve from a dashboard, and every visit lands in a log that's ready for a security review.</p>
+          </div>
+        </div>
+        <div class="app-mock">
+          <div class="app-sidebar">
+            <div class="sb-brand"><span class="dot"><svg><use href="#ic-shield"/></svg></span><strong>VMS</strong></div>
+            <div class="app-nav-item active"><svg><use href="#ic-target"/></svg><span>Host Dashboard</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-otp"/></svg><span>Visitor Kiosk</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-send"/></svg><span>Invite Visitor</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-log"/></svg><span>Admin Panel</span></div>
+          </div>
+          <div class="app-body">
+            <h5>Today at the front desk</h5>
+            <p>Visitors expected, checked in, and waiting on approval.</p>
+            <div class="app-stat-grid">
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-users"/></svg></span><div class="num mono">9</div><div class="lbl">Visitors today</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-check"/></svg></span><div class="num mono">2</div><div class="lbl">Pending approval</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-camera"/></svg></span><div class="num mono">6</div><div class="lbl">Checked in</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec-grid">
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-shield"/></svg></span><h4>Self-service kiosk</h4><p>Visitors check themselves in at a kiosk — no receptionist required just to get started.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-otp"/></svg></span><h4>OTP verification</h4><p>Every check-in is verified with a one-time code, not just a name typed into a book.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-camera"/></svg></span><h4>Photo capture</h4><p>A photo is captured at check-in and tied to that specific visit in the record.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-check"/></svg></span><h4>Host approval dashboard</h4><p>Hosts approve expected and walk-in visitors from one dashboard, not a phone call to the front desk.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-send"/></svg></span><h4>Invitations &amp; appointments</h4><p>Invite a visitor ahead of time so the front desk already knows they're coming.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-log"/></svg></span><h4>Admin panel &amp; audit log</h4><p>Every visit — scheduled or not — lands in a log that's ready for a security review at any time.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-users"/></svg></span><h4>Live visitor directory</h4><p>See who's on-site right now and exactly who they're there to see.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-help"/></svg></span><h4>Built-in guide</h4><p>Hosts and receptionists get a walkthrough tuned to their side of the desk.</p></div>
+        </div>
+        <div class="roles-row">
+          <span class="role-chip">HOST</span>
+          <span class="role-chip">RECEPTIONIST</span>
+          <span class="role-chip">ADMIN</span>
+        </div>
+        <p class="module-section-foot"><b>Why it matters —</b> replaces the paper sign-in book with a secure, searchable record of every visitor.</p>
+      </div>
+    </div>
+
+    <div class="module-section" style="background:var(--surface-2); border-top:1px solid var(--line); --accent:var(--cyan); --accent-soft:var(--cyan-soft);">
+      <div class="wrap">
+        <div class="module-section-head">
+          <span class="ms-icon"><svg><use href="#ic-briefcase"/></svg></span>
+          <div>
+            <p class="eyebrow pill">HRMS</p>
+            <h3>The org's single source of truth for people data.</h3>
+            <p>Every employee's profile, team, and job history lives here, and every other module reads from it — so a name, a manager, or a role only ever has to be entered once.</p>
+          </div>
+        </div>
+        <div class="app-mock">
+          <div class="app-sidebar">
+            <div class="sb-brand"><span class="dot"><svg><use href="#ic-briefcase"/></svg></span><strong>HRMS</strong></div>
+            <div class="app-nav-item active"><svg><use href="#ic-target"/></svg><span>Dashboard</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-users"/></svg><span>Employees</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-folder"/></svg><span>Jobs</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-send"/></svg><span>Referrals</span></div>
+            <div class="app-nav-item"><svg><use href="#ic-target"/></svg><span>My Team</span></div>
+          </div>
+          <div class="app-body">
+            <h5>Welcome</h5>
+            <p>Here's what's happening across the organization.</p>
+            <div class="app-stat-grid">
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-users"/></svg></span><div class="num mono">171</div><div class="lbl">Total employees</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-folder"/></svg></span><div class="num mono">2</div><div class="lbl">Open positions</div></div>
+              <div class="app-stat-card"><span class="asc-ic"><svg><use href="#ic-send"/></svg></span><div class="num mono">6</div><div class="lbl">Total referrals</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec-grid">
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-users"/></svg></span><h4>Employee directory &amp; profiles</h4><p>Every employee's profile, team, and job history lives in one place, kept current as things change.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-folder"/></svg></span><h4>Job openings &amp; requisitions</h4><p>Post an opening and run it through a requisition workflow instead of a scattered email thread.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-send"/></svg></span><h4>Clarification threads</h4><p>Hiring managers and recruiters clarify a job request in a threaded conversation, not a chain of forwards.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-checklist"/></svg></span><h4>Referral tracking</h4><p>Employee referrals are tracked end to end, from submission through to the hiring pipeline.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-target"/></svg></span><h4>"My Team" view</h4><p>Managers see their direct reports and what those reports have access to, in one view.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-lock"/></svg></span><h4>Project role assignment</h4><p>Assign project-specific roles right from an employee's profile, without switching modules.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-sso"/></svg></span><h4>Module-level access grants</h4><p>HR and admins grant or revoke access to any module, for any person, from right here.</p></div>
+          <div class="sec-card"><span class="ic"><svg><use href="#ic-help"/></svg></span><h4>Built-in guide</h4><p>A role-aware walkthrough for HR, managers, and employees alike.</p></div>
+        </div>
+        <div class="roles-row">
+          <span class="role-chip">EMPLOYEE</span>
+          <span class="role-chip">MANAGER</span>
+          <span class="role-chip">HR</span>
+          <span class="role-chip">ADMIN</span>
+        </div>
+        <p class="module-section-foot"><b>Why it matters —</b> every other module reads from the same accurate employee record — no re-entry, no drift.</p>
       </div>
     </div>
   </section>
@@ -1080,10 +1308,17 @@
               </div>
             </div>
             <div class="platform-item">
+              <span class="ic"><svg><use href="#ic-trend"/></svg></span>
+              <div>
+                <h4>Reports &amp; analytics</h4>
+                <p>FlowTrack, Time Flow, PMS, and LMS each have their own reports view with stat summaries and one-click export, so numbers don't get re-typed into a deck.</p>
+              </div>
+            </div>
+            <div class="platform-item">
               <span class="ic"><svg><use href="#ic-help"/></svg></span>
               <div>
                 <h4>Built-in guides</h4>
-                <p>Role-specific FAQs live inside the product, so teams onboard themselves instead of filing a ticket.</p>
+                <p>Every module ships with its own searchable, screen-by-screen walkthrough, tailored to what your role can see — so teams onboard themselves instead of filing a ticket.</p>
               </div>
             </div>
           </div>
@@ -1204,7 +1439,7 @@
       <div class="section-head">
         <p class="eyebrow">Who it's for</p>
         <h2>A dashboard for every seat.</h2>
-        <p>ITR One isn't one generic screen — each role sees the view built for their job.</p>
+        <p>ITR One isn't one generic screen. Every dashboard opens to its own curated set of access points — the handful of tools that role actually needs, not a wall of menus to dig through.</p>
       </div>
       <div class="roles-row">
         <span class="role-chip">ADMIN</span>
