@@ -300,6 +300,9 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                   <TrendingUp className="w-4 h-4" />
                   <span><span className="font-semibold">{totalKras}</span> KRAs</span>
                 </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Manager: <span className="font-semibold">{submission?.managerId?.name || "Not assigned"}</span></span>
+                </div>
                 {canRespond && !isSubmitted && (
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">

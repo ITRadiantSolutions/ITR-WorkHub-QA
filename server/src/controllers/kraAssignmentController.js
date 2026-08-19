@@ -129,19 +129,52 @@ export const getAssignment = async (req, res) => {
   res.json(assignment);
 };
 
+// One employee can only hold one KraAssignment per cycle — a second one for
+// the same (cycleId, assignedTo) pair shares its Submission with the first
+// (Submission is unique per cycleId+employeeId) but carries its own KRA
+// subdocument ids, so the employee's responses to it can never actually be
+// saved (saveResponses matches incoming answers against the *first*
+// assignment's kraResponses only). Silently allowed until now — the
+// "second card, blank and unsavable" bug in MyTemplate.jsx traces back to
+// this. Both assign endpoints now skip anyone already assigned for the
+// cycle instead of creating a duplicate.
+const alreadyAssignedIds = async (cycleId, userIds) => {
+  const existing = await KraAssignment.find({ cycleId, assignedTo: { $in: userIds } }).select("assignedTo");
+  return new Set(existing.map((a) => String(a.assignedTo)));
+};
+
+const namesFor = async (userIds) => {
+  const users = await User.find({ _id: { $in: userIds } }).select("name");
+  return new Map(users.map((u) => [String(u._id), u.name]));
+};
+
 export const assignToUser = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
-  const { cycleId, templateId, userId, kras } = req.body;
-  if (!cycleId || !userId) return res.status(400).json({ message: "cycleId and userId are required" });
+  const { cycleId, templateId, userId, userIds, kras } = req.body;
+  const targetIds = (Array.isArray(userIds) && userIds.length ? userIds : userId ? [userId] : []).map(String);
+  if (!cycleId || !targetIds.length) return res.status(400).json({ message: "cycleId and at least one user are required" });
 
-  const assignment = await KraAssignment.create({
-    cycleId,
-    templateId: templateId || null,
-    assignedTo: userId,
-    kras: kras || [],
-    createdBy: req.user._id,
+  const alreadyAssigned = await alreadyAssignedIds(cycleId, targetIds);
+  const toCreate = targetIds.filter((id) => !alreadyAssigned.has(id));
+  const skippedIds = targetIds.filter((id) => alreadyAssigned.has(id));
+  const skippedNames = await namesFor(skippedIds);
+
+  const assignments = toCreate.length
+    ? await KraAssignment.insertMany(
+        toCreate.map((id) => ({
+          cycleId,
+          templateId: templateId || null,
+          assignedTo: id,
+          kras: kras || [],
+          createdBy: req.user._id,
+        })),
+      )
+    : [];
+
+  res.status(201).json({
+    assignments,
+    skipped: skippedIds.map((id) => ({ id, name: skippedNames.get(id) || id })),
   });
-  res.status(201).json(assignment);
 };
 
 // Mirrors the old system's group-expansion behavior: a group assignment
@@ -155,16 +188,28 @@ export const assignToGroup = async (req, res) => {
   const group = await UsersGroup.findById(groupId);
   if (!group) return res.status(404).json({ message: "Group not found" });
 
-  const assignments = await KraAssignment.insertMany(
-    group.members.map((userId) => ({
-      cycleId,
-      templateId: templateId || null,
-      assignedTo: userId,
-      kras: kras || [],
-      createdBy: req.user._id,
-    })),
-  );
-  res.status(201).json(assignments);
+  const memberIds = group.members.map(String);
+  const alreadyAssigned = await alreadyAssignedIds(cycleId, memberIds);
+  const toCreate = memberIds.filter((id) => !alreadyAssigned.has(id));
+  const skippedIds = memberIds.filter((id) => alreadyAssigned.has(id));
+  const skippedNames = await namesFor(skippedIds);
+
+  const assignments = toCreate.length
+    ? await KraAssignment.insertMany(
+        toCreate.map((userId) => ({
+          cycleId,
+          templateId: templateId || null,
+          assignedTo: userId,
+          kras: kras || [],
+          createdBy: req.user._id,
+        })),
+      )
+    : [];
+
+  res.status(201).json({
+    assignments,
+    skipped: skippedIds.map((id) => ({ id, name: skippedNames.get(id) || id })),
+  });
 };
 
 export const updateAssignment = async (req, res) => {

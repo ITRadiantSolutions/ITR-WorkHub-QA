@@ -27,17 +27,29 @@ const isAssignedManagerOrHr = async (submission, user) =>
   user.roles.pms === "hr" ||
   (await isCurrentManagerOf(submission, user));
 
-// The Cycle's employeeResponse window (Review Cycles page) was, until now,
-// only enforced client-side (TemplateCard.jsx's canRespond) — the API
-// itself accepted saves/submits from any employee whose submission status
-// was otherwise editable, regardless of whether HR had actually opened (or
-// had since closed) the window for them.
-const isEmployeeResponseWindowOpen = async (cycleId, employeeId) => {
-  const cycle = await Cycle.findById(cycleId).select("employeeResponse");
-  const window = cycle?.employeeResponse;
+// The Cycle's response window (Review Cycles page) was, until now, only
+// enforced client-side (TemplateCard.jsx's canRespond) — the API itself
+// accepted saves/submits from any employee whose submission status was
+// otherwise editable, regardless of whether HR had actually opened (or had
+// since closed) the window for them.
+//
+// A self-reviewing employee can land in either window: the Review Cycles
+// user picker only lets HR place "employee"-role users into the Employee
+// window and "manager"/"hr"-role users into the Manager/HR window
+// (CycleTable.jsx), so a manager/HR-role person's own self-review is only
+// ever reachable through the Manager/HR window. Checking employeeResponse
+// alone (as this used to) rejected every save/submit for exactly those
+// people with a 409, even though the client's canRespond correctly showed
+// the form as open — matching TemplateCard.jsx's canRespond check.
+const isWindowOpen = (window, employeeId) => {
   if (!window?.enabled) return false;
   if (window.expiry && new Date(window.expiry) < new Date()) return false;
   return (window.selectedUserIds || []).some((id) => id.equals(employeeId));
+};
+
+const isEmployeeResponseWindowOpen = async (cycleId, employeeId) => {
+  const cycle = await Cycle.findById(cycleId).select("employeeResponse managerResponse");
+  return isWindowOpen(cycle?.employeeResponse, employeeId) || isWindowOpen(cycle?.managerResponse, employeeId);
 };
 
 // Individual ratings are a 1-5 star scale in the UI; null/undefined clears a rating.
@@ -140,6 +152,7 @@ export const getOrCreateFromAssignment = async (req, res) => {
     }
   }
 
+  await submission.populate({ path: "managerId", select: "name" });
   res.json(submission);
 };
 
