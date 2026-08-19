@@ -78,3 +78,33 @@ export const reportsApi = {
 export const profileApi = {
   me: () => API.get("/lms/profile/me"),
 };
+
+export const skillGroupsApi = {
+  all: () => API.get("/lms/skill-groups"),
+  byId: (id) => API.get(`/lms/skill-groups/${id}`),
+  create: (data) => API.post("/lms/skill-groups", data),
+  update: (id, data) => API.put(`/lms/skill-groups/${id}`, data),
+  remove: (id) => API.delete(`/lms/skill-groups/${id}`),
+  addMembers: (id, employeeIds) => API.post(`/lms/skill-groups/${id}/members`, { employeeIds }),
+  removeMember: (id, employeeId) => API.delete(`/lms/skill-groups/${id}/members/${employeeId}`),
+};
+
+export const employeeSkillsApi = {
+  get: (employeeId) => API.get(`/lms/profile/admin/${employeeId}`),
+  upsert: (employeeId, data) => API.put(`/lms/profile/admin/${employeeId}/skills`, data),
+  remove: (employeeId, skillId) => API.delete(`/lms/profile/admin/${employeeId}/skills/${skillId}`),
+};
+
+export const skillTestsApi = {
+  allAdmin: () => API.get("/lms/skill-tests/admin"),
+  byIdAdmin: (testId) => API.get(`/lms/skill-tests/admin/${testId}`),
+  create: (data) => API.post("/lms/skill-tests/admin", data),
+  update: (testId, data) => API.put(`/lms/skill-tests/admin/${testId}`, data),
+  remove: (testId) => API.delete(`/lms/skill-tests/admin/${testId}`),
+  assignGroups: (testId, skillGroupIds) => API.post(`/lms/skill-tests/admin/${testId}/assign`, { skillGroupIds }),
+  unassignGroup: (testId, groupId) => API.delete(`/lms/skill-tests/admin/${testId}/assign/${groupId}`),
+  available: () => API.get("/lms/skill-tests/available"),
+  start: (testId) => API.post(`/lms/skill-tests/${testId}/start`),
+  submit: (testId, answers) => API.post(`/lms/skill-tests/${testId}/submit`, { answers }),
+  progress: (testId) => API.get(`/lms/skill-tests/${testId}/progress`),
+};

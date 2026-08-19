@@ -55,6 +55,11 @@ import CourseBuilder from "./LMS/pages/CourseBuilder";
 import AssignCourses from "./LMS/pages/AssignCourses";
 import BadgesSkills from "./LMS/pages/BadgesSkills";
 import LmsReports from "./LMS/pages/Reports";
+import SkillGroups from "./LMS/pages/SkillGroups";
+import SkillTests from "./LMS/pages/SkillTests";
+import SkillTestBuilder from "./LMS/pages/SkillTestBuilder";
+import MySkillTests from "./LMS/pages/MySkillTests";
+import SkillTestPlayer from "./LMS/pages/SkillTestPlayer";
 import HrmsLayout from "./HRMS/HrmsLayout";
 import HrmsDashboard from "./HRMS/pages/Dashboard";
 import HrmsJobs from "./HRMS/pages/Jobs";
@@ -341,6 +346,54 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <LmsReports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/skill-groups"
+                element={
+                  <ProtectedRoute>
+                    <SkillGroups />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/manage-skill-tests"
+                element={
+                  <ProtectedRoute>
+                    <SkillTests />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/manage-skill-tests/new"
+                element={
+                  <ProtectedRoute>
+                    <SkillTestBuilder />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/manage-skill-tests/:testId"
+                element={
+                  <ProtectedRoute>
+                    <SkillTestBuilder />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/skill-tests"
+                element={
+                  <ProtectedRoute>
+                    <MySkillTests />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/skill-tests/:testId/take"
+                element={
+                  <ProtectedRoute>
+                    <SkillTestPlayer />
                   </ProtectedRoute>
                 }
               />

@@ -1,13 +1,18 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { coursesApi } from "../lmsApi.js";
+import { useAuth } from "../../context/AuthContext";
 import Icons from "../../components/Icons.jsx";
 
 export default function CourseCatalog() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const assignedOnly = searchParams.get("assigned") === "me";
 
   useEffect(() => {
     coursesApi
@@ -17,22 +22,29 @@ export default function CourseCatalog() {
       .finally(() => setLoading(false));
   }, []);
 
+  const visibleCourses = useMemo(() => {
+    if (!assignedOnly) return courses;
+    return courses.filter((course) => (course.enrolledStudents || []).some((id) => String(id) === String(user?._id)));
+  }, [courses, assignedOnly, user]);
+
   if (loading) return <div className="p-8 text-sm text-slate-400">Loading courses…</div>;
 
   return (
     <div className="p-6 sm:p-8 space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Courses</h1>
-        <p className="text-xs text-slate-500 mt-0.5">Browse and start learning.</p>
+        <h1 className="text-xl font-semibold text-slate-900">{assignedOnly ? "Courses Assigned to You" : "Courses"}</h1>
+        <p className="text-xs text-slate-500 mt-0.5">
+          {assignedOnly ? "Review these before retrying a skill test." : "Browse and start learning."}
+        </p>
       </div>
 
-      {courses.length === 0 ? (
+      {visibleCourses.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-400">
-          No courses published yet.
+          {assignedOnly ? "No courses assigned to you yet." : "No courses published yet."}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {courses.map((course) => (
+          {visibleCourses.map((course) => (
             <button
               key={course._id}
               onClick={() => navigate(`/lms/courses/${course._id}`)}

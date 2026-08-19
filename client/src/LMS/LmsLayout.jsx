@@ -11,11 +11,14 @@ import ProfileModal from "../components/ProfileModal";
 const EMPLOYEE_TABS = [
   { to: "/lms/courses", label: "Courses", icon: "Book" },
   { to: "/lms/my-learning", label: "My Learning", icon: "Award" },
+  { to: "/lms/skill-tests", label: "Tests", icon: "Target" },
 ];
 const MANAGER_TABS = [
   ...EMPLOYEE_TABS,
   { to: "/lms/manage", label: "Manage Courses", icon: "Dashboard" },
   { to: "/lms/assign", label: "Assign Courses", icon: "Users" },
+  { to: "/lms/skill-groups", label: "Skill Groups", icon: "Layers" },
+  { to: "/lms/manage-skill-tests", label: "Manage Tests", icon: "Shield" },
   { to: "/lms/badges-skills", label: "Badges & Skills", icon: "Star" },
   { to: "/lms/reports", label: "Reports", icon: "Reports" },
 ];

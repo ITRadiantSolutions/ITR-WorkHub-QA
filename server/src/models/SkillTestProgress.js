@@ -1,0 +1,61 @@
+import mongoose from "mongoose";
+
+// One doc per employee-per-test — same reasoning as CourseProgress being
+// per-employee-per-course rather than embedding attempts inside SkillTest:
+// avoids write contention across concurrent test-takers and unbounded
+// document growth on the shared test doc.
+const attemptHistorySchema = new mongoose.Schema(
+  {
+    attemptNo: { type: Number, required: true },
+    startedAt: { type: Date, default: Date.now },
+    submittedAt: { type: Date, default: null },
+    // The exact sampled subset actually served for this attempt.
+    questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+    score: { type: Number, default: 0 },
+    passed: { type: Boolean, default: false },
+    correctCount: { type: Number, default: 0 },
+    wrongCount: { type: Number, default: 0 },
+    totalQuestions: { type: Number, default: 0 },
+    badgeAwarded: { type: Boolean, default: false },
+    badgeId: { type: mongoose.Schema.Types.ObjectId, ref: "Badge", default: null },
+    skillAwarded: { type: Boolean, default: false },
+    skillId: { type: mongoose.Schema.Types.ObjectId, ref: "Skill", default: null },
+  },
+  { _id: false },
+);
+
+const skillTestProgressSchema = new mongoose.Schema(
+  {
+    test: { type: mongoose.Schema.Types.ObjectId, ref: "SkillTest", required: true, index: true },
+    employee: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+
+    status: { type: String, enum: ["not_started", "in_progress", "passed", "failed"], default: "not_started" },
+    attemptCount: { type: Number, default: 0 },
+
+    // The subset in flight — stored so a page refresh mid-attempt returns
+    // the SAME questions instead of silently resampling.
+    currentAttempt: {
+      attemptNo: { type: Number, default: 0 },
+      questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+      startedAt: { type: Date, default: null },
+    },
+
+    // Idempotency marker so a duplicate submit (double-click, network retry)
+    // doesn't re-score or re-award for the same attempt — mirrors
+    // CourseProgress's quizLastSubmission.
+    lastSubmission: {
+      attemptNo: { type: Number, default: 0 },
+      answersHash: { type: String, default: "" },
+    },
+
+    badgeAwarded: { type: Boolean, default: false },
+    skillAwarded: { type: Boolean, default: false },
+
+    attemptsHistory: { type: [attemptHistorySchema], default: [] },
+  },
+  { timestamps: true },
+);
+
+skillTestProgressSchema.index({ test: 1, employee: 1 }, { unique: true });
+
+export default mongoose.model("SkillTestProgress", skillTestProgressSchema);

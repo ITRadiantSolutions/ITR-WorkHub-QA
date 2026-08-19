@@ -36,8 +36,12 @@ const employeeProfileSchema = new mongoose.Schema(
     badgeAwards: [
       {
         badge: { type: mongoose.Schema.Types.ObjectId, ref: "Badge", required: true },
-        course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
-        assessmentType: { type: String, enum: ["quiz", "assignment"], required: true },
+        // Exactly one of course/test is set, depending on how the badge was
+        // earned. required:true -> default:null is backward compatible —
+        // Mongoose only validates on write, existing rows already satisfy it.
+        course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", default: null },
+        test: { type: mongoose.Schema.Types.ObjectId, ref: "SkillTest", default: null },
+        assessmentType: { type: String, enum: ["quiz", "assignment", "skill_test"], required: true },
         earnedAt: { type: Date, default: Date.now },
       },
     ],

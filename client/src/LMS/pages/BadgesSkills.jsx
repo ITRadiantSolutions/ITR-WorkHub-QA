@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { badgesApi, skillsApi } from "../lmsApi.js";
+import { badgesApi, skillsApi, assignmentsApi, employeeSkillsApi } from "../lmsApi.js";
 import Icons from "../../components/Icons.jsx";
+
+const TABS = [
+  { key: "badges", label: "Badges" },
+  { key: "skills", label: "Skills" },
+  { key: "employee-skills", label: "Employee Skills" },
+];
 
 export default function BadgesSkills() {
   const [tab, setTab] = useState("badges");
@@ -10,24 +16,24 @@ export default function BadgesSkills() {
     <div className="p-6 sm:p-8 space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-slate-900">Badges & Skills</h1>
-        <p className="text-xs text-slate-500 mt-0.5">Manage what learners can earn by completing quizzes and assignments.</p>
+        <p className="text-xs text-slate-500 mt-0.5">Manage what learners can earn, and edit an employee's skill set directly.</p>
       </div>
 
       <div className="flex gap-2">
-        {["badges", "skills"].map((t) => (
+        {TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`text-xs font-semibold rounded-lg px-3.5 py-1.5 capitalize ${
-              tab === t ? "bg-amber-600 text-white" : "bg-white border border-slate-200 text-slate-500"
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`text-xs font-semibold rounded-lg px-3.5 py-1.5 ${
+              tab === t.key ? "bg-amber-600 text-white" : "bg-white border border-slate-200 text-slate-500"
             }`}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
 
-      {tab === "badges" ? <BadgesTab /> : <SkillsTab />}
+      {tab === "badges" ? <BadgesTab /> : tab === "skills" ? <SkillsTab /> : <EmployeeSkillsTab />}
     </div>
   );
 }
@@ -285,6 +291,130 @@ function SkillsTab() {
           </div>
         ))}
         {skills.length === 0 && <p className="text-xs text-slate-400 p-4">No skills yet.</p>}
+      </div>
+    </div>
+  );
+}
+
+const LEVELS = ["Beginner", "Intermediate", "Advanced", "Expert"];
+const STATUSES = ["Learning", "Completed", "Verified"];
+
+function EmployeeSkillsTab() {
+  const [employees, setEmployees] = useState([]);
+  const [allSkills, setAllSkills] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [profileSkills, setProfileSkills] = useState([]);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [form, setForm] = useState({ skillId: "", level: "Beginner", status: "Learning" });
+
+  useEffect(() => {
+    Promise.all([assignmentsApi.employees(), skillsApi.all()])
+      .then(([employeesRes, skillsRes]) => {
+        setEmployees(employeesRes.data);
+        setAllSkills(skillsRes.data);
+      })
+      .catch(() => toast.error("Failed to load employees/skills"));
+  }, []);
+
+  const loadProfile = (employee) => {
+    setSelectedEmployee(employee);
+    setLoadingProfile(true);
+    employeeSkillsApi
+      .get(employee._id)
+      .then((res) => setProfileSkills(res.data.skills || []))
+      .catch(() => toast.error("Failed to load employee skills"))
+      .finally(() => setLoadingProfile(false));
+  };
+
+  const addOrUpdateSkill = async (e) => {
+    e.preventDefault();
+    if (!form.skillId) return toast.error("Select a skill");
+    try {
+      const { data } = await employeeSkillsApi.upsert(selectedEmployee._id, form);
+      setProfileSkills(data.skills || []);
+      setForm({ skillId: "", level: "Beginner", status: "Learning" });
+      toast.success("Skill saved");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to save skill");
+    }
+  };
+
+  const removeSkill = async (skillId) => {
+    try {
+      const { data } = await employeeSkillsApi.remove(selectedEmployee._id, skillId);
+      setProfileSkills(data.skills || []);
+    } catch {
+      toast.error("Failed to remove skill");
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm divide-y divide-slate-50 sm:col-span-1 max-h-[70vh] overflow-y-auto">
+        {employees.map((employee) => (
+          <button
+            key={employee._id}
+            onClick={() => loadProfile(employee)}
+            className={`w-full text-left px-4 py-2.5 ${selectedEmployee?._id === employee._id ? "bg-amber-50" : "hover:bg-slate-50"}`}
+          >
+            <p className="text-xs font-bold text-slate-800">{employee.name}</p>
+            <p className="text-[10px] text-slate-400">{employee.email}</p>
+          </button>
+        ))}
+        {employees.length === 0 && <p className="text-xs text-slate-400 p-4">No employees found.</p>}
+      </div>
+
+      <div className="sm:col-span-2 space-y-3">
+        {!selectedEmployee ? (
+          <p className="text-xs text-slate-400">Select an employee to view and edit their skills.</p>
+        ) : loadingProfile ? (
+          <p className="text-xs text-slate-400">Loading…</p>
+        ) : (
+          <>
+            <p className="text-xs font-bold text-slate-700">{selectedEmployee.name}'s skills</p>
+
+            <form onSubmit={addOrUpdateSkill} className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <select value={form.skillId} onChange={(e) => setForm((f) => ({ ...f, skillId: e.target.value }))} className="text-xs rounded-lg border border-slate-200 px-3 py-1.5">
+                <option value="">Select skill</option>
+                {allSkills.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <select value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))} className="text-xs rounded-lg border border-slate-200 px-3 py-1.5">
+                {LEVELS.map((l) => (
+                  <option key={l}>{l}</option>
+                ))}
+              </select>
+              <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className="text-xs rounded-lg border border-slate-200 px-3 py-1.5">
+                {STATUSES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+              <button type="submit" className="sm:col-span-3 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5">
+                Add / Update Skill
+              </button>
+            </form>
+
+            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm divide-y divide-slate-50">
+              {profileSkills.map((item) => (
+                <div key={item.skill?._id || item.skill} className="flex items-center justify-between px-4 py-2.5">
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">{item.skill?.name || "Unknown skill"}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {item.level} · {item.status}
+                    </p>
+                  </div>
+                  <button onClick={() => removeSkill(item.skill?._id || item.skill)} className="text-red-500">
+                    <Icons.Trash />
+                  </button>
+                </div>
+              ))}
+              {profileSkills.length === 0 && <p className="text-xs text-slate-400 p-4">No skills assigned yet.</p>}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

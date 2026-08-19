@@ -1,11 +1,9 @@
 import Course from "../models/Course.js";
 import CourseAssessment from "../models/CourseAssessment.js";
 import CourseProgress from "../models/CourseProgress.js";
-import EmployeeProfile from "../models/EmployeeProfile.js";
-import Badge from "../models/Badge.js";
-import Skill from "../models/Skill.js";
 import User from "../models/User.js";
 import { notifyUsers } from "../utils/notify.js";
+import { awardBadgeOnce, awardSkillOnce } from "../utils/lmsAwards.js";
 
 // Ported from the standalone LMS project's courseProgressController.js.
 // req.userId/req.role (raw JWT claims) become req.user._id/req.user.roles.lms
@@ -15,67 +13,6 @@ const getOrCreateProgress = async (courseId, employeeId) => {
   let progress = await CourseProgress.findOne({ course: courseId, employee: employeeId });
   if (!progress) progress = await CourseProgress.create({ course: courseId, employee: employeeId });
   return progress;
-};
-
-const awardBadgeToEmployee = async ({ employeeId, badgeId, courseId, assessmentType }) => {
-  if (!badgeId || !courseId || !assessmentType) return false;
-
-  let profile = await EmployeeProfile.findOne({ employee: employeeId });
-  if (!profile) profile = await EmployeeProfile.create({ employee: employeeId });
-
-  const hasBadge = profile.badges.some((id) => String(id) === String(badgeId));
-  if (!hasBadge) profile.badges.push(badgeId);
-
-  const hasCourseAward = (profile.badgeAwards || []).some(
-    (award) => String(award.badge) === String(badgeId) && String(award.course) === String(courseId) && award.assessmentType === assessmentType,
-  );
-  if (hasCourseAward) return false;
-
-  profile.badgeAwards.push({ badge: badgeId, course: courseId, assessmentType, earnedAt: new Date() });
-  await profile.save();
-  return true;
-};
-
-const awardSkillToEmployee = async (employeeId, skillId) => {
-  if (!skillId) return false;
-
-  let profile = await EmployeeProfile.findOne({ employee: employeeId });
-  if (!profile) profile = await EmployeeProfile.create({ employee: employeeId });
-
-  const skillIndex = profile.skills.findIndex((item) => String(item.skill) === String(skillId));
-  if (skillIndex !== -1) {
-    if (profile.skills[skillIndex].status !== "Verified") {
-      profile.skills[skillIndex].status = "Verified";
-      profile.skills[skillIndex].verifiedAt = new Date();
-    }
-  } else {
-    profile.skills.push({ skill: skillId, level: "Beginner", status: "Verified", verifiedAt: new Date(), assignedAt: new Date() });
-    profile.totalSkills = profile.skills.length;
-  }
-
-  await profile.save();
-  return true;
-};
-
-const loadBadgeOrSkill = async (Model, id) => {
-  if (!id) return null;
-  const doc = await Model.findById(id);
-  if (!doc) return null;
-  return { id: doc._id, name: doc.name, description: doc.description || doc.category || "", imageUrl: doc.imageUrl || "" };
-};
-
-const awardBadgeOnce = async ({ employeeId, badgeId, progress, alreadyAwardedFlag, assessmentType }) => {
-  if (!badgeId || progress[alreadyAwardedFlag]) return { badgeAwarded: false, badge: null };
-  const ok = await awardBadgeToEmployee({ employeeId, badgeId, courseId: progress.course, assessmentType });
-  if (!ok) return { badgeAwarded: false, badge: null };
-  return { badgeAwarded: true, badge: await loadBadgeOrSkill(Badge, badgeId) };
-};
-
-const awardSkillOnce = async ({ employeeId, skillId, progress, alreadyAwardedFlag }) => {
-  if (!skillId || progress[alreadyAwardedFlag]) return { skillAwarded: false, skill: null };
-  const ok = await awardSkillToEmployee(employeeId, skillId);
-  if (!ok) return { skillAwarded: false, skill: null };
-  return { skillAwarded: true, skill: await loadBadgeOrSkill(Skill, skillId) };
 };
 
 // Closes the "employee fails, someone should assign them a course" loop: the
@@ -318,7 +255,7 @@ export const employeeSubmitQuiz = async (req, res) => {
   };
 
   if (passed && assessment.badge) {
-    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, progress: reservedProgress, alreadyAwardedFlag: "quizBadgeAwarded", assessmentType: "quiz" });
+    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, courseId, progress: reservedProgress, alreadyAwardedFlag: "quizBadgeAwarded", assessmentType: "quiz" });
     responseData.badgeAwarded = badgeResult.badgeAwarded;
     responseData.badge = badgeResult.badge;
     if (badgeResult.badgeAwarded) reservedProgress.quizBadgeAwarded = true;
@@ -464,7 +401,7 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
   };
 
   if (passed && assessment.badge) {
-    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, progress: reservedProgress, alreadyAwardedFlag: "finalAssignmentBadgeAwarded", assessmentType: "assignment" });
+    const badgeResult = await awardBadgeOnce({ employeeId, badgeId: assessment.badge, courseId, progress: reservedProgress, alreadyAwardedFlag: "finalAssignmentBadgeAwarded", assessmentType: "assignment" });
     responseData.badgeAwarded = badgeResult.badgeAwarded;
     responseData.badge = badgeResult.badge;
     if (badgeResult.badgeAwarded) reservedProgress.finalAssignmentBadgeAwarded = true;
