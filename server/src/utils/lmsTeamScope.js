@@ -37,3 +37,12 @@ export const assertCanManageUser = async (actor, targetUserOrId) => {
     throw error;
   }
 };
+
+// Who should be told about something an employee needs help with (exhausted
+// assessment attempts, a missed retake deadline): their manager, or — if they
+// have none — every LMS admin.
+export const getManagerOrAdminRecipientIds = async (employee) => {
+  if (employee.managerId) return [employee.managerId];
+  const admins = await User.find({ "roles.lms": "admin" }).select("_id").lean();
+  return admins.map((admin) => admin._id);
+};

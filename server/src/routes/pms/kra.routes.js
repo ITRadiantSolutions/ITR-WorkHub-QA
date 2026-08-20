@@ -19,6 +19,7 @@ import {
   assignToGroup,
   updateAssignment,
   deleteAssignment,
+  updateKra,
   addEmployeeKra,
   removeEmployeeKra,
   searchUsers,
@@ -52,6 +53,7 @@ router.get("/assignments/:id", getAssignment);
 router.put("/assignments/:id", updateAssignment);
 router.delete("/assignments/:id", deleteAssignment);
 router.post("/assignments/:id/kras", addEmployeeKra);
+router.put("/assignments/:id/kras/:kraId", updateKra);
 router.delete("/assignments/:id/kras/:kraId", removeEmployeeKra);
 
 export default router;

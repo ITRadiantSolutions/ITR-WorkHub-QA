@@ -9,6 +9,9 @@ const courseAssignmentSchema = new mongoose.Schema(
     assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     assignedAtByEmployee: { type: Map, of: Date, default: {} },
     statusByEmployee: { type: Map, of: String, default: {} },
+    // Minimum passing % the assigning manager set for each employee, overriding
+    // CourseAssessment.passingPercentage for that employee's attempts on this course.
+    passingPercentageByEmployee: { type: Map, of: Number, default: {} },
   },
   { timestamps: true },
 );

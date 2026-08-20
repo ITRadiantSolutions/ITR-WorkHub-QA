@@ -40,7 +40,7 @@ const resolveBadgeOrSkill = async ({ badge, skill }) => {
 export const adminCreateAssessment = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
   const { courseId } = req.params;
-  const { assessmentType, title, durationMinutes, questions, maxAttempts, passingPercentage, badge, skill } = req.body;
+  const { assessmentType, title, durationMinutes, questions, maxAttempts, passingPercentage, sampleSize, badge, skill } = req.body;
 
   if (!assessmentType) return res.status(400).json({ message: "assessmentType is required" });
   if (!title) return res.status(400).json({ message: "title is required" });
@@ -52,6 +52,17 @@ export const adminCreateAssessment = async (req, res) => {
   const parsedQuestions = typeof questions === "string" ? JSON.parse(questions) : questions;
   if (!Array.isArray(parsedQuestions) || parsedQuestions.length === 0) {
     return res.status(400).json({ message: "At least one question is required" });
+  }
+
+  let parsedSampleSize = null;
+  if (sampleSize !== undefined && sampleSize !== null && sampleSize !== "") {
+    parsedSampleSize = Number(sampleSize);
+    if (!Number.isFinite(parsedSampleSize) || parsedSampleSize < 1) {
+      return res.status(400).json({ message: "sampleSize must be at least 1" });
+    }
+    if (parsedSampleSize > parsedQuestions.length) {
+      return res.status(400).json({ message: "sampleSize cannot exceed the number of questions" });
+    }
   }
 
   try {
@@ -67,6 +78,7 @@ export const adminCreateAssessment = async (req, res) => {
       isPublished: req.body.isPublished === true || req.body.isPublished === "true",
       maxAttempts: maxAttempts !== undefined ? Math.max(1, Math.min(10, Number(maxAttempts) || 3)) : 3,
       passingPercentage: passingPercentage !== undefined ? Math.max(0, Math.min(100, Number(passingPercentage) || 80)) : 80,
+      sampleSize: parsedSampleSize,
       badge: badgeId,
       skill: skillId,
     });
@@ -92,7 +104,7 @@ export const adminListAssessmentsByCourse = async (req, res) => {
 export const adminUpdateAssessment = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
   const { assessmentId } = req.params;
-  const { assessmentType, title, durationMinutes, questions, isPublished, maxAttempts, passingPercentage, badge, skill } = req.body;
+  const { assessmentType, title, durationMinutes, questions, isPublished, maxAttempts, passingPercentage, sampleSize, badge, skill } = req.body;
 
   if (!assessmentType) return res.status(400).json({ message: "assessmentType is required" });
   if (!title) return res.status(400).json({ message: "title is required" });
@@ -112,6 +124,20 @@ export const adminUpdateAssessment = async (req, res) => {
   };
   if (maxAttempts !== undefined) updateData.maxAttempts = Math.max(1, Math.min(10, Number(maxAttempts) || 3));
   if (passingPercentage !== undefined) updateData.passingPercentage = Math.max(0, Math.min(100, Number(passingPercentage) || 80));
+  if (sampleSize !== undefined) {
+    if (sampleSize === null || sampleSize === "") {
+      updateData.sampleSize = null;
+    } else {
+      const parsedSampleSize = Number(sampleSize);
+      if (!Number.isFinite(parsedSampleSize) || parsedSampleSize < 1) {
+        return res.status(400).json({ message: "sampleSize must be at least 1" });
+      }
+      if (parsedSampleSize > parsedQuestions.length) {
+        return res.status(400).json({ message: "sampleSize cannot exceed the number of questions" });
+      }
+      updateData.sampleSize = parsedSampleSize;
+    }
+  }
 
   try {
     if (badge !== undefined || skill !== undefined) {

@@ -59,17 +59,29 @@ const isNonWorkingDay = async (date) => {
 
 const hrUserIds = async () => (await User.find({ "roles.hrms": "hr" }).select("_id")).map((u) => u._id);
 
-// Monthly pro-rata accrual as of `asOf`, counted from Jan 1 or the employee's
-// joining date (if later), rounded to the nearest half day. A mid-year joiner
-// only accrues from their joining month; nobody accrues more than 12 months.
-const computeAccrual = (annualDays, joiningDate, asOf) => {
-  const year = asOf.getFullYear();
+// The date accrual starts counting from for a given calendar year — Jan 1,
+// or the employee's joining date if they joined later that same year.
+const effectiveStartFor = (joiningDate, year) => {
   const yearStart = new Date(year, 0, 1);
-  const effectiveStart = joiningDate && joiningDate > yearStart ? joiningDate : yearStart;
+  return joiningDate && joiningDate > yearStart ? joiningDate : yearStart;
+};
+
+// Each month's accrual amount, rounded to the nearest half day — shared by
+// computeAccrual and the ledger so a run of monthly entries always sums to
+// exactly the same total the balance card shows.
+const monthlyIncrement = (annualDays) => Math.round((annualDays / 12) * 2) / 2;
+
+// Accrual as of `asOf`. "yearly" leave types grant the full annual quota in
+// one lump as soon as the year (or the employee's joining date) has started;
+// "monthly" types pro-rate across the months elapsed, capped at 12.
+const computeAccrual = (leaveType, joiningDate, asOf) => {
+  const effectiveStart = effectiveStartFor(joiningDate, asOf.getFullYear());
   if (effectiveStart > asOf) return 0;
+
+  if (leaveType.accrualType === "yearly") return leaveType.defaultDaysPerYear;
+
   const monthsElapsed = (asOf.getFullYear() - effectiveStart.getFullYear()) * 12 + (asOf.getMonth() - effectiveStart.getMonth()) + 1;
-  const monthlyRate = annualDays / 12;
-  return Math.round(monthlyRate * Math.min(monthsElapsed, 12) * 2) / 2;
+  return monthlyIncrement(leaveType.defaultDaysPerYear) * Math.min(monthsElapsed, 12);
 };
 
 // How many of last year's unused days roll into `year`, capped at the leave
@@ -82,7 +94,7 @@ const computeCarryForward = async (employeeId, leaveType, year, joiningDate) => 
   const prevYearEnd = new Date(year - 1, 11, 31, 23, 59, 59, 999);
   if (joiningDate && joiningDate > prevYearEnd) return 0;
 
-  const prevYearAllocated = computeAccrual(leaveType.defaultDaysPerYear, joiningDate, prevYearEnd);
+  const prevYearAllocated = computeAccrual(leaveType, joiningDate, prevYearEnd);
   const prevYearRequests = await LeaveRequest.find({
     employee: employeeId,
     leaveType: leaveType._id,
@@ -111,7 +123,7 @@ const balanceForType = async (employeeId, joiningDate, leaveType, asOf = new Dat
   ]);
 
   const used = requests.reduce((sum, r) => sum + r.paidDays, 0);
-  const accrued = computeAccrual(leaveType.defaultDaysPerYear, joiningDate, asOf);
+  const accrued = computeAccrual(leaveType, joiningDate, asOf);
   const allocated = accrued + carriedForward;
   return { accrued, carriedForward, allocated, used, remaining: allocated - used };
 };
@@ -239,6 +251,76 @@ export const getLeaveBalanceForEmployee = async (req, res) => {
     types.map(async (t) => ({ leaveType: t, ...(await balanceForType(employee._id, employee.joiningDate, t, now)) })),
   );
   res.json(balances);
+};
+
+// A chronological statement of every balance-affecting event for one
+// employee/leaveType/year — accrual credits (one lump for "yearly" types,
+// one entry per elapsed month for "monthly") plus a debit per leave request,
+// each carrying the running balance. Mirrors a bank-statement-style leave
+// ledger rather than just the current total.
+const buildLedger = async (employeeId, joiningDate, leaveType, year) => {
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+  const effectiveStart = effectiveStartFor(joiningDate, year);
+  const now = new Date();
+
+  const entries = [];
+
+  const carriedForward = await computeCarryForward(employeeId, leaveType, year, joiningDate);
+  if (carriedForward > 0) {
+    entries.push({ date: effectiveStart, change: carriedForward, reason: "Carried forward from last year" });
+  }
+
+  if (effectiveStart <= now) {
+    if (leaveType.accrualType === "yearly") {
+      entries.push({ date: effectiveStart, change: leaveType.defaultDaysPerYear, reason: "Leave accrual allocated at the start of year" });
+    } else {
+      const increment = monthlyIncrement(leaveType.defaultDaysPerYear);
+      const cursor = new Date(effectiveStart.getFullYear(), effectiveStart.getMonth(), 1);
+      while (cursor <= yearEnd && cursor <= now) {
+        entries.push({ date: new Date(cursor), change: increment, reason: "Monthly leave accrual" });
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
+  }
+
+  const requests = await LeaveRequest.find({
+    employee: employeeId,
+    leaveType: leaveType._id,
+    status: { $in: ACTIVE_STATUSES },
+    startDate: { $gte: yearStart, $lte: yearEnd },
+  }).sort({ startDate: 1 });
+  requests.forEach((r) => {
+    if (r.paidDays > 0) {
+      const lopNote = r.lopDays > 0 ? ` (${r.lopDays} day(s) unpaid)` : "";
+      entries.push({ date: r.startDate, change: -r.paidDays, reason: `Leave taken — ${r.status}${lopNote}`, requestId: r._id });
+    }
+  });
+
+  entries.sort((a, b) => a.date - b.date);
+  let running = 0;
+  return entries.map((e) => { running += e.change; return { ...e, balance: running }; });
+};
+
+export const getLeaveLedger = async (req, res) => {
+  const { leaveTypeId } = req.params;
+  const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+
+  let employeeId = req.user._id;
+  let joiningDate = req.user.joiningDate;
+  if (req.query.employeeId && req.query.employeeId !== req.user._id.toString()) {
+    if (req.user.roles.hrms !== "hr") return res.status(403).json({ message: "Forbidden" });
+    const employee = await User.findById(req.query.employeeId).select("joiningDate");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+    employeeId = employee._id;
+    joiningDate = employee.joiningDate;
+  }
+
+  const leaveType = await LeaveType.findById(leaveTypeId);
+  if (!leaveType) return res.status(404).json({ message: "Leave type not found" });
+
+  const entries = await buildLedger(employeeId, joiningDate, leaveType, year);
+  res.json({ leaveType, entries });
 };
 
 // Company-wide "who's out" view — any authenticated hrms user can see it

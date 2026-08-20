@@ -34,13 +34,15 @@ export const progressApi = {
   forUserCourse: (userId, courseId) => API.get(`/lms/progress/users/${userId}/courses/${courseId}`),
   markMaterial: (courseId, lectureId, materialIndex, type) =>
     API.post(`/lms/progress/courses/${courseId}/materials/${lectureId}/${materialIndex}`, { type }),
+  startQuiz: (courseId, assessmentId) => API.get(`/lms/progress/courses/${courseId}/quiz/${assessmentId}/start`),
+  startAssignment: (courseId, assessmentId) => API.get(`/lms/progress/courses/${courseId}/assignment/${assessmentId}/start`),
   submitQuiz: (courseId, assessmentId, answers) => API.post(`/lms/progress/courses/${courseId}/quiz`, { assessmentId, answers }),
   submitAssignment: (courseId, assessmentId, answers) => API.post(`/lms/progress/courses/${courseId}/assignment`, { assessmentId, answers }),
 };
 
 export const assignmentsApi = {
   employees: (eligibleOnly) => API.get("/lms/assignments/employees", { params: eligibleOnly ? { eligibleOnly: "true" } : {} }),
-  assign: (courseId, employeeIds) => API.post("/lms/assignments", { courseId, employeeIds }),
+  assign: (courseId, employeeIds, minPassingPercentage) => API.post("/lms/assignments", { courseId, employeeIds, minPassingPercentage }),
   info: (userId, courseId) => API.get("/lms/assignments/info", { params: { userId, courseId } }),
   forCourse: (courseId) => API.get(`/lms/assignments/courses/${courseId}`),
 };
@@ -77,6 +79,10 @@ export const reportsApi = {
 
 export const profileApi = {
   me: () => API.get("/lms/profile/me"),
+  update: (data) => API.put("/lms/profile/me", data),
+  uploadResume: (formData) => API.post("/lms/profile/me/resume", formData),
+  upsertSkill: (data) => API.put("/lms/profile/me/skills", data),
+  removeSkill: (skillId) => API.delete(`/lms/profile/me/skills/${skillId}`),
 };
 
 export const skillGroupsApi = {

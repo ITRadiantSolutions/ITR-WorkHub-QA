@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Plus, Download } from "lucide-react";
-import { employeesApi, leaveRequestsApi, salaryStructuresApi, assetsApi, documentsApi } from "../hrmsApi";
+import { employeesApi, leaveRequestsApi, salaryStructuresApi, assetsApi, documentsApi, attendanceApi } from "../hrmsApi";
 // Role & Access editing now goes through the super-admin-gated Manage /
 // Access Grants pages instead of this per-employee tab — see hrmsrolecheck's
 // hasManageAccess. Left commented (not deleted) in case it's reinstated.
@@ -79,6 +79,61 @@ function LeaveTab({ balance, history }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+const ATTENDANCE_STATUS_LABELS = {
+  present: "Present",
+  half_day: "Half day",
+  absent: "Absent",
+  on_leave: "On leave",
+  holiday: "Holiday",
+  weekend: "Weekend",
+};
+const ATTENDANCE_STATUS_TONE = {
+  present: "bg-emerald-50 text-emerald-700",
+  half_day: "bg-amber-50 text-amber-700",
+  absent: "bg-red-50 text-red-700",
+  on_leave: "bg-blue-50 text-blue-700",
+  holiday: "bg-purple-50 text-purple-700",
+  weekend: "bg-slate-100 text-slate-500",
+};
+const fmtTime = (d) => (d ? new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—");
+const fmtHours = (secs) => (secs > 0 ? `${(secs / 3600).toFixed(1)}h` : "—");
+
+function AttendanceTab({ records }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <p className="px-4 pt-4 text-xs font-semibold text-slate-500">This month</p>
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <tr>
+            <th className="text-left px-4 py-3">Date</th>
+            <th className="text-left px-4 py-3">First in</th>
+            <th className="text-left px-4 py-3">Last out</th>
+            <th className="text-left px-4 py-3">Worked</th>
+            <th className="text-left px-4 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {records.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400 italic">No attendance recorded this month yet.</td></tr>}
+          {records.map((r) => (
+            <tr key={r._id}>
+              <td className="px-4 py-3 text-slate-700 font-medium">{fmtDate(r.date)}</td>
+              <td className="px-4 py-3 text-slate-600">{fmtTime(r.firstIn)}</td>
+              <td className="px-4 py-3 text-slate-600">{fmtTime(r.lastOut)}</td>
+              <td className="px-4 py-3 text-slate-600">{fmtHours(r.workedSeconds)}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${ATTENDANCE_STATUS_TONE[r.status] || "bg-slate-100 text-slate-600"}`}>
+                  {ATTENDANCE_STATUS_LABELS[r.status] || r.status}
+                </span>
+                {r.isLate && <span className="ml-2 text-[11px] font-semibold text-amber-600">Late</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -228,6 +283,7 @@ export default function EmployeeProfile() {
 
   const [balance, setBalance] = useState([]);
   const [leaveHistory, setLeaveHistory] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [salaryStructure, setSalaryStructure] = useState(null);
   const [assetAssignments, setAssetAssignments] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -257,6 +313,10 @@ export default function EmployeeProfile() {
   const loadSummary = useCallback(() => {
     leaveRequestsApi.balanceFor(id).then((r) => setBalance(r.data || [])).catch(() => setBalance([]));
     leaveRequestsApi.all({ employee: id }).then((r) => setLeaveHistory(r.data || [])).catch(() => setLeaveHistory([]));
+    const monthNow = new Date();
+    const monthFrom = `${monthNow.getFullYear()}-${String(monthNow.getMonth() + 1).padStart(2, "0")}-01`;
+    const monthTo = `${monthNow.getFullYear()}-${String(monthNow.getMonth() + 1).padStart(2, "0")}-${String(new Date(monthNow.getFullYear(), monthNow.getMonth() + 1, 0).getDate()).padStart(2, "0")}`;
+    attendanceApi.list({ employeeId: id, from: monthFrom, to: monthTo }).then((r) => setAttendanceRecords(r.data || [])).catch(() => setAttendanceRecords([]));
     salaryStructuresApi.get(id).then((r) => setSalaryStructure(r.data)).catch(() => setSalaryStructure(null));
     assetsApi.assignments({ employee: id, status: "active" }).then((r) => setAssetAssignments(r.data || [])).catch(() => setAssetAssignments([]));
     documentsApi.forEmployee(id).then((r) => setDocuments(r.data || [])).catch(() => setDocuments([]));
@@ -300,6 +360,7 @@ export default function EmployeeProfile() {
 
   const TABS = [
     { key: "overview", label: "Overview" },
+    { key: "attendance", label: "Attendance" },
     { key: "leave", label: "Leave" },
     { key: "payroll", label: "Payroll" },
     { key: "assets", label: "Assets" },
@@ -357,6 +418,7 @@ export default function EmployeeProfile() {
         </div>
       )}
 
+      {tab === "attendance" && <AttendanceTab records={attendanceRecords} />}
       {tab === "leave" && <LeaveTab balance={balance} history={leaveHistory} />}
       {tab === "payroll" && <PayrollTab salaryStructure={salaryStructure} navigate={navigate} />}
       {tab === "assets" && <AssetsTab assignments={assetAssignments} />}

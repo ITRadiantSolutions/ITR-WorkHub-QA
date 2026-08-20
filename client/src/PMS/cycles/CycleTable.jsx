@@ -49,6 +49,26 @@ export default function CycleTable({
     return num < -maxReduce ? String(-maxReduce) : raw;
   };
 
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+
+  // The picker shows/edits an absolute date, but the save pipeline (and its
+  // "can't reduce past today" validation) works in day-deltas — this is the
+  // one conversion point between the two, so the same clampExtraDays guard
+  // still applies no matter which control set it.
+  const dateForExtra = (expiry, extra) => {
+    if (!expiry) return "";
+    const d = new Date(expiry);
+    d.setDate(d.getDate() + (Number(extra) || 0));
+    return d.toISOString().slice(0, 10);
+  };
+
+  const handleExpiryPick = (cycleId, roleType, newDateStr, expiry) => {
+    if (!newDateStr || !expiry) return;
+    const deltaDays = Math.round((new Date(newDateStr) - new Date(expiry)) / (24 * 60 * 60 * 1000));
+    const clamped = clampExtraDays(String(deltaDays), expiry);
+    setExtraDays((prev) => ({ ...prev, [`${cycleId}-${roleType}`]: clamped }));
+  };
+
   const [pending, setPending] = useState({});
   const [saving, setSaving] = useState({});
   const [extraDays, setExtraDays] = useState({});  // ← NEW
@@ -484,21 +504,17 @@ export default function CycleTable({
                   {isHRUser && (
                     <div className="mt-2 flex items-center gap-2">
                       {empIsLive ? (
-                        // ✅ Timer is live → show "Add extra days" input instead of duration select
+                        // ✅ Timer is live → show a date picker to move the deadline instead of a duration select
                         <>
-                          <span className="text-xs text-slate-500 shrink-0">Add days:</span>
+                          <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                           <input
-                            type="number"
-                            placeholder="0"
-                            value={extraDays[`${cycle.id}-employee`] ?? ""}
-                            onChange={(e) => {
-                              const stripped = e.target.value.replace(/(?!^-)[^\d]/g, "");
-                              const val = clampExtraDays(stripped, cycle.employeeResponseExpiry);
-                              setExtraDays(prev => ({ ...prev, [`${cycle.id}-employee`]: val }));
-                            }}
-                            className="w-16 text-xs border border-amber-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            type="date"
+                            min={todayISO()}
+                            value={dateForExtra(cycle.employeeResponseExpiry, extraDays[`${cycle.id}-employee`])}
+                            onChange={(e) => handleExpiryPick(cycle.id, "employee", e.target.value, cycle.employeeResponseExpiry)}
+                            className="text-xs border border-amber-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
                           />
-                          <span className="text-[10px] text-amber-600">added to current timer</span>
+                          <span className="text-[10px] text-amber-600">new deadline</span>
                         </>
                       ) : (
                         // ✅ Timer is OFF or expired → show normal duration select
@@ -582,21 +598,17 @@ export default function CycleTable({
                   {isHRUser && (
                     <div className="mt-2 flex items-center gap-2">
                       {mgrIsLive ? (
-                        // ✅ Timer is live → show "Add extra days" input instead of duration select
+                        // ✅ Timer is live → show a date picker to move the deadline instead of a duration select
                         <>
-                          <span className="text-xs text-slate-500 shrink-0">Add days:</span>
+                          <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                           <input
-                            type="number"
-                            placeholder="0"
-                            value={extraDays[`${cycle.id}-manager`] ?? ""}
-                            onChange={(e) => {
-                              const stripped = e.target.value.replace(/(?!^-)[^\d]/g, "");
-                              const val = clampExtraDays(stripped, cycle.managerResponseExpiry);
-                              setExtraDays(prev => ({ ...prev, [`${cycle.id}-manager`]: val }));
-                            }}
-                            className="w-16 text-xs border border-amber-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            type="date"
+                            min={todayISO()}
+                            value={dateForExtra(cycle.managerResponseExpiry, extraDays[`${cycle.id}-manager`])}
+                            onChange={(e) => handleExpiryPick(cycle.id, "manager", e.target.value, cycle.managerResponseExpiry)}
+                            className="text-xs border border-amber-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
                           />
-                          <span className="text-[10px] text-amber-600">added to current timer</span>
+                          <span className="text-[10px] text-amber-600">new deadline</span>
                         </>
                       ) : (
                         // ✅ Timer is OFF or expired → show normal duration select

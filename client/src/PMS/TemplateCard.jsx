@@ -102,6 +102,18 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
     }));
   };
 
+  // Actual is per-KPI, so it lives inside the response's own kpis array
+  // (seeded from the KRA's kpis when the submission is first created) —
+  // saved through the same responses PUT as everything else here.
+  const updateKpiActual = (kraId, kpiIndex, value) => {
+    setSubmission((prev) => ({
+      ...prev,
+      kraResponses: prev.kraResponses.map((r) =>
+        String(r.kraId) === String(kraId) ? { ...r, kpis: r.kpis.map((kpi, i) => (i === kpiIndex ? { ...kpi, actual: value } : kpi)) } : r,
+      ),
+    }));
+  };
+
   const saveResponses = async (silent = false) => {
     if (!submission) return;
     setSavingResponses(true);
@@ -366,6 +378,11 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                 )}
                 {(assignment.kras || []).map((kra) => {
                   const response = responseFor(kra._id);
+                  // response.kpis (submission-scoped) is what actually holds
+                  // `actual` and is what saveResponses writes back — fall
+                  // back to the assignment's own copy only if a submission
+                  // was never seeded with kpis (shouldn't normally happen).
+                  const kpiList = response?.kpis?.length ? response.kpis : kra.kpis || [];
                   return (
                     <div key={kra._id} className="rounded-xl border border-slate-200 overflow-hidden">
                       <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-50">
@@ -382,12 +399,25 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
                           </button>
                         )}
                       </div>
-                      {kra.kpis?.length > 0 && (
-                        <div className="px-4 py-2 flex flex-wrap gap-1.5 border-b border-slate-100">
-                          {kra.kpis.map((kpi, i) => (
-                            <span key={i} className="text-[11px] font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
-                              {kpi.title} ({kpi.weight || 0}%)
-                            </span>
+                      {kpiList.length > 0 && (
+                        <div className="px-4 py-2 space-y-1.5 border-b border-slate-100">
+                          {kpiList.map((kpi, i) => (
+                            <div key={i} className="flex items-center gap-2 text-[11px]">
+                              <span className="flex-1 min-w-0 font-medium text-slate-600 truncate">{kpi.title}</span>
+                              <span className="text-slate-400 shrink-0">Target: {kpi.target || kpi.target === 0 ? kpi.target : "—"}</span>
+                              {canEditResponses ? (
+                                <input
+                                  value={kpi.actual ?? ""}
+                                  onChange={(e) => updateKpiActual(kra._id, i, e.target.value)}
+                                  onBlur={() => saveResponses(true)}
+                                  placeholder="Actual"
+                                  className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-[11px] shrink-0"
+                                />
+                              ) : (
+                                <span className="text-slate-500 shrink-0">Actual: {kpi.actual || kpi.actual === 0 ? kpi.actual : "—"}</span>
+                              )}
+                              <span className="shrink-0 font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">{kpi.weight || 0}%</span>
+                            </div>
                           ))}
                         </div>
                       )}

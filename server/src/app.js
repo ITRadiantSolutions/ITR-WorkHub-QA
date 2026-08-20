@@ -54,6 +54,7 @@ import lmsSkillTestRoutes from "./routes/lms/skillTest.routes.js";
 
 // HRMS (Human Resource Management System)
 import hrmsEmployeeRoutes from "./routes/hrms/employee.routes.js";
+import hrmsAttendanceRoutes from "./routes/hrms/attendance.routes.js";
 import hrmsProjectRoleRoutes from "./routes/hrms/projectRole.routes.js";
 import hrmsJobRequestRoutes from "./routes/hrms/jobRequest.routes.js";
 import hrmsJobPostRoutes from "./routes/hrms/jobPost.routes.js";
@@ -125,6 +126,7 @@ app.use("/api/lms/profile", lmsProfileRoutes);
 app.use("/api/lms/skill-groups", lmsSkillGroupRoutes);
 app.use("/api/lms/skill-tests", lmsSkillTestRoutes);
 app.use("/api/hrms/employees", hrmsEmployeeRoutes);
+app.use("/api/hrms/attendance", hrmsAttendanceRoutes);
 app.use("/api/hrms/project-roles", hrmsProjectRoleRoutes);
 app.use("/api/hrms/job-requests", hrmsJobRequestRoutes);
 app.use("/api/hrms/job-posts", hrmsJobPostRoutes);

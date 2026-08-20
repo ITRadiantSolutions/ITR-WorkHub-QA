@@ -86,20 +86,38 @@ const ENTITIES = {
     fields: [
       { key: "name", label: "Name", required: true },
       { key: "code", label: "Code" },
-      { key: "defaultDaysPerYear", label: "Days per year (accrued monthly)", type: "number" },
+      {
+        key: "accrualType",
+        label: "Accrual",
+        type: "select",
+        options: [
+          { value: "monthly", label: "Monthly (pro-rata)" },
+          { value: "yearly", label: "Yearly (full quota on Jan 1)" },
+        ],
+      },
+      { key: "defaultDaysPerYear", label: "Days per year", type: "number" },
       { key: "carryForwardCap", label: "Carry-forward cap (0 = none)", type: "number" },
     ],
     columns: [
       { key: "name", label: "Name" },
       { key: "code", label: "Code" },
+      { key: "accrualLabel", label: "Accrual" },
       { key: "defaultDaysPerYear", label: "Days/year" },
       { key: "carryForwardCap", label: "Carry-forward" },
     ],
+    toRow: (t) => ({ ...t, accrualLabel: t.accrualType === "yearly" ? "Yearly" : "Monthly" }),
   },
 };
 
+// A select with no blank option (e.g. accrual type) should default to its
+// first real choice, not "" — otherwise the form silently submits an empty
+// string for a required enum field until the user touches the dropdown.
 const emptyForm = (fields) =>
-  Object.fromEntries(fields.map((f) => [f.key, f.type === "checkbox" ? false : f.type === "number" ? "" : ""]));
+  Object.fromEntries(fields.map((f) => {
+    if (f.type === "checkbox") return [f.key, false];
+    if (f.type === "select") return [f.key, f.options?.[0]?.value ?? ""];
+    return [f.key, ""];
+  }));
 
 function EntityForm({ config, ctx, initial, onClose, onSubmit, saving }) {
   const fields = typeof config.fields === "function" ? config.fields(ctx) : config.fields;

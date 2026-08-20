@@ -3,6 +3,7 @@ import SkillTest from "../models/SkillTest.js";
 import SkillTestProgress from "../models/SkillTestProgress.js";
 import SkillGroup from "../models/SkillGroup.js";
 import { awardBadgeOnce, awardSkillOnce } from "../utils/lmsAwards.js";
+import { sampleAttemptQuestions } from "../utils/lmsQuestionSampling.js";
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
@@ -142,30 +143,6 @@ const sanitizeQuestion = (q) => {
   const base = { _id: q._id, type: q.type, prompt: q.prompt };
   if (q.type === "mcq") base.options = q.options.map((o) => ({ text: o.text }));
   return base;
-};
-
-const shuffle = (arr) => {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-};
-
-// Random subset, re-rolled (up to 20 tries) if it exactly matches the
-// immediately-previous attempt's set — gives up gracefully if the pool is
-// too small to ever differ.
-const sampleAttemptQuestions = (pool, attemptSize, previousQuestionIds) => {
-  const ids = pool.map((q) => String(q._id));
-  const prevSet = new Set((previousQuestionIds || []).map(String));
-  let picked = ids;
-  for (let i = 0; i < 20; i++) {
-    picked = shuffle(ids).slice(0, attemptSize);
-    const sameAsPrev = prevSet.size === picked.length && picked.every((id) => prevSet.has(id));
-    if (!sameAsPrev) break;
-  }
-  return picked;
 };
 
 const isEligibleForTest = async (test, employeeId) => {

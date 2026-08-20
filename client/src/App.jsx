@@ -50,6 +50,7 @@ import CourseCatalog from "./LMS/pages/CourseCatalog";
 import CoursePlayer from "./LMS/pages/CoursePlayer";
 import AssessmentPlayer from "./LMS/pages/AssessmentPlayer";
 import MyLearning from "./LMS/pages/MyLearning";
+import MyProfile from "./LMS/pages/MyProfile";
 import ManageCourses from "./LMS/pages/ManageCourses";
 import CourseBuilder from "./LMS/pages/CourseBuilder";
 import AssignCourses from "./LMS/pages/AssignCourses";
@@ -69,6 +70,7 @@ import HrmsEmployeeProfile from "./HRMS/pages/EmployeeProfile";
 import HrmsMyTeam from "./HRMS/pages/MyTeam";
 import HrmsOrganization from "./HRMS/pages/Organization";
 import HrmsLeave from "./HRMS/pages/Leave";
+import HrmsAttendance from "./HRMS/pages/Attendance";
 import HrmsHrRequests from "./HRMS/pages/HrRequests";
 import HrmsPayroll from "./HRMS/pages/Payroll";
 import HrmsExpenses from "./HRMS/pages/Expenses";
@@ -319,6 +321,14 @@ function App() {
                 }
               />
               <Route
+                path="/lms/my-profile"
+                element={
+                  <ProtectedRoute>
+                    <MyProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/lms/manage"
                 element={
                   <ProtectedRoute>
@@ -414,6 +424,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <HrmsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/attendance"
+                element={
+                  <ProtectedRoute>
+                    <HrmsAttendance />
                   </ProtectedRoute>
                 }
               />

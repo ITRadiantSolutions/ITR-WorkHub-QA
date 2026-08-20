@@ -109,6 +109,7 @@ export default function CourseBuilder() {
         durationMinutes: Number(assessmentForm.durationMinutes),
         maxAttempts: Number(assessmentForm.maxAttempts),
         passingPercentage: Number(assessmentForm.passingPercentage),
+        sampleSize: assessmentForm.sampleSize ? Number(assessmentForm.sampleSize) : null,
         isPublished: assessmentForm.isPublished,
         badge: assessmentForm.badge || undefined,
         skill: assessmentForm.skill || undefined,
@@ -310,6 +311,7 @@ export default function CourseBuilder() {
                   durationMinutes: 15,
                   maxAttempts: 3,
                   passingPercentage: 80,
+                  sampleSize: "",
                   isPublished: true,
                   badge: "",
                   skill: "",
@@ -332,7 +334,8 @@ export default function CourseBuilder() {
                       {a.title} {a.isPublished ? <span className="text-emerald-600">· Published</span> : <span className="text-slate-400">· Draft</span>}
                     </p>
                     <p className="text-[10px] text-slate-400">
-                      {a.questions.length} questions · {a.durationMinutes}min · pass {a.passingPercentage}%
+                      {a.questions.length} questions{a.sampleSize ? ` · ${a.sampleSize} shown per attempt (random)` : ""} · {a.durationMinutes}min · pass{" "}
+                      {a.passingPercentage}%
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -345,6 +348,7 @@ export default function CourseBuilder() {
                           durationMinutes: a.durationMinutes,
                           maxAttempts: a.maxAttempts,
                           passingPercentage: a.passingPercentage,
+                          sampleSize: a.sampleSize || "",
                           isPublished: a.isPublished,
                           badge: a.badge?._id || "",
                           skill: a.skill?._id || "",
@@ -401,6 +405,21 @@ export default function CourseBuilder() {
                   placeholder="Pass %"
                   className="text-xs rounded-lg border border-slate-200 px-3 py-1.5"
                 />
+              </div>
+              <div>
+                <input
+                  type="number"
+                  min={1}
+                  max={assessmentForm.questions.length}
+                  value={assessmentForm.sampleSize}
+                  onChange={(e) => setAssessmentForm((f) => ({ ...f, sampleSize: e.target.value }))}
+                  placeholder={`Questions shown per attempt (default: all ${assessmentForm.questions.length})`}
+                  className="w-full text-xs rounded-lg border border-slate-200 px-3 py-1.5"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Leave blank to show every question. Set a number to randomly sample that many from the pool for each attempt — e.g. 100 questions with 10
+                  set here gives each employee a different random 10.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <select

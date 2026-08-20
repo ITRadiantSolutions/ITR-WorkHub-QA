@@ -16,6 +16,7 @@ import {
   UserCog,
   Megaphone,
   FileText,
+  Fingerprint,
   ChevronRight,
   Moon,
   Sun,
@@ -30,6 +31,7 @@ import { isHRMS_HR, isHRMS_Manager } from "../utils/hrmsrolecheck";
 const TABS = [
   { to: "/hrms", label: "Dashboard", icon: LayoutDashboard },
   { to: "/hrms/announcements", label: "Announcements", icon: Megaphone },
+  { to: "/hrms/attendance", label: "Attendance", icon: Fingerprint },
   { to: "/hrms/leave", label: "Leave", icon: CalendarDays },
   { to: "/hrms/payroll", label: "Payroll", icon: Wallet },
   { to: "/hrms/expenses", label: "Expenses", icon: Receipt },

@@ -86,7 +86,7 @@ export default function AssignTemplate() {
   };
 
   const addKpiRow = (kraId, k) => {
-    setKpiEdits((prev) => ({ ...prev, [kraId]: [...(prev[kraId] || getKpiEdit(kraId, k)), { title: "", description: "", weight: "" }] }));
+    setKpiEdits((prev) => ({ ...prev, [kraId]: [...(prev[kraId] || getKpiEdit(kraId, k)), { title: "", description: "", weight: "", target: "" }] }));
   };
 
   const removeKpiRow = (kraId, k, idx) => {
@@ -132,7 +132,9 @@ export default function AssignTemplate() {
         type: k.type,
         weight: Number(weights[k._id]) || 0,
         kpis: editedKpis
-          ? editedKpis.filter((kpi) => kpi.title.trim()).map((kpi) => ({ title: kpi.title.trim(), description: (kpi.description || "").trim(), weight: Number(kpi.weight) }))
+          ? editedKpis
+              .filter((kpi) => kpi.title.trim())
+              .map((kpi) => ({ title: kpi.title.trim(), description: (kpi.description || "").trim(), weight: Number(kpi.weight), target: (kpi.target || "").trim() }))
           : k.kpis,
       };
     });
@@ -333,6 +335,12 @@ export default function AssignTemplate() {
                               onChange={(e) => updateKpiField(k._id, k, i, "title", e.target.value)}
                               placeholder="KPI title"
                               className="flex-1 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
+                            />
+                            <input
+                              value={kpi.target || ""}
+                              onChange={(e) => updateKpiField(k._id, k, i, "target", e.target.value)}
+                              placeholder="Target (e.g. 10 or 'Ship v2')"
+                              className="w-32 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
                             />
                             <input
                               value={kpi.weight}

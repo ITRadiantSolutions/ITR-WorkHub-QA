@@ -3,7 +3,12 @@ import mongoose from "mongoose";
 const kpiSchema = new mongoose.Schema(
   // `name` is a fallback for migrated legacy data, which used `name` where we
   // use `title` — declared so Mongoose doesn't drop it on re-save.
-  { title: String, description: String, weight: Number, name: String },
+  // `target` is set here by HR/manager; the employee fills in the matching
+  // `actual` on their own KraAssignment.kras[].kpis[] copy during self-review
+  // (this library entry is just the authoring source, resolved/snapshotted
+  // into each template/assignment — see kraDefinitionController.resolveKraRefs).
+  // Mixed, not Number/String — a target isn't always numeric ("Ship v2 by Q3" is as valid as "10").
+  { title: String, description: String, weight: Number, target: mongoose.Schema.Types.Mixed, name: String },
   { _id: false },
 );
 

@@ -9,9 +9,7 @@ export const getEmployeeProfileCompletionPercent = (profile) => {
   const hasExperience = Array.isArray(profile.experiences) && profile.experiences.length > 0;
   const hasSkills = Array.isArray(profile.skills) && profile.skills.length > 0;
   const completedCriteria = [hasResume, hasDescription, hasExperience, hasSkills].filter(Boolean).length;
-  const percentage = Math.round((completedCriteria / 4) * 100);
-
-  return hasResume ? Math.max(50, percentage) : percentage;
+  return Math.round((completedCriteria / 4) * 100);
 };
 
 export const isEmployeeProfileComplete = (profile) => getEmployeeProfileCompletionPercent(profile) >= 50;

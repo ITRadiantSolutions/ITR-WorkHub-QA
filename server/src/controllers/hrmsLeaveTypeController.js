@@ -1,7 +1,9 @@
 import LeaveType from "../models/LeaveType.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 
-const FIELDS = ["name", "code", "defaultDaysPerYear", "carryForwardCap"];
+const FIELDS = ["name", "code", "defaultDaysPerYear", "accrualType", "carryForwardCap"];
+
+const validAccrualType = (value) => value === undefined || ["monthly", "yearly"].includes(value);
 
 export const listLeaveTypes = async (req, res) => {
   const filter = req.query.includeInactive === "true" ? {} : { isActive: true };
@@ -11,6 +13,9 @@ export const listLeaveTypes = async (req, res) => {
 
 export const createLeaveType = async (req, res) => {
   if (!req.body.name?.trim()) return res.status(400).json({ message: "name is required" });
+  if (!validAccrualType(req.body.accrualType)) {
+    return res.status(400).json({ message: "accrualType must be 'monthly' or 'yearly'" });
+  }
 
   const payload = {};
   for (const field of FIELDS) {
@@ -35,6 +40,9 @@ export const createLeaveType = async (req, res) => {
 export const updateLeaveType = async (req, res) => {
   const leaveType = await LeaveType.findById(req.params.id);
   if (!leaveType) return res.status(404).json({ message: "Leave type not found" });
+  if (!validAccrualType(req.body.accrualType)) {
+    return res.status(400).json({ message: "accrualType must be 'monthly' or 'yearly'" });
+  }
 
   const oldValue = {};
   const newValue = {};

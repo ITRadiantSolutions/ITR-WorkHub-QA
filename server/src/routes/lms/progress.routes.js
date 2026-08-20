@@ -4,6 +4,8 @@ import { assertCanManageUser } from "../../utils/lmsTeamScope.js";
 import {
   employeeGetCourseProgressSummary,
   employeeMarkMaterialComplete,
+  employeeStartQuiz,
+  employeeStartFinalAssignment,
   employeeSubmitQuiz,
   employeeSubmitFinalAssignment,
   adminGetUserCourseProgressSummary,
@@ -15,6 +17,8 @@ router.use(protect, requireModuleAccess("lms"));
 
 router.get("/courses/:courseId", employeeGetCourseProgressSummary);
 router.post("/courses/:courseId/materials/:lectureId/:materialIndex", employeeMarkMaterialComplete);
+router.get("/courses/:courseId/quiz/:assessmentId/start", employeeStartQuiz);
+router.get("/courses/:courseId/assignment/:assessmentId/start", employeeStartFinalAssignment);
 router.post("/courses/:courseId/quiz", employeeSubmitQuiz);
 router.post("/courses/:courseId/assignment", employeeSubmitFinalAssignment);
 

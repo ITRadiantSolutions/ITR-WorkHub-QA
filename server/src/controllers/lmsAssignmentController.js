@@ -63,8 +63,16 @@ export const adminListEmployees = async (req, res) => {
 
 export const adminAssignCourseToEmployees = async (req, res) => {
   if (!requireManager(req, res)) return;
-  const { courseId, employeeIds } = req.body;
+  const { courseId, employeeIds, minPassingPercentage } = req.body;
   if (!courseId) return res.status(400).json({ message: "courseId is required" });
+
+  let passingPercentageOverride;
+  if (minPassingPercentage !== undefined && minPassingPercentage !== null && minPassingPercentage !== "") {
+    passingPercentageOverride = Number(minPassingPercentage);
+    if (!Number.isFinite(passingPercentageOverride) || passingPercentageOverride < 0 || passingPercentageOverride > 100) {
+      return res.status(400).json({ message: "minPassingPercentage must be a number between 0 and 100" });
+    }
+  }
 
   const normalizedEmployeeIds = normalizeObjectIdArray(employeeIds);
   if (normalizedEmployeeIds.length === 0) return res.status(400).json({ message: "employeeIds must be a non-empty array" });
@@ -79,21 +87,41 @@ export const adminAssignCourseToEmployees = async (req, res) => {
   }
 
   const employees = await User.find({ _id: { $in: requestedManagedIds }, "roles.lms": "employee" }).select("_id");
-  const validEmployeeIds = employees.map((employee) => employee._id);
+  let validEmployeeIds = employees.map((employee) => employee._id);
   if (validEmployeeIds.length === 0) return res.status(400).json({ message: "No valid employees found" });
 
-  // The source app gated assignment on a resume/experience profile being
-  // >=50% complete (a career-development signal). ItrOne's LMS port has no
-  // profile editor yet (that's an HRMS-adjacent concern, out of scope for
-  // this pass) — assignmentEligibility.js is kept for later reuse but isn't
-  // enforced here, otherwise no employee could ever be assigned a course.
+  // Career-development gate: an employee's profile (resume + skills, at minimum)
+  // must be >=50% complete before a course can be assigned to them.
+  const [profiles, reports] = await Promise.all([
+    EmployeeProfile.find({ employee: { $in: validEmployeeIds } }).select("employee resume description experiences skills"),
+    LmsLearningReport.find({ employeeId: { $in: validEmployeeIds } }).select("employeeId generatedAt"),
+  ]);
+  const profileMap = new Map(profiles.map((profile) => [String(profile.employee), profile]));
+  const reportMap = new Map(reports.map((report) => [String(report.employeeId), report]));
+
+  const ineligible = [];
+  validEmployeeIds = validEmployeeIds.filter((id) => {
+    const eligibility = getEmployeeAssignmentEligibility({
+      profile: profileMap.get(String(id)),
+      report: reportMap.get(String(id)),
+    });
+    if (!eligibility.canAssign) {
+      ineligible.push({ employeeId: id, profileCompletionPercent: eligibility.profileCompletionPercent });
+      return false;
+    }
+    return true;
+  });
+  if (validEmployeeIds.length === 0) {
+    return res.status(400).json({ message: "Selected employees do not have a profile that is at least 50% complete", ineligible });
+  }
+
   const existingAssignments = await CourseAssignment.find({ course: courseId, assignedTo: { $in: validEmployeeIds } });
   const alreadyAssignedEmployeeIds = existingAssignments.flatMap((assignment) => assignment.assignedTo);
   const newEmployeeIds = validEmployeeIds.filter(
     (id) => !alreadyAssignedEmployeeIds.some((existingId) => String(existingId) === String(id)),
   );
   if (newEmployeeIds.length === 0) {
-    return res.status(400).json({ message: "All selected employees are already assigned to this course", alreadyAssigned: true });
+    return res.status(400).json({ message: "All selected employees are already assigned to this course", alreadyAssigned: true, ineligible });
   }
 
   const assignedBy = req.user._id;
@@ -101,6 +129,9 @@ export const adminAssignCourseToEmployees = async (req, res) => {
   const statusSet = {};
   for (const id of validEmployeeIds) statusSet[`statusByEmployee.${String(id)}`] = "assigned";
   for (const id of newEmployeeIds) statusSet[`assignedAtByEmployee.${String(id)}`] = assignedAt;
+  if (passingPercentageOverride !== undefined) {
+    for (const id of newEmployeeIds) statusSet[`passingPercentageByEmployee.${String(id)}`] = passingPercentageOverride;
+  }
 
   const assignment = await CourseAssignment.findOneAndUpdate(
     { course: courseId, assignedBy },
@@ -131,6 +162,7 @@ export const adminAssignCourseToEmployees = async (req, res) => {
     employeeIds: validEmployeeIds,
     newAssignments: newEmployeeIds,
     alreadyAssigned: alreadyAssignedEmployeeIds,
+    ineligible,
     assignment,
   });
 };

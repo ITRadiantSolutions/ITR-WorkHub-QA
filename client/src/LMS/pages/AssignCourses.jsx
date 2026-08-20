@@ -11,6 +11,7 @@ export default function AssignCourses() {
   const [assignedIds, setAssignedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [minPassingPercentage, setMinPassingPercentage] = useState(80);
 
   useEffect(() => {
     Promise.all([coursesApi.allAdmin(), assignmentsApi.employees()])
@@ -44,10 +45,13 @@ export default function AssignCourses() {
     if (selected.size === 0) return toast.error("Select at least one employee");
     setSaving(true);
     try {
-      await assignmentsApi.assign(courseId, [...selected]);
-      toast.success("Course assigned");
-      const { data } = await assignmentsApi.forCourse(courseId);
-      setAssignedIds(new Set(data.assignedTo.map(String)));
+      const { data } = await assignmentsApi.assign(courseId, [...selected], minPassingPercentage);
+      if (data.ineligible?.length) {
+        toast.warning(`${data.ineligible.length} employee(s) skipped — their profile is below 50% complete`);
+      }
+      if (data.newAssignments?.length) toast.success("Course assigned");
+      const { data: forCourse } = await assignmentsApi.forCourse(courseId);
+      setAssignedIds(new Set(forCourse.assignedTo.map(String)));
       setSelected(new Set());
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to assign course");
@@ -65,26 +69,50 @@ export default function AssignCourses() {
         <p className="text-xs text-slate-500 mt-0.5">Assign a course to employees in your team.</p>
       </div>
 
-      <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className="text-xs rounded-lg border border-slate-200 px-3 py-2 w-full sm:w-80">
-        {courses.map((c) => (
-          <option key={c._id} value={c._id}>
-            {c.title}
-          </option>
-        ))}
-      </select>
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Course</label>
+          <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className="text-xs rounded-lg border border-slate-200 px-3 py-2 w-full sm:w-80">
+            {courses.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide block mb-1">Minimum passing %</label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={minPassingPercentage}
+            onChange={(e) => setMinPassingPercentage(e.target.value)}
+            className="text-xs rounded-lg border border-slate-200 px-3 py-2 w-24"
+          />
+        </div>
+      </div>
 
       <div className="rounded-2xl border border-slate-100 bg-white shadow-sm divide-y divide-slate-50">
         {employees.map((employee) => {
           const isAssigned = assignedIds.has(String(employee._id));
+          const eligibility = employee.assignmentEligibility;
+          const isEligible = eligibility ? eligibility.canAssign : true;
+          const disabled = isAssigned || !isEligible;
           return (
-            <label key={employee._id} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer">
-              <input type="checkbox" disabled={isAssigned} checked={isAssigned || selected.has(employee._id)} onChange={() => toggle(employee._id)} />
+            <label key={employee._id} className={`flex items-center gap-3 px-4 py-2.5 ${isEligible ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
+              <input type="checkbox" disabled={disabled} checked={isAssigned || selected.has(employee._id)} onChange={() => toggle(employee._id)} />
               <div className="flex-1">
                 <p className="text-xs font-bold text-slate-800">{employee.name}</p>
                 <p className="text-[10px] text-slate-400">{employee.email}</p>
               </div>
               {isAssigned && (
                 <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Assigned</span>
+              )}
+              {!isAssigned && !isEligible && (
+                <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+                  Profile {eligibility.profileCompletionPercent}% complete
+                </span>
               )}
             </label>
           );

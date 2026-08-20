@@ -56,7 +56,12 @@ export const updateLibraryKra = async (req, res) => {
   const entry = doc.kras.id(req.params.kraId);
   if (!entry) return res.status(404).json({ message: "KRA not found" });
 
-  entry.kpis = namedKpis.map((k) => ({ title: k.title.trim(), description: (k.description || "").trim(), weight: Number(k.weight) }));
+  entry.kpis = namedKpis.map((k) => ({
+    title: k.title.trim(),
+    description: (k.description || "").trim(),
+    weight: Number(k.weight),
+    target: k.target !== undefined && k.target !== "" ? k.target : null,
+  }));
   await doc.save();
   res.json(doc);
 };

@@ -29,6 +29,7 @@ import {
   getMyLeaveBalance,
   getLeaveBalanceForEmployee,
   getLeaveCalendar,
+  getLeaveLedger,
   reviewLeaveRequest,
   cancelLeaveRequest,
 } from "./hrmsLeaveRequestController.js";
@@ -254,6 +255,18 @@ describe("getMyLeaveBalance", () => {
       expect.objectContaining({ accrued: 8, carriedForward: 0, allocated: 8, used: 2.5, remaining: 5.5 }),
     ]);
   });
+
+  it("grants the full annual quota immediately for a 'yearly' accrual type", async () => {
+    const employee = employeeUser();
+    const typeId = oid();
+    LeaveType.find.mockResolvedValue([{ _id: typeId, name: "Bereavement", accrualType: "yearly", defaultDaysPerYear: 5, carryForwardCap: 0 }]);
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([]));
+
+    const res = mockRes();
+    await getMyLeaveBalance({ user: employee }, res);
+
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ accrued: 5, allocated: 5, remaining: 5 })]);
+  });
 });
 
 describe("getLeaveBalanceForEmployee", () => {
@@ -277,6 +290,90 @@ describe("getLeaveBalanceForEmployee", () => {
     await getLeaveBalanceForEmployee({ params: { employeeId: employeeId.toString() }, user: hrUser() }, res);
 
     expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ accrued: 8, allocated: 8, remaining: 8 })]);
+  });
+});
+
+describe("getLeaveLedger", () => {
+  it("403s a non-HR caller requesting someone else's ledger", async () => {
+    const req = { params: { leaveTypeId: oid().toString() }, query: { employeeId: oid().toString() }, user: employeeUser() };
+    const res = mockRes();
+
+    await getLeaveLedger(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("404s an unknown leave type", async () => {
+    LeaveType.findById.mockResolvedValue(null);
+    const req = { params: { leaveTypeId: oid().toString() }, query: {}, user: employeeUser() };
+    const res = mockRes();
+
+    await getLeaveLedger(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("produces one monthly accrual entry per elapsed month, summing to the same total as the balance card", async () => {
+    const typeId = oid();
+    LeaveType.findById.mockResolvedValue({ _id: typeId, name: "Casual", accrualType: "monthly", defaultDaysPerYear: 12, carryForwardCap: 0 });
+    LeaveRequest.find.mockReturnValue(makeQuery([]));
+
+    const req = { params: { leaveTypeId: typeId.toString() }, query: { year: "2026" }, user: employeeUser() };
+    const res = mockRes();
+
+    await getLeaveLedger(req, res);
+
+    const [{ entries }] = res.json.mock.calls[0];
+    const accrualEntries = entries.filter((e) => e.change > 0);
+    expect(accrualEntries).toHaveLength(8); // Jan through Aug
+    expect(accrualEntries.every((e) => e.change === 1)).toBe(true);
+    expect(entries[entries.length - 1].balance).toBe(8);
+  });
+
+  it("produces a single lump-sum entry for a 'yearly' accrual type", async () => {
+    const typeId = oid();
+    LeaveType.findById.mockResolvedValue({ _id: typeId, name: "Bereavement", accrualType: "yearly", defaultDaysPerYear: 5, carryForwardCap: 0 });
+    LeaveRequest.find.mockReturnValue(makeQuery([]));
+
+    const req = { params: { leaveTypeId: typeId.toString() }, query: { year: "2026" }, user: employeeUser() };
+    const res = mockRes();
+
+    await getLeaveLedger(req, res);
+
+    const [{ entries }] = res.json.mock.calls[0];
+    expect(entries).toEqual([expect.objectContaining({ change: 5, balance: 5, reason: expect.stringContaining("start of year") })]);
+  });
+
+  it("includes a debit entry per leave request, noting the unpaid portion", async () => {
+    const typeId = oid();
+    LeaveType.findById.mockResolvedValue({ _id: typeId, name: "Casual", accrualType: "monthly", defaultDaysPerYear: 12, carryForwardCap: 0 });
+    const request = { _id: oid(), startDate: new Date("2026-03-10"), paidDays: 2, lopDays: 1, status: "approved" };
+    LeaveRequest.find.mockReturnValue(makeQuery([request]));
+
+    const req = { params: { leaveTypeId: typeId.toString() }, query: { year: "2026" }, user: employeeUser() };
+    const res = mockRes();
+
+    await getLeaveLedger(req, res);
+
+    const [{ entries }] = res.json.mock.calls[0];
+    const debit = entries.find((e) => e.change < 0);
+    expect(debit).toMatchObject({ change: -2, reason: expect.stringContaining("1 day(s) unpaid") });
+  });
+
+  it("HR can view another employee's ledger using that employee's joining date", async () => {
+    const employeeId = oid();
+    const typeId = oid();
+    User.findById.mockReturnValue({ select: vi.fn().mockResolvedValue({ _id: employeeId, joiningDate: null }) });
+    LeaveType.findById.mockResolvedValue({ _id: typeId, name: "Casual", accrualType: "yearly", defaultDaysPerYear: 12, carryForwardCap: 0 });
+    LeaveRequest.find.mockReturnValue(makeQuery([]));
+
+    const req = { params: { leaveTypeId: typeId.toString() }, query: { employeeId: employeeId.toString() }, user: hrUser() };
+    const res = mockRes();
+
+    await getLeaveLedger(req, res);
+
+    expect(User.findById).toHaveBeenCalledWith(employeeId.toString());
+    expect(res.status).not.toHaveBeenCalledWith(403);
   });
 });
 

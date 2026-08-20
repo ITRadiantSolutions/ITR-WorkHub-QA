@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { UserPlus, Search, RefreshCw, Eye } from "lucide-react";
+import { UserPlus, Search, RefreshCw, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { employeesApi } from "../hrmsApi";
 
 // const ROLE_OPTIONS = ["employee", "manager", "hr"]; // only used by the disabled Role select below
+
+const PAGE_SIZE = 25;
 
 export default function Employees() {
   // Role and module access are managed exclusively via the super-admin-gated
@@ -12,6 +14,8 @@ export default function Employees() {
   // links through to each employee's profile.
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState("");
@@ -19,16 +23,27 @@ export default function Employees() {
   const load = useCallback(() => {
     setLoading(true);
     employeesApi
-      .list(search.trim() ? { search: search.trim() } : {})
-      .then((res) => setEmployees(res.data || []))
+      .list({ ...(search.trim() ? { search: search.trim() } : {}), page, limit: PAGE_SIZE })
+      .then((res) => {
+        setEmployees(res.data || []);
+        setTotal(Number(res.headers?.["x-total-count"]) || (res.data || []).length);
+      })
       .catch(() => toast.error("Failed to load employees"))
       .finally(() => setLoading(false));
-  }, [search]);
+  }, [search, page]);
+
+  // A new search term always restarts from page 1 — the old page number
+  // could point past the end of a smaller filtered result set.
+  useEffect(() => { setPage(1); }, [search]);
 
   useEffect(() => {
     const t = setTimeout(load, 200);
     return () => clearTimeout(t);
   }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, total);
 
   const sync = async () => {
     setSyncing(true);
@@ -143,6 +158,29 @@ export default function Employees() {
           </tbody>
         </table>
       </div>
+
+      {!loading && total > 0 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-slate-500">Showing {rangeStart}–{rangeEnd} of {total} employees</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </button>
+            <span className="text-sm text-slate-500 px-1">Page {page} of {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

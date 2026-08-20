@@ -2,7 +2,7 @@
     useState, useEffect, useMemo, useRef, useCallback, memo,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Check, X, Flag, RefreshCw, Download } from "lucide-react";
+import { Users, Check, X, Flag, RefreshCw, Download, Pencil, Trash2, Plus } from "lucide-react";
 import * as XLSX from "xlsx";
 import getAuthAxios from "../utils/authAxios";
 import { useAuth } from "../context/AuthContext";
@@ -452,12 +452,18 @@ export default function UserKraSearch() {
     const [myReportIds, setMyReportIds] = useState(null);
     const [userPips, setUserPips] = useState({});
 
-    // ── KRA modal state (view-only — editing weights/assignment now happens
-    // via Access Grants > Manage Roles and the /pms/templates assign flow) ──
+    // ── KRA modal state — role/access editing now happens via Access Grants >
+    // Manage Roles and the /pms/templates assign flow, but editing an
+    // already-assigned KRA's own content (name/weight/KPI targets) happens
+    // right here so HR/managers don't have to re-assign from scratch just to
+    // fix one KPI's target.
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [userKraDetails, setUserKraDetails] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
+    const [editingKraId, setEditingKraId] = useState(null);
+    const [kraEditForm, setKraEditForm] = useState(null); // { name, weight, kpis: [{title, target, weight}] }
+    const [savingKraEdit, setSavingKraEdit] = useState(false);
 
     // ── PIP modal state ───────────────────────────────────────────────────────
     const [pipModalOpen, setPipModalOpen] = useState(false);
@@ -746,7 +752,67 @@ export default function UserKraSearch() {
 
     const closeModal = useCallback(() => {
         setModalOpen(false); setSelectedUser(null); setUserKraDetails(null);
+        setEditingKraId(null); setKraEditForm(null);
     }, []);
+
+    const startEditKra = useCallback((kra) => {
+        setEditingKraId(kra.kraId);
+        setKraEditForm({
+            name: kra.name || "",
+            weight: kra.weight != null ? String(kra.weight) : "",
+            kpis: (kra.kpis || []).map((k) => ({
+                title: k.title || k.name || "",
+                target: k.target != null ? String(k.target) : "",
+                weight: k.weight != null ? String(k.weight) : "",
+            })),
+        });
+    }, []);
+
+    const cancelEditKra = useCallback(() => {
+        setEditingKraId(null); setKraEditForm(null);
+    }, []);
+
+    const updateKraEditKpi = useCallback((idx, field, value) => {
+        setKraEditForm((f) => ({ ...f, kpis: f.kpis.map((k, i) => (i === idx ? { ...k, [field]: value } : k)) }));
+    }, []);
+
+    const addKraEditKpiRow = useCallback(() => {
+        setKraEditForm((f) => ({ ...f, kpis: [...f.kpis, { title: "", target: "", weight: "" }] }));
+    }, []);
+
+    const removeKraEditKpiRow = useCallback((idx) => {
+        setKraEditForm((f) => ({ ...f, kpis: f.kpis.filter((_, i) => i !== idx) }));
+    }, []);
+
+    const saveKraEdit = useCallback(async (kra) => {
+        if (!kraEditForm) return;
+        const namedKpis = kraEditForm.kpis.filter((k) => k.title.trim());
+        if (namedKpis.some((k) => k.weight !== "" && (Number(k.weight) < 0 || Number(k.weight) > 100))) {
+            return showToast("KPI weight must be between 0 and 100", "error");
+        }
+        setSavingKraEdit(true);
+        try {
+            const api = await getAuthAxios();
+            await api.put(`/pms/kra/assignments/${kra.assignmentId}/kras/${kra.kraId}`, {
+                name: kraEditForm.name.trim(),
+                weight: Number(kraEditForm.weight) || 0,
+                kpis: namedKpis.map((k) => ({
+                    title: k.title.trim(),
+                    target: k.target.trim(),
+                    weight: Number(k.weight) || 0,
+                })),
+            });
+            showToast("KRA updated");
+            setEditingKraId(null); setKraEditForm(null);
+            if (selectedUser) await fetchUserDetails(selectedUser.id, selectedUser.name);
+            await fetchAllUsers();
+        } catch (error) {
+            console.error("Failed to update KRA", error);
+            showToast(error.response?.data?.message || "Failed to update KRA", "error");
+        } finally {
+            setSavingKraEdit(false);
+        }
+    }, [kraEditForm, selectedUser, fetchUserDetails, fetchAllUsers, showToast]);
 
     // ── PIP ───────────────────────────────────────────────────────────────────
     const openPipModal = useCallback(async (userData) => {
@@ -1246,37 +1312,115 @@ export default function UserKraSearch() {
                                         {userKraDetails.kras.map((kra, index) => {
                                             const isOrg = getKraType(kra) === "organizational";
                                             const { date } = kra.assignedAt ? formatDateTime(kra.assignedAt) : { date: "N/A" };
+                                            const isEditing = editingKraId === kra.kraId;
                                             return (
                                                 <div key={index} className="rounded-xl border border-slate-200 overflow-hidden">
-                                                    <div className="flex items-center justify-between gap-3 px-4 py-3">
-                                                        <div className="min-w-0">
-                                                            <div className="flex items-center gap-2 flex-wrap">
-                                                                <h3 className="font-semibold text-slate-800 text-sm truncate">{kra.name}</h3>
-                                                                <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium ${isOrg ? "bg-violet-50 text-violet-600" : "bg-emerald-50 text-emerald-600"}`}>
-                                                                    {isOrg ? "Organizational" : "Job Specific"}
-                                                                </span>
+                                                    {isEditing ? (
+                                                        <div className="p-4 space-y-3 bg-violet-50/40">
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    value={kraEditForm.name}
+                                                                    onChange={(e) => setKraEditForm((f) => ({ ...f, name: e.target.value }))}
+                                                                    placeholder="KRA name"
+                                                                    className="flex-1 rounded-lg border border-slate-200 text-sm px-3 py-1.5 bg-white"
+                                                                />
+                                                                <input
+                                                                    type="number" min={0} max={100}
+                                                                    value={kraEditForm.weight}
+                                                                    onChange={(e) => setKraEditForm((f) => ({ ...f, weight: e.target.value }))}
+                                                                    placeholder="Weight %"
+                                                                    className="w-24 rounded-lg border border-slate-200 text-sm px-2.5 py-1.5 bg-white text-right"
+                                                                />
                                                             </div>
-                                                            <p className="text-xs text-slate-400 mt-0.5 truncate">Assigned by {kra.assignedBy || "N/A"} · {date}</p>
-                                                        </div>
-                                                        <span className="shrink-0 text-sm font-bold text-slate-700">{kra.weight || 0}%</span>
-                                                    </div>
-                                                    <div className="h-1 bg-slate-100">
-                                                        <div className={`h-full ${isOrg ? "bg-violet-400" : "bg-emerald-400"}`} style={{ width: `${Math.min(100, kra.weight || 0)}%` }} />
-                                                    </div>
-                                                    {kra.kpis?.length > 0 && (
-                                                        <div className="px-4 py-3 space-y-2 border-t border-slate-100">
-                                                            {kra.kpis.map((kpi, kpiIndex) => (
-                                                                <div key={kpiIndex} className="flex items-center justify-between gap-3 text-sm">
-                                                                    <span className="text-slate-600 truncate">{kpi.title || kpi.name || "Untitled KPI"}</span>
-                                                                    <div className="flex items-center gap-2 shrink-0">
-                                                                        {(kpi.target || kpi.actual) && (
-                                                                            <span className="text-xs text-slate-400">{kpi.target ?? "—"} → {kpi.actual ?? "—"}</span>
-                                                                        )}
-                                                                        <span className="text-xs font-semibold text-slate-500">{kpi.weight || 0}%</span>
+                                                            <div className="space-y-1.5">
+                                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">KPIs</p>
+                                                                {kraEditForm.kpis.map((kpi, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <input
+                                                                            value={kpi.title}
+                                                                            onChange={(e) => updateKraEditKpi(i, "title", e.target.value)}
+                                                                            placeholder="KPI title"
+                                                                            className="flex-1 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
+                                                                        />
+                                                                        <input
+                                                                            value={kpi.target}
+                                                                            onChange={(e) => updateKraEditKpi(i, "target", e.target.value)}
+                                                                            placeholder="Target"
+                                                                            className="w-28 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
+                                                                        />
+                                                                        <input
+                                                                            type="number" min={0} max={100}
+                                                                            value={kpi.weight}
+                                                                            onChange={(e) => updateKraEditKpi(i, "weight", e.target.value)}
+                                                                            placeholder="Weight %"
+                                                                            className="w-20 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
+                                                                        />
+                                                                        <button onClick={() => removeKraEditKpiRow(i)} className="text-slate-400 hover:text-red-500 shrink-0">
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
                                                                     </div>
-                                                                </div>
-                                                            ))}
+                                                                ))}
+                                                                <button onClick={addKraEditKpiRow} className="flex items-center gap-1 text-[11px] font-semibold text-violet-600">
+                                                                    <Plus className="w-3.5 h-3.5" /> Add KPI row
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 pt-1">
+                                                                <button
+                                                                    onClick={() => saveKraEdit(kra)}
+                                                                    disabled={savingKraEdit}
+                                                                    className="px-4 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 disabled:opacity-50"
+                                                                >
+                                                                    {savingKraEdit ? "Saving…" : "Save"}
+                                                                </button>
+                                                                <button onClick={cancelEditKra} className="px-4 py-1.5 rounded-lg text-slate-500 text-xs font-semibold hover:bg-slate-100">
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
                                                         </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="flex items-center justify-between gap-3 px-4 py-3">
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <h3 className="font-semibold text-slate-800 text-sm truncate">{kra.name}</h3>
+                                                                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium ${isOrg ? "bg-violet-50 text-violet-600" : "bg-emerald-50 text-emerald-600"}`}>
+                                                                            {isOrg ? "Organizational" : "Job Specific"}
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-xs text-slate-400 mt-0.5 truncate">Assigned by {kra.assignedBy || "N/A"} · {date}</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                    <span className="text-sm font-bold text-slate-700">{kra.weight || 0}%</span>
+                                                                    {kra.assignmentId && (
+                                                                        <button
+                                                                            onClick={() => startEditKra(kra)}
+                                                                            title="Edit this KRA"
+                                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50"
+                                                                        >
+                                                                            <Pencil className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="h-1 bg-slate-100">
+                                                                <div className={`h-full ${isOrg ? "bg-violet-400" : "bg-emerald-400"}`} style={{ width: `${Math.min(100, kra.weight || 0)}%` }} />
+                                                            </div>
+                                                            {kra.kpis?.length > 0 && (
+                                                                <div className="px-4 py-3 space-y-2 border-t border-slate-100">
+                                                                    {kra.kpis.map((kpi, kpiIndex) => (
+                                                                        <div key={kpiIndex} className="flex items-center justify-between gap-3 text-sm">
+                                                                            <span className="text-slate-600 truncate">{kpi.title || kpi.name || "Untitled KPI"}</span>
+                                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                                {(kpi.target || kpi.actual) && (
+                                                                                    <span className="text-xs text-slate-400">{kpi.target ?? "—"} → {kpi.actual ?? "—"}</span>
+                                                                                )}
+                                                                                <span className="text-xs font-semibold text-slate-500">{kpi.weight || 0}%</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </div>
                                             );

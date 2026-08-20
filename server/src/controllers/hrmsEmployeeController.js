@@ -7,8 +7,13 @@ import { writeAuditLog } from "../utils/activityLog.js";
 // userController.js), so this controller doesn't duplicate that logic.
 const HR_EDITABLE_FIELDS = ["department", "designation", "joiningDate", "employmentStatus"];
 
+// `limit` is opt-in: existing callers that just want the full roster for a
+// <select> (Payroll, Assets, Lifecycle, Documents pickers) keep getting a
+// plain array with no params, unchanged. Only the Employees list page passes
+// page/limit, in which case the response is sliced and the total count comes
+// back via X-Total-Count (keeps the body shape identical either way).
 export const listEmployees = async (req, res) => {
-  const { search, department, status } = req.query;
+  const { search, department, status, page, limit } = req.query;
   const filter = { "archived.account": { $ne: true } };
   if (search?.trim()) {
     filter.$or = [
@@ -19,10 +24,17 @@ export const listEmployees = async (req, res) => {
   if (department?.trim()) filter.department = department.trim();
   if (status?.trim()) filter.employmentStatus = status.trim();
 
-  const employees = await User.find(filter)
-    .select("-password")
-    .populate("managerId", "name email")
-    .sort({ name: 1 });
+  let query = User.find(filter).select("-password").populate("managerId", "name email").sort({ name: 1 });
+
+  const pageSize = limit ? Math.min(200, Math.max(1, parseInt(limit, 10) || 0)) : null;
+  if (pageSize) {
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const total = await User.countDocuments(filter);
+    query = query.skip((pageNum - 1) * pageSize).limit(pageSize);
+    res.setHeader("X-Total-Count", total);
+  }
+
+  const employees = await query;
   res.json(employees);
 };
 

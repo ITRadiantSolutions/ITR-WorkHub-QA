@@ -9,6 +9,7 @@ import {
   getMyLeaveBalance,
   getLeaveBalanceForEmployee,
   getLeaveCalendar,
+  getLeaveLedger,
   reviewLeaveRequest,
   cancelLeaveRequest,
 } from "../../controllers/hrmsLeaveRequestController.js";
@@ -21,6 +22,7 @@ router.post("/", createLeaveRequest);
 router.get("/mine", listMyLeaveRequests);
 router.get("/my-balance", getMyLeaveBalance);
 router.get("/balance/:employeeId", allowRoles("hrms", "hr"), getLeaveBalanceForEmployee);
+router.get("/ledger/:leaveTypeId", getLeaveLedger);
 router.get("/calendar", getLeaveCalendar);
 router.get("/team", allowRoles("hrms", "manager"), listTeamLeaveRequests);
 router.get("/", allowRoles("hrms", "hr"), listLeaveRequests);

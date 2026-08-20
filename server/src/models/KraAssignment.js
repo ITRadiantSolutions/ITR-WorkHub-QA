@@ -5,13 +5,16 @@ const kpiSchema = new mongoose.Schema(
     title: String,
     description: String,
     weight: Number,
-    actual: mongoose.Schema.Types.Mixed,
-    // `name`/`target`/`localId` come from migrated legacy data (the old
-    // system used `name` where we use `title`) — declared here so Mongoose
-    // doesn't silently drop them the first time a migrated document is
-    // re-saved through this schema.
-    name: String,
+    // Target is set by HR/manager when authoring the KPI; actual is filled
+    // in by the employee during self-review. Both are Mixed — a target/
+    // actual isn't always a number ("Ship v2 by Q3" is as valid as "10").
     target: mongoose.Schema.Types.Mixed,
+    actual: mongoose.Schema.Types.Mixed,
+    // `name`/`localId` come from migrated legacy data (the old system used
+    // `name` where we use `title`) — declared here so Mongoose doesn't
+    // silently drop them the first time a migrated document is re-saved
+    // through this schema.
+    name: String,
     localId: String,
   },
   { _id: false },

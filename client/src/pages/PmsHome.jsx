@@ -89,6 +89,10 @@ export default function PmsHome() {
   const cycleForSubmission = (s) => cycles.find((c) => String(c._id) === String(s.cycleId));
 
   const visibleSubmissions = submissions
+    // "My Reviews" is meant to surface things worth reviewing/tracking, not
+    // an employee who hasn't even started their self-review yet — those
+    // just cluttered the grid with nothing actionable in them.
+    .filter((s) => s.status !== "draft")
     .filter((s) => !cycleFilter || String(s.cycleId) === cycleFilter)
     .slice()
     .sort((a, b) => {

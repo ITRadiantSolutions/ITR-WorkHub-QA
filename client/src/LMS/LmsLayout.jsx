@@ -12,6 +12,7 @@ const EMPLOYEE_TABS = [
   { to: "/lms/courses", label: "Courses", icon: "Book" },
   { to: "/lms/my-learning", label: "My Learning", icon: "Award" },
   { to: "/lms/skill-tests", label: "Tests", icon: "Target" },
+  { to: "/lms/my-profile", label: "My Profile", icon: "User" },
 ];
 const MANAGER_TABS = [
   ...EMPLOYEE_TABS,

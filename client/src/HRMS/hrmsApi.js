@@ -23,6 +23,15 @@ export const employeesApi = {
   accessAuditLogs: (params) => API.get("/users/access-audit-logs", { params }),
 };
 
+export const attendanceApi = {
+  mine: (params) => API.get("/hrms/attendance/mine", { params }),
+  summary: (params) => API.get("/hrms/attendance/summary", { params }),
+  list: (params) => API.get("/hrms/attendance", { params }),
+  punchesFor: (employeeId, params) => API.get(`/hrms/attendance/${employeeId}/punches`, { params }),
+  manualPunch: (data) => API.post("/hrms/attendance/manual", data),
+  regularize: (id, data) => API.patch(`/hrms/attendance/${id}/regularize`, data),
+};
+
 export const departmentsApi = {
   list: (params) => API.get("/hrms/departments", { params }),
   create: (data) => API.post("/hrms/departments", data),
@@ -66,6 +75,7 @@ export const leaveRequestsApi = {
   balance: () => API.get("/hrms/leave-requests/my-balance"),
   balanceFor: (employeeId) => API.get(`/hrms/leave-requests/balance/${employeeId}`),
   calendar: (month, year) => API.get("/hrms/leave-requests/calendar", { params: { month, year } }),
+  ledger: (leaveTypeId, params) => API.get(`/hrms/leave-requests/ledger/${leaveTypeId}`, { params }),
   review: (id, action, comment) => API.patch(`/hrms/leave-requests/${id}/review`, { action, comment }),
   cancel: (id) => API.patch(`/hrms/leave-requests/${id}/cancel`),
 };

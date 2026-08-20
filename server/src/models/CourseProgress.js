@@ -18,6 +18,9 @@ const attemptHistorySchema = new mongoose.Schema(
     attemptNo: { type: Number, required: true },
     assessmentId: { type: mongoose.Schema.Types.ObjectId, ref: "CourseAssessment", default: null },
     submittedAt: { type: Date, default: Date.now },
+    // The exact sampled subset actually served for this attempt, when the
+    // assessment has sampleSize set. Empty for a non-sampled assessment.
+    questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
     score: { type: Number, default: 0 },
     passed: { type: Boolean, default: false },
     correctAnswers: { type: Number, default: 0 },
@@ -83,6 +86,27 @@ const courseProgressSchema = new mongoose.Schema(
 
     quizAttemptsHistory: { type: [attemptHistorySchema], default: [] },
     finalAssignmentAttemptsHistory: { type: [attemptHistorySchema], default: [] },
+
+    // The sampled subset in flight for a CourseAssessment with sampleSize set
+    // — stored so a page refresh mid-attempt returns the SAME questions
+    // instead of silently resampling. Mirrors SkillTestProgress.currentAttempt.
+    quizCurrentAttempt: {
+      attemptNo: { type: Number, default: 0 },
+      questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+      startedAt: { type: Date, default: null },
+    },
+    finalAssignmentCurrentAttempt: {
+      attemptNo: { type: Number, default: 0 },
+      questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+      startedAt: { type: Date, default: null },
+    },
+
+    // Set to (failedAt + 14 days) whenever a failed attempt still has reattempts
+    // left; cleared once the employee passes.
+    quizRetakeDueBy: { type: Date, default: null },
+    finalAssignmentRetakeDueBy: { type: Date, default: null },
+    quizRetakeReminderSentAt: { type: Date, default: null },
+    finalAssignmentRetakeReminderSentAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

@@ -8,6 +8,7 @@ import { startPmsCronJobs } from "./src/jobs/pmsCycleJobs.js";
 import { startNotificationCleanupJob } from "./src/jobs/notificationCleanup.js";
 import { startAzureUserSyncJob } from "./src/jobs/azureUserSync.js";
 import { startVmsCronJobs } from "./src/jobs/vmsAutoCheckout.js";
+import { startLmsRetakeReminderJob } from "./src/jobs/lmsRetakeReminders.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
@@ -39,6 +40,7 @@ connectDB()
     startNotificationCleanupJob();
     startAzureUserSyncJob();
     startVmsCronJobs();
+    startLmsRetakeReminderJob();
   })
   .catch((error) => {
     console.error("Failed to connect to MongoDB:", error.message);

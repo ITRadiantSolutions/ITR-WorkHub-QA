@@ -228,7 +228,7 @@ export default function TemplateBuilder() {
   };
 
   const addKpiEditRow = (key, entry) => {
-    setKpiEdits((prev) => ({ ...prev, [key]: [...(prev[key] || getKpiEdit(key, entry)), { title: "", description: "", weight: "" }] }));
+    setKpiEdits((prev) => ({ ...prev, [key]: [...(prev[key] || getKpiEdit(key, entry)), { title: "", description: "", weight: "", target: "" }] }));
   };
 
   // One button for the whole page instead of one per KRA — saves every KRA
@@ -257,7 +257,7 @@ export default function TemplateBuilder() {
         const { libraryType, kraId } = selected.get(key) || {};
         const named = kpiEdits[key].filter((k) => k.title.trim());
         await API.put(`/pms/kra/library/${libraryType}/${kraId}`, {
-          kpis: named.map((k) => ({ title: k.title.trim(), description: k.description.trim(), weight: Number(k.weight) })),
+          kpis: named.map((k) => ({ title: k.title.trim(), description: k.description.trim(), weight: Number(k.weight), target: (k.target || "").trim() })),
         });
       }
       toast.success("KPI weights updated");
@@ -373,6 +373,12 @@ export default function TemplateBuilder() {
                                     onChange={(e) => updateKpiEditField(key, entry, i, "title", e.target.value)}
                                     placeholder="KPI title"
                                     className="flex-1 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
+                                  />
+                                  <input
+                                    value={k.target || ""}
+                                    onChange={(e) => updateKpiEditField(key, entry, i, "target", e.target.value)}
+                                    placeholder="Target (e.g. 10 or 'Ship v2')"
+                                    className="w-32 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
                                   />
                                   <input
                                     value={k.weight}

@@ -61,6 +61,7 @@ export const searchUsers = async (req, res) => {
         kras: userAssignments.flatMap((a) =>
           (a.kras || []).map((k) => ({
             kraId: k._id,
+            assignmentId: a._id,
             name: k.name,
             type: k.type,
             weight: k.weight,
@@ -246,6 +247,50 @@ export const deleteAssignment = async (req, res) => {
   const assignment = await KraAssignment.findByIdAndDelete(req.params.id);
   if (!assignment) return res.status(404).json({ message: "Assignment not found" });
   res.status(204).send();
+};
+
+// Edits a single already-assigned KRA in place (name/weight/kpis, including
+// each KPI's target) — UserKraSearch.jsx's "Edit" action on a user's KRA.
+// Unlike updateAssignment (which replaces the whole kras[] array), this
+// targets exactly one KRA by id, so a manager editing one person's KRA can
+// never accidentally clobber their other KRAs in the same assignment.
+export const updateKra = async (req, res) => {
+  if (!requirePmsHrOrManager(req, res)) return;
+  const assignment = await KraAssignment.findById(req.params.id);
+  if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+  const kra = assignment.kras.id(req.params.kraId);
+  if (!kra) return res.status(404).json({ message: "KRA not found" });
+
+  const { name, weight, kpis } = req.body;
+  if (name !== undefined) kra.name = name;
+  if (weight !== undefined) kra.weight = Number(weight) || 0;
+  if (kpis !== undefined) kra.kpis = kpis;
+  assignment.updatedBy = req.user._id;
+  await assignment.save();
+
+  // The employee's own working copy (Submission.kraResponses[]) was
+  // snapshotted from this KRA when they first opened it — without this it
+  // would keep showing the pre-edit name/weight/kpis until Mongoose's next
+  // unrelated write happened to touch it, silently drifting from what was
+  // just edited here.
+  const submission = await Submission.findOne({ cycleId: assignment.cycleId, employeeId: assignment.assignedTo });
+  if (submission) {
+    const response = submission.kraResponses.find((r) => String(r.kraId) === String(kra._id));
+    if (response) {
+      if (name !== undefined) response.kraName = kra.name;
+      if (weight !== undefined) response.weight = kra.weight;
+      if (kpis !== undefined) {
+        // Match by title to keep whatever `actual` the employee already
+        // filled in — the edit only changes target/weight/title, it
+        // shouldn't wipe out self-review progress already recorded.
+        const prevByTitle = new Map((response.kpis || []).map((k) => [k.title, k.actual]));
+        response.kpis = kra.kpis.map((k) => ({ ...k.toObject(), actual: prevByTitle.get(k.title) }));
+      }
+      await submission.save();
+    }
+  }
+
+  res.json(assignment);
 };
 
 // Employee self-review "negotiate your own KRA" step. Mints a real

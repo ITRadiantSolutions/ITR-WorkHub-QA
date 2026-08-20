@@ -11,6 +11,7 @@ export default function AssessmentPlayer() {
   const { courseId, type } = useParams();
   const navigate = useNavigate();
   const [assessment, setAssessment] = useState(null);
+  const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -19,7 +20,7 @@ export default function AssessmentPlayer() {
   useEffect(() => {
     assessmentsApi
       .forCourse(courseId)
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const matches = data.filter((a) => a.assessmentType === type);
         const chosen = matches.find((a) => a.isPublished) || matches[0];
         if (!chosen) {
@@ -27,7 +28,13 @@ export default function AssessmentPlayer() {
           navigate(`/lms/courses/${courseId}`);
           return;
         }
-        setAssessment(chosen);
+        // Fetches the question set actually served for this attempt — the
+        // full set, or a random sample when the assessment has sampleSize
+        // set (so different employees can get different questions).
+        const startFn = type === "quiz" ? progressApi.startQuiz : progressApi.startAssignment;
+        const { data: started } = await startFn(courseId, chosen._id);
+        setAssessment({ ...chosen, ...started });
+        setQuestions(started.questions || []);
       })
       .catch(() => toast.error("Failed to load assessment"))
       .finally(() => setLoading(false));
@@ -79,12 +86,12 @@ export default function AssessmentPlayer() {
       <div>
         <h1 className="text-xl font-semibold text-slate-900">{assessment.title}</h1>
         <p className="text-xs text-slate-500 mt-1">
-          {assessment.durationMinutes} min · Pass at {assessment.passingPercentage}% · {assessment.questions.length} questions
+          {assessment.durationMinutes} min · Pass at {assessment.passingPercentage}% · {questions.length} questions
         </p>
       </div>
 
       <div className="space-y-4">
-        {assessment.questions.map((question, qIdx) => (
+        {questions.map((question, qIdx) => (
           <div key={qIdx} className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
             <p className="text-sm font-semibold text-slate-800 mb-3">
               {qIdx + 1}. {question.prompt}
@@ -107,7 +114,7 @@ export default function AssessmentPlayer() {
       </div>
 
       <button
-        disabled={submitting || Object.keys(answers).length < assessment.questions.length}
+        disabled={submitting || Object.keys(answers).length < questions.length}
         onClick={submit}
         className="w-full text-sm font-semibold rounded-xl py-2.5 bg-amber-600 hover:bg-amber-700 text-white disabled:bg-slate-200 disabled:text-slate-400"
       >

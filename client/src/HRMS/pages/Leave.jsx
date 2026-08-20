@@ -31,19 +31,116 @@ const Badge = ({ status }) => (
 
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 
-function BalanceStrip({ balance }) {
+function BalanceStrip({ balance, onSelect }) {
   if (!balance.length) return null;
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
       {balance.map((b) => (
-        <div key={b.leaveType._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+        <button
+          key={b.leaveType._id}
+          onClick={() => onSelect(b)}
+          className="text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:shadow-md hover:border-cyan-100 transition"
+        >
           <p className="text-xs font-semibold text-slate-500 truncate">{b.leaveType.name}</p>
           <p className="text-xl font-extrabold text-slate-900 mt-1">{b.remaining}</p>
           <p className="text-[11px] text-slate-400">
             of {b.allocated} days{b.carriedForward > 0 && ` (incl. ${b.carriedForward} carried forward)`}
           </p>
-        </div>
+        </button>
       ))}
+    </div>
+  );
+}
+
+function LeaveDetailsModal({ balance, onClose }) {
+  const { leaveType } = balance;
+  const [tab, setTab] = useState("history");
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    leaveRequestsApi.ledger(leaveType._id)
+      .then((r) => setEntries(r.data.entries || []))
+      .catch(() => toast.error("Failed to load balance history"))
+      .finally(() => setLoading(false));
+  }, [leaveType._id]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+          <h2 className="text-lg font-bold text-slate-900">{leaveType.name}</h2>
+          <button onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+
+        <div className="flex gap-2 px-6 pt-4 shrink-0">
+          <button onClick={() => setTab("history")} className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold ${tab === "history" ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600"}`}>
+            Balance history
+          </button>
+          <button onClick={() => setTab("policy")} className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold ${tab === "policy" ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600"}`}>
+            Policy
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-6 py-4">
+          {tab === "history" && (
+            loading ? (
+              <p className="text-sm text-slate-400 text-center py-8">Loading...</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase text-slate-400">
+                  <tr>
+                    <th className="text-left py-2">Transaction date</th>
+                    <th className="text-left py-2">Change</th>
+                    <th className="text-left py-2">Balance</th>
+                    <th className="text-left py-2">Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {entries.length === 0 && (
+                    <tr><td colSpan={4} className="py-8 text-center text-slate-400 italic">No transactions yet this year.</td></tr>
+                  )}
+                  {entries.map((e, i) => (
+                    <tr key={i}>
+                      <td className="py-2.5 text-slate-600">{fmtDate(e.date)}</td>
+                      <td className="py-2.5">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${e.change >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                          {e.change >= 0 ? "+" : ""}{e.change}
+                        </span>
+                      </td>
+                      <td className="py-2.5 font-semibold text-slate-800">{e.balance}</td>
+                      <td className="py-2.5 text-slate-500">{e.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+          )}
+
+          {tab === "policy" && (
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <span className="text-slate-500">Annual quota</span>
+                <span className="font-semibold text-slate-800">{leaveType.defaultDaysPerYear} days/year</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <span className="text-slate-500">Accrual</span>
+                <span className="font-semibold text-slate-800">{leaveType.accrualType === "yearly" ? "Full quota on Jan 1" : "Monthly, pro-rata"}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2">
+                <span className="text-slate-500">Carry-forward</span>
+                <span className="font-semibold text-slate-800">
+                  {leaveType.carryForwardCap > 0 ? `Up to ${leaveType.carryForwardCap} days` : "Not allowed"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Beyond balance</span>
+                <span className="font-semibold text-slate-800">Applied as unpaid (loss of pay)</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -289,6 +386,7 @@ export default function Leave() {
   const [loading, setLoading] = useState(true);
   const [showApply, setShowApply] = useState(false);
   const [reviewing, setReviewing] = useState(null);
+  const [detailsFor, setDetailsFor] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const tabs = useMemo(() => [
@@ -361,7 +459,7 @@ export default function Leave() {
         </button>
       </div>
 
-      <BalanceStrip balance={balance} />
+      <BalanceStrip balance={balance} onSelect={setDetailsFor} />
 
       {tabs.length > 1 && (
         <div className="flex gap-2 mb-5">
@@ -389,6 +487,9 @@ export default function Leave() {
       )}
       {reviewing && (
         <ReviewModal request={reviewing} onClose={() => setReviewing(null)} onReview={handleReview} />
+      )}
+      {detailsFor && (
+        <LeaveDetailsModal balance={detailsFor} onClose={() => setDetailsFor(null)} />
       )}
     </main>
   );

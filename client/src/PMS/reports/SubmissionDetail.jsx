@@ -147,6 +147,15 @@ export default function SubmissionDetail() {
     }));
   };
 
+  const updateKpiActual = (index, kpiIndex, value) => {
+    setSubmission((prev) => ({
+      ...prev,
+      kraResponses: prev.kraResponses.map((r, i) =>
+        i === index ? { ...r, kpis: r.kpis.map((kpi, ki) => (ki === kpiIndex ? { ...kpi, actual: value } : kpi)) } : r,
+      ),
+    }));
+  };
+
   const saveResponses = async () => {
     setSaving(true);
     try {
@@ -285,7 +294,12 @@ export default function SubmissionDetail() {
             )}
 
             {(submission.kraResponses || []).map((r, index) => {
-              const kpis = (r.kpis || []).filter((k) => k.title?.trim() || k.description?.trim());
+              // Keep each kept row's real index (_i) into r.kpis — the
+              // filter drops empty rows, but updateKpiActual still needs to
+              // address the original array position when saving.
+              const kpis = (r.kpis || [])
+                .map((k, i) => ({ ...k, _i: i }))
+                .filter((k) => k.title?.trim() || k.description?.trim());
               const showManagerCol = isManagerOrHr || r.managerResponse;
               return (
                 <motion.div
@@ -306,12 +320,28 @@ export default function SubmissionDetail() {
                   </div>
 
                   {kpis.length > 0 && (
-                    <div className="px-4 py-2.5 flex flex-wrap gap-1.5 border-b border-slate-100">
-                      {kpis.map((k, i) => (
-                        <span key={i} className="text-[11px] font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
-                          {k.title}
-                          {k.description ? ` — ${k.description}` : ""}
-                        </span>
+                    <div className="px-4 py-2.5 space-y-1.5 border-b border-slate-100">
+                      {kpis.map((k) => (
+                        <div key={k._i} className="flex items-center gap-2 text-[11px]">
+                          <span className="flex-1 min-w-0 font-medium text-slate-600 truncate">
+                            {k.title}
+                            {k.description ? ` — ${k.description}` : ""}
+                          </span>
+                          <span className="text-slate-400 shrink-0">Target: {k.target || k.target === 0 ? k.target : "—"}</span>
+                          {canEditResponses ? (
+                            <input
+                              value={k.actual ?? ""}
+                              onChange={(e) => updateKpiActual(index, k._i, e.target.value)}
+                              placeholder="Actual"
+                              className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-[11px] shrink-0"
+                            />
+                          ) : (
+                            <span className="text-slate-500 shrink-0">Actual: {k.actual || k.actual === 0 ? k.actual : "—"}</span>
+                          )}
+                          {k.weight != null && (
+                            <span className="shrink-0 font-bold text-slate-500 bg-white border border-slate-200 rounded-full px-2 py-0.5">{k.weight}%</span>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
