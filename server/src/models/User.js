@@ -34,11 +34,15 @@ const userSchema = new mongoose.Schema(
     // modules to hand out, via Access Grants.
     manageAccessModules: { type: [String], default: [] },
 
-    // HRMS-specific profile fields. `department`/`designation` are free-text
-    // for now (see HRMS plan doc) — swapping to a Department ref later is a
-    // single-field migration, not a structural change.
+    // HRMS-specific profile fields. `department`/`designation` stay free-text
+    // for display/back-compat; the ref fields below are additive so existing
+    // records keep working until an explicit backfill migrates them over.
     department: { type: String, trim: true, default: "" },
     designation: { type: String, trim: true, default: "" },
+    departmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Department", default: null },
+    designationId: { type: mongoose.Schema.Types.ObjectId, ref: "Designation", default: null },
+    gradeId: { type: mongoose.Schema.Types.ObjectId, ref: "Grade", default: null },
+    locationId: { type: mongoose.Schema.Types.ObjectId, ref: "Location", default: null },
     employeeId: { type: String, trim: true, default: "" },
     joiningDate: { type: Date, default: null },
     employmentStatus: {
@@ -61,13 +65,14 @@ const userSchema = new mongoose.Schema(
       // handful get elevated to staff the front desk or administer the module.
       vms: { type: String, enum: ["host", "receptionist", "admin"], default: "host" },
       lms: { type: String, enum: ["employee", "manager", "admin"], default: "employee" },
-      hrms: { type: String, enum: ["employee", "manager", "hr"], default: "employee" },
+      hrms: { type: String, enum: ["employee", "manager", "hr", "recruiter"], default: "employee" },
     },
 
     // Independent per-module archive flags, plus a full-account deactivation flag.
     archived: {
       timesheet: { type: Boolean, default: false },
       pms: { type: Boolean, default: false },
+      tracker: { type: Boolean, default: false },
       vms: { type: Boolean, default: false },
       lms: { type: Boolean, default: false },
       hrms: { type: Boolean, default: false },

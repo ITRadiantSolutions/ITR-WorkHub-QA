@@ -80,6 +80,7 @@ export const getAdminLogsSummary = async (req, res) => {
 };
 
 const ACCESS_GRANT_EVENTS = [
+  "user.moduleAccess.updated",
   "user.manageAccessGrant.updated",
   "user.superAdmin.granted",
   "user.superAdmin.revoked",

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import {
   listCycles,
   getCycle,
@@ -12,7 +12,7 @@ import {
 } from "../../controllers/cycleController.js";
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("pms"));
 
 router.get("/", listCycles);
 router.post("/", createCycle);

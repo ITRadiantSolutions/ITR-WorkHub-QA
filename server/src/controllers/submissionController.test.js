@@ -273,7 +273,7 @@ describe("getOrCreateFromAssignment", () => {
   it("allows HR to open another employee's assignment", async () => {
     const assignment = buildAssignment({ assignedTo: oid() });
     KraAssignment.findById.mockResolvedValue(assignment);
-    Submission.findOne.mockResolvedValue({ _id: oid() });
+    Submission.findOne.mockResolvedValue({ _id: oid(), populate: vi.fn().mockResolvedValue() });
     const req = {
       params: { assignmentId: assignment._id },
       body: {},
@@ -328,7 +328,7 @@ describe("getOrCreateFromAssignment", () => {
     const employeeId = oid();
     const assignment = buildAssignment({ assignedTo: employeeId });
     KraAssignment.findById.mockResolvedValue(assignment);
-    const existing = { _id: oid() };
+    const existing = { _id: oid(), populate: vi.fn().mockResolvedValue() };
     Submission.findOne.mockResolvedValue(existing);
     const req = {
       params: { assignmentId: assignment._id },
@@ -350,7 +350,7 @@ describe("getOrCreateFromAssignment", () => {
     KraAssignment.findById.mockResolvedValue(assignment);
     Submission.findOne.mockResolvedValue(null);
     User.findById.mockReturnValue({ select: vi.fn().mockResolvedValue({ roles: { pms: "manager" } }) });
-    const created = { _id: oid() };
+    const created = { _id: oid(), populate: vi.fn().mockResolvedValue() };
     Submission.create.mockResolvedValue(created);
     const req = {
       params: { assignmentId: assignment._id },
@@ -380,7 +380,7 @@ describe("getOrCreateFromAssignment", () => {
     const employeeId = oid();
     const assignment = buildAssignment({ assignedTo: employeeId });
     KraAssignment.findById.mockResolvedValue(assignment);
-    const winner = { _id: oid() };
+    const winner = { _id: oid(), populate: vi.fn().mockResolvedValue() };
     Submission.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(winner);
     const dupError = Object.assign(new Error("dup"), { code: 11000 });
     Submission.create.mockRejectedValue(dupError);
@@ -476,7 +476,7 @@ describe("saveResponses", () => {
     expect(submission.save).not.toHaveBeenCalled();
   });
 
-  it("allows edits when status is 'manager_reviewed' (a later round of self-assessment)", async () => {
+  it("409s when status is 'manager_reviewed' — the self-review locks once the manager has responded, no revise-and-resubmit round", async () => {
     const employeeId = oid();
     const kraId = oid();
     const submission = buildSubmission({
@@ -495,8 +495,8 @@ describe("saveResponses", () => {
 
     await saveResponses(req, res);
 
-    expect(res.status).not.toHaveBeenCalledWith(409);
-    expect(submission.kraResponses[0].response).toBe("updated");
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(submission.save).not.toHaveBeenCalled();
   });
 
   it("409s when the cycle's response window isn't open for this employee", async () => {
@@ -711,7 +711,7 @@ describe("employeeSubmit", () => {
     expect(res.json).toHaveBeenCalledWith(submission);
   });
 
-  it("second-round submit: manager_reviewed -> final_employee_submitted", async () => {
+  it("409s a second-round submit from 'manager_reviewed' — no revise-and-resubmit round once the manager has responded", async () => {
     const employeeId = oid();
     const submission = buildSubmission({ employeeId, status: "manager_reviewed" });
     Submission.findById.mockResolvedValue(submission);
@@ -721,7 +721,8 @@ describe("employeeSubmit", () => {
 
     await employeeSubmit(req, res);
 
-    expect(submission.status).toBe("final_employee_submitted");
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(submission.status).toBe("manager_reviewed");
   });
 
   it("does not notify the manager on submit (documents a gap vs. the reference doc, see report)", async () => {

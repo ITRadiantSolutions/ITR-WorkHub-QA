@@ -20,17 +20,22 @@ const isProtectedSuperAdmin = (e) => e.email?.toLowerCase() === PROTECTED_SUPER_
 // module as platform-level admin tooling, not a workspace, so it gets its
 // own identity instead of borrowing one.
 const TABS = [
-  { key: "grants", label: "Access Grants", icon: ShieldCheck, description: "Decide who can manage access, and to which modules." },
-  { key: "manage", label: "Manage Roles", icon: Settings2, description: "Assign each person's role and access, module by module." },
+  { key: "grants", label: "Access Grants", icon: ShieldCheck, description: "Decide which modules each person can actually use." },
+  { key: "manage", label: "Manage Roles", icon: Settings2, description: "Assign each person's role, access, and delegated admin rights, module by module." },
   { key: "super-admins", label: "Super Admins", icon: ShieldPlus, description: "Grant or remove the highest privilege in the app." },
   { key: "audit", label: "Audit Logs", icon: History, description: "Every access-grant, role and super admin change, in order." },
 ];
 
-// Opens per employee — lets the super admin pick exactly which modules to
-// grant, with a "Select all" shortcut, and commits everything in one save
-// instead of firing a request per click.
+// Opens per employee — lets the super admin pick exactly which modules this
+// person can actually use, with a "Select all" shortcut, and commits
+// everything in one save instead of firing a request per click. This is
+// real workspace access (archived.<module>), not the separate "who can
+// manage other people's access" delegation — that's edited per-module from
+// the Manage Roles tab's Delegate toggle instead.
 function GrantModal({ employee, onClose, onSaved }) {
-  const [selected, setSelected] = useState(new Set(employee.manageAccessModules || []));
+  const [selected, setSelected] = useState(
+    new Set(MANAGE_MODULES.filter((m) => !employee.archived?.[m.key]).map((m) => m.key)),
+  );
   const [saving, setSaving] = useState(false);
   const allSelected = selected.size === MANAGE_MODULES.length;
 
@@ -50,11 +55,11 @@ function GrantModal({ employee, onClose, onSaved }) {
   const save = async () => {
     setSaving(true);
     try {
-      await employeesApi.setManageAccessGrant(employee._id, [...selected]);
+      await employeesApi.setModuleAccess(employee._id, [...selected]);
       toast.success(`Access updated for ${employee.name}`);
       onSaved();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update grant");
+      toast.error(err.response?.data?.message || "Failed to update access");
     } finally {
       setSaving(false);
     }
@@ -64,12 +69,13 @@ function GrantModal({ employee, onClose, onSaved }) {
     <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className="bg-gradient-to-br from-blue-700 to-blue-500 px-6 py-5 text-white">
-          <p className="text-xs font-bold uppercase tracking-wide text-white/80">Manage access</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-white/80">Module access</p>
           <h2 className="text-lg font-extrabold">{employee.name}</h2>
           <p className="text-xs text-white/80">{employee.email}</p>
         </div>
 
         <div className="px-6 py-5">
+          <p className="text-xs text-slate-500 mb-3">Unchecking a module removes this person's access to it immediately — they'll no longer be able to open it, in the app or via a direct link.</p>
           <button
             onClick={toggleAll}
             className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 mb-3"
@@ -349,6 +355,26 @@ function ManageRolesTab({ employees, onChanged, moduleKey, onSelectModule }) {
     }
   };
 
+  // Delegation is deliberately separate from workspace access above — it's
+  // "can this person edit OTHER people's roles/access for this module," not
+  // "can this person use the module." Toggling it sends the full
+  // manageAccessModules list back (the server replaces the whole set each
+  // call), with just this one module key added or removed.
+  const toggleDelegate = async (targetUser) => {
+    const current = targetUser.manageAccessModules || [];
+    const nextModules = current.includes(module.key) ? current.filter((k) => k !== module.key) : [...current, module.key];
+    setSavingId(targetUser._id);
+    try {
+      await employeesApi.setManageAccessGrant(targetUser._id, nextModules);
+      toast.success(current.includes(module.key) ? `Can no longer manage ${module.label} access` : `Can now manage ${module.label} access`);
+      onChanged();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update delegation");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   if (!module) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -384,15 +410,17 @@ function ManageRolesTab({ employees, onChanged, moduleKey, onSelectModule }) {
               <th className="text-left px-4 py-3">Email</th>
               <th className="text-left px-4 py-3">Role</th>
               {module.hasArchive && <th className="text-left px-4 py-3">Access</th>}
+              <th className="text-left px-4 py-3">Delegate</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {employees.length === 0 ? (
-              <tr><td colSpan={module.hasArchive ? 4 : 3} className="px-4 py-8 text-center text-slate-400 italic">No employees found.</td></tr>
+              <tr><td colSpan={module.hasArchive ? 5 : 4} className="px-4 py-8 text-center text-slate-400 italic">No employees found.</td></tr>
             ) : (
               employees.map((u) => {
                 const currentRole = u.roles?.[module.key] || module.defaultRole;
                 const archived = Boolean(u.archived?.[module.key]);
+                const canDelegate = (u.manageAccessModules || []).includes(module.key);
                 // The select must always include the user's current role even
                 // if it's above what a normal grant would newly assign —
                 // otherwise choosing it would silently downgrade them.
@@ -422,6 +450,16 @@ function ManageRolesTab({ employees, onChanged, moduleKey, onSelectModule }) {
                         </button>
                       </td>
                     )}
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleDelegate(u)}
+                        disabled={savingId === u._id}
+                        title={`Can this person manage other people's ${module.label} access?`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold disabled:opacity-50 ${canDelegate ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-500"}`}
+                      >
+                        {canDelegate ? "Can manage" : "Can't manage"}
+                      </button>
+                    </td>
                   </tr>
                 );
               })
@@ -634,7 +672,8 @@ function SuperAdminsTab({ employees, loading, onAction }) {
 const ACTION_LABELS = {
   "user.superAdmin.granted": "Super admin granted",
   "user.superAdmin.revoked": "Super admin revoked",
-  "user.manageAccessGrant.updated": "Access grant updated",
+  "user.moduleAccess.updated": "Module access updated",
+  "user.manageAccessGrant.updated": "Delegated access updated",
   "user.role.updated": "Role updated",
   "user.archive.updated": "Access updated",
 };
@@ -646,7 +685,7 @@ function detailFor(log) {
   const target = log.metadata?.targetName || log.metadata?.targetEmail || "an employee";
   if (log.event === "user.superAdmin.granted") return `Made ${target} a super admin`;
   if (log.event === "user.superAdmin.revoked") return `Removed super admin from ${target}`;
-  if (log.event === "user.manageAccessGrant.updated") {
+  if (log.event === "user.moduleAccess.updated" || log.event === "user.manageAccessGrant.updated") {
     const before = new Set(log.oldValue?.modules || []);
     const after = new Set(log.newValue?.modules || []);
     const added = [...after].filter((m) => !before.has(m)).map((m) => MODULE_LABELS[m] || m);
@@ -654,7 +693,8 @@ function detailFor(log) {
     const parts = [];
     if (added.length) parts.push(`granted ${added.join(", ")}`);
     if (removed.length) parts.push(`revoked ${removed.join(", ")}`);
-    return `${parts.length ? parts.join(" and ") : "Updated"} access for ${target}`;
+    const what = log.event === "user.moduleAccess.updated" ? "access" : "delegated management rights";
+    return `${parts.length ? parts.join(" and ") : "Updated"} ${what} for ${target}`;
   }
   if (log.event === "user.role.updated") {
     const moduleLabel = MODULE_LABELS[log.newValue?.module] || log.newValue?.module;
@@ -929,7 +969,7 @@ export default function AccessGrants() {
                   <th className="text-left px-4 py-3">Name</th>
                   <th className="text-left px-4 py-3">Email</th>
                   <th className="text-left px-4 py-3">HRMS role</th>
-                  <th className="text-left px-4 py-3">Can manage access to</th>
+                  <th className="text-left px-4 py-3">Has access to</th>
                   <th className="text-left px-4 py-3"></th>
                 </tr>
               </thead>
@@ -940,7 +980,7 @@ export default function AccessGrants() {
                   <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400 italic">No employees found.</td></tr>
                 ) : (
                   employees.map((e) => {
-                    const granted = e.manageAccessModules || [];
+                    const hasAccess = MANAGE_MODULES.filter((m) => !e.archived?.[m.key]);
                     return (
                       <tr key={e._id} className="hover:bg-slate-50/60">
                         <td className="px-4 py-3 font-semibold text-slate-800">
@@ -950,12 +990,12 @@ export default function AccessGrants() {
                         <td className="px-4 py-3 capitalize">{e.roles?.hrms || "employee"}</td>
                         <td className="px-4 py-3">
                           {e.isSuperAdmin ? (
-                            <span className="text-xs text-slate-400 italic">always granted, every module</span>
-                          ) : granted.length === 0 ? (
+                            <span className="text-xs text-slate-400 italic">always, every module</span>
+                          ) : hasAccess.length === 0 ? (
                             <span className="text-xs text-slate-400 italic">None</span>
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
-                              {MANAGE_MODULES.filter((m) => granted.includes(m.key)).map((m) => (
+                              {hasAccess.map((m) => (
                                 <span key={m.key} className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
                                   {m.label}
                                 </span>

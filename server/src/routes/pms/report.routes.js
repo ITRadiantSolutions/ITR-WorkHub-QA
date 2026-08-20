@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import { getCycleReport, exportCycleReport, getEmployeeReport, listNonSubmitters } from "../../controllers/pmsReportController.js";
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("pms"));
 
 router.get("/cycle", getCycleReport);
 router.get("/cycle/export", exportCycleReport);

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import { allowRoles } from "../../middleware/roleMiddleware.js";
 import { objectIdParam } from "../../middleware/validateObjectId.js";
 import {
@@ -14,7 +14,7 @@ import {
 } from "../../controllers/storyController.js";
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("tracker"));
 router.param("id", objectIdParam);
 router.param("sprintId", objectIdParam);
 

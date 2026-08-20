@@ -7,6 +7,15 @@ import {
   Send,
   UserPlus,
   Users,
+  Building2,
+  CalendarDays,
+  LifeBuoy,
+  Wallet,
+  Receipt,
+  Laptop,
+  UserCog,
+  Megaphone,
+  FileText,
   ChevronRight,
   Moon,
   Sun,
@@ -20,10 +29,19 @@ import { isHRMS_HR, isHRMS_Manager } from "../utils/hrmsrolecheck";
 
 const TABS = [
   { to: "/hrms", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/hrms/announcements", label: "Announcements", icon: Megaphone },
+  { to: "/hrms/leave", label: "Leave", icon: CalendarDays },
+  { to: "/hrms/payroll", label: "Payroll", icon: Wallet },
+  { to: "/hrms/expenses", label: "Expenses", icon: Receipt },
+  { to: "/hrms/assets", label: "Assets", icon: Laptop },
+  { to: "/hrms/documents", label: "Documents", icon: FileText },
+  { to: "/hrms/hr-requests", label: "HR Requests", icon: LifeBuoy },
   { to: "/hrms/jobs", label: "Jobs", icon: Briefcase },
   { to: "/hrms/referrals", label: "Referrals", icon: Send },
   { to: "/hrms/my-team", label: "My Team", icon: Users, managerOnly: true },
   { to: "/hrms/employees", label: "Employees", icon: UserPlus, hrOnly: true },
+  { to: "/hrms/organization", label: "Organization", icon: Building2, hrOnly: true },
+  { to: "/hrms/lifecycle", label: "Lifecycle", icon: UserCog, hrOnly: true },
   // Role/access assignment now happens only via the super-admin-gated
   // Access Grants page — see client/src/pages/AccessGrants.jsx.
 ];

@@ -12,6 +12,7 @@ import {
   assignRole,
   setArchived,
   setManageAccessGrant,
+  setModuleAccess,
   setSuperAdmin,
   setManager,
   bulkAssignManager,
@@ -35,6 +36,7 @@ router.delete("/:id", deleteUser);
 router.patch("/:id/role", assignRole);
 router.patch("/:id/archive", setArchived);
 router.patch("/:id/manage-access-grant", setManageAccessGrant);
+router.patch("/:id/module-access", setModuleAccess);
 router.patch("/:id/super-admin", setSuperAdmin);
 router.patch("/:id/manager", setManager);
 router.patch("/:id/shift", setShift);

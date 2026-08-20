@@ -12,7 +12,7 @@ const MODULE_ROLE_ENUM = {
   tracker: ["ADMIN", "PM", "DEVELOPER", "QA", "BUSINESS_USER"],
   vms: ["host", "receptionist", "admin"],
   lms: ["employee", "manager", "admin"],
-  hrms: ["employee", "manager", "hr"],
+  hrms: ["employee", "manager", "hr", "recruiter"],
 };
 
 // "HR-only" in the old Flow_Tracker system: our unified model splits HR into
@@ -263,13 +263,13 @@ export const assignRole = async (req, res) => {
 };
 
 export const setArchived = async (req, res) => {
-  const { module, archived } = req.body; // module: "timesheet" | "pms" | "vms" | "lms" | "hrms" | "account"
+  const { module, archived } = req.body; // module: "timesheet" | "pms" | "tracker" | "vms" | "lms" | "hrms" | "account"
   if (!(await canEditAccess(req.user, req.params.id, module))) {
     return res.status(403).json({ message: "You don't have permission to manage access. Ask a super admin to grant it." });
   }
   const validModules = isFullAccess(req.user)
-    ? ["timesheet", "pms", "vms", "lms", "hrms", "account"]
-    : ["timesheet", "pms", "vms", "lms", "hrms"]; // "account" (full deactivation) is HR/admin-only
+    ? ["timesheet", "pms", "tracker", "vms", "lms", "hrms", "account"]
+    : ["timesheet", "pms", "tracker", "vms", "lms", "hrms"]; // "account" (full deactivation) is HR/admin-only
   if (!validModules.includes(module)) {
     return res.status(400).json({ message: "Invalid module" });
   }
@@ -331,6 +331,52 @@ export const setManageAccessGrant = async (req, res) => {
     oldValue: { modules: before.manageAccessModules || [] },
     newValue: { modules: modules },
     changes: { modules },
+    metadata: { targetName: user.name, targetEmail: user.email },
+  });
+
+  res.json(user);
+};
+
+// Super admin only — sets which modules a user actually has workspace access
+// to, in one call (the Access Grants tab's main "grant" action). Writes
+// archived.<module> for every module: false (has access) for modules in the
+// list, true (no access) for modules left out. This is deliberately separate
+// from manageAccessModules/setManageAccessGrant above, which only controls
+// whether this person can edit OTHER people's roles/archived state — not
+// their own access to a module. Replaces the full set each call, same as
+// setManageAccessGrant.
+export const setModuleAccess = async (req, res) => {
+  if (!req.user.isSuperAdmin) {
+    return res.status(403).json({ message: "Only a super admin can grant or revoke module access." });
+  }
+  const modules = Array.isArray(req.body.modules) ? [...new Set(req.body.modules)] : [];
+  const allModules = Object.keys(MODULE_ROLE_ENUM); // timesheet, pms, tracker, vms, lms, hrms
+  if (modules.some((m) => !allModules.includes(m))) {
+    return res.status(400).json({ message: "Invalid module in list" });
+  }
+  const before = await User.findById(req.params.id).select("archived name email");
+  if (!before) return res.status(404).json({ message: "User not found" });
+
+  const archivedUpdate = {};
+  for (const m of allModules) archivedUpdate[`archived.${m}`] = !modules.includes(m);
+
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: archivedUpdate },
+    { new: true },
+  ).select("-password");
+
+  writeAuditLog({
+    type: "change",
+    event: "user.moduleAccess.updated",
+    action: "user.moduleAccess.updated",
+    actorId: req.user._id,
+    actorName: req.user.name,
+    actorEmail: req.user.email,
+    targetId: user._id,
+    oldValue: { modules: allModules.filter((m) => !before.archived?.[m]) },
+    newValue: { modules },
+    changes: archivedUpdate,
     metadata: { targetName: user.name, targetEmail: user.email },
   });
 

@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import { allowRoles } from "../../middleware/roleMiddleware.js";
 import { objectIdParam } from "../../middleware/validateObjectId.js";
 import { listBugs, getBug, createBug, updateBug, deleteBug } from "../../controllers/bugController.js";
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("tracker"));
 router.param("id", objectIdParam);
 
 router.get("/", listBugs);

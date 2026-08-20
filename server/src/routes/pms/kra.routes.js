@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import {
   listLibrary,
   addLibraryKra,
@@ -13,6 +13,7 @@ import {
 } from "../../controllers/kraDefinitionController.js";
 import {
   listAssignments,
+  listAssignedUserIdsForCycle,
   getAssignment,
   assignToUser,
   assignToGroup,
@@ -26,7 +27,7 @@ import {
 } from "../../controllers/kraAssignmentController.js";
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("pms"));
 
 router.get("/library", listLibrary);
 router.post("/library", addLibraryKra);
@@ -44,6 +45,7 @@ router.get("/users/search-suggestions", searchUserSuggestions);
 router.get("/managers", listPmsManagers);
 
 router.get("/assignments", listAssignments);
+router.get("/assignments/assigned-user-ids", listAssignedUserIdsForCycle);
 router.post("/assignments/user", assignToUser);
 router.post("/assignments/group", assignToGroup);
 router.get("/assignments/:id", getAssignment);

@@ -17,9 +17,130 @@ export const employeesApi = {
   setArchived: (id, archived, module = "hrms") => API.patch(`/users/${id}/archive`, { module, archived }),
   setManager: (id, managerId) => API.patch(`/users/${id}/manager`, { managerId }),
   setManageAccessGrant: (id, modules) => API.patch(`/users/${id}/manage-access-grant`, { modules }),
+  setModuleAccess: (id, modules) => API.patch(`/users/${id}/module-access`, { modules }),
   create: (data) => API.post("/users", data),
   setSuperAdmin: (id, isSuperAdmin) => API.patch(`/users/${id}/super-admin`, { isSuperAdmin }),
   accessAuditLogs: (params) => API.get("/users/access-audit-logs", { params }),
+};
+
+export const departmentsApi = {
+  list: (params) => API.get("/hrms/departments", { params }),
+  create: (data) => API.post("/hrms/departments", data),
+  update: (id, data) => API.put(`/hrms/departments/${id}`, data),
+  setStatus: (id, isActive) => API.patch(`/hrms/departments/${id}/status`, { isActive }),
+};
+
+export const designationsApi = {
+  list: (params) => API.get("/hrms/designations", { params }),
+  create: (data) => API.post("/hrms/designations", data),
+  update: (id, data) => API.put(`/hrms/designations/${id}`, data),
+  setStatus: (id, isActive) => API.patch(`/hrms/designations/${id}/status`, { isActive }),
+};
+
+export const gradesApi = {
+  list: (params) => API.get("/hrms/grades", { params }),
+  create: (data) => API.post("/hrms/grades", data),
+  update: (id, data) => API.put(`/hrms/grades/${id}`, data),
+  setStatus: (id, isActive) => API.patch(`/hrms/grades/${id}/status`, { isActive }),
+};
+
+export const locationsApi = {
+  list: (params) => API.get("/hrms/locations", { params }),
+  create: (data) => API.post("/hrms/locations", data),
+  update: (id, data) => API.put(`/hrms/locations/${id}`, data),
+  setStatus: (id, isActive) => API.patch(`/hrms/locations/${id}/status`, { isActive }),
+};
+
+export const leaveTypesApi = {
+  list: (params) => API.get("/hrms/leave-types", { params }),
+  create: (data) => API.post("/hrms/leave-types", data),
+  update: (id, data) => API.put(`/hrms/leave-types/${id}`, data),
+  setStatus: (id, isActive) => API.patch(`/hrms/leave-types/${id}/status`, { isActive }),
+};
+
+export const leaveRequestsApi = {
+  create: (data) => API.post("/hrms/leave-requests", data),
+  mine: (params) => API.get("/hrms/leave-requests/mine", { params }),
+  team: (params) => API.get("/hrms/leave-requests/team", { params }),
+  all: (params) => API.get("/hrms/leave-requests", { params }),
+  balance: () => API.get("/hrms/leave-requests/my-balance"),
+  balanceFor: (employeeId) => API.get(`/hrms/leave-requests/balance/${employeeId}`),
+  calendar: (month, year) => API.get("/hrms/leave-requests/calendar", { params: { month, year } }),
+  review: (id, action, comment) => API.patch(`/hrms/leave-requests/${id}/review`, { action, comment }),
+  cancel: (id) => API.patch(`/hrms/leave-requests/${id}/cancel`),
+};
+
+export const hrRequestsApi = {
+  create: (data) => API.post("/hrms/hr-requests", data),
+  mine: (params) => API.get("/hrms/hr-requests/mine", { params }),
+  all: (params) => API.get("/hrms/hr-requests", { params }),
+  assign: (id, assignedTo) => API.patch(`/hrms/hr-requests/${id}/assign`, { assignedTo }),
+  resolve: (id, resolutionNote) => API.patch(`/hrms/hr-requests/${id}/resolve`, { resolutionNote }),
+};
+
+export const salaryStructuresApi = {
+  get: (employeeId) => API.get(`/hrms/salary-structures/${employeeId}`),
+  upsert: (data) => API.put("/hrms/salary-structures", data),
+};
+
+export const payslipsApi = {
+  generate: (data) => API.post("/hrms/payslips", data),
+  generateBulk: (data) => API.post("/hrms/payslips/generate-bulk", data),
+  mine: () => API.get("/hrms/payslips/mine"),
+  all: (params) => API.get("/hrms/payslips", { params }),
+  markPaid: (id) => API.patch(`/hrms/payslips/${id}/mark-paid`),
+  pdf: (id) => API.get(`/hrms/payslips/${id}/pdf`, { responseType: "blob" }),
+};
+
+export const expensesApi = {
+  create: (formData) => API.post("/hrms/expenses", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  mine: (params) => API.get("/hrms/expenses/mine", { params }),
+  team: (params) => API.get("/hrms/expenses/team", { params }),
+  all: (params) => API.get("/hrms/expenses", { params }),
+  review: (id, action, comment) => API.patch(`/hrms/expenses/${id}/review`, { action, comment }),
+  reimburse: (id) => API.patch(`/hrms/expenses/${id}/reimburse`),
+  billUrl: (id) => API.get(`/hrms/expenses/${id}/bill-url`),
+};
+
+export const assetsApi = {
+  list: (params) => API.get("/hrms/assets", { params }),
+  create: (data) => API.post("/hrms/assets", data),
+  update: (id, data) => API.put(`/hrms/assets/${id}`, data),
+  setStatus: (id, status) => API.patch(`/hrms/assets/${id}/status`, { status }),
+  myAssignments: () => API.get("/hrms/assets/assignments/mine"),
+  assignments: (params) => API.get("/hrms/assets/assignments", { params }),
+  assign: (assetId, employeeId) => API.post("/hrms/assets/assignments", { assetId, employeeId }),
+  return: (assignmentId, returnCondition, returnNotes) =>
+    API.patch(`/hrms/assets/assignments/${assignmentId}/return`, { returnCondition, returnNotes }),
+};
+
+export const onboardingApi = {
+  start: (employeeId) => API.post("/hrms/onboarding", { employeeId }),
+  all: (params) => API.get("/hrms/onboarding", { params }),
+  mine: () => API.get("/hrms/onboarding/mine"),
+  setItem: (id, itemId, done) => API.patch(`/hrms/onboarding/${id}/items/${itemId}`, { done }),
+};
+
+export const offboardingApi = {
+  initiate: (data) => API.post("/hrms/offboarding", data),
+  all: (params) => API.get("/hrms/offboarding", { params }),
+  mine: () => API.get("/hrms/offboarding/mine"),
+  recordExitInterview: (id, notes) => API.patch(`/hrms/offboarding/${id}/exit-interview`, { notes }),
+  processFinalSettlement: (id, notes) => API.patch(`/hrms/offboarding/${id}/final-settlement`, { notes }),
+};
+
+export const announcementsApi = {
+  list: (params) => API.get("/hrms/announcements", { params }),
+  create: (data) => API.post("/hrms/announcements", data),
+  update: (id, data) => API.put(`/hrms/announcements/${id}`, data),
+  remove: (id) => API.delete(`/hrms/announcements/${id}`),
+};
+
+export const documentsApi = {
+  upload: (formData) => API.post("/hrms/documents", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  forEmployee: (employeeId) => API.get(`/hrms/documents/employee/${employeeId}`),
+  url: (id) => API.get(`/hrms/documents/${id}/url`),
+  remove: (id) => API.delete(`/hrms/documents/${id}`),
 };
 
 export const projectRolesApi = {

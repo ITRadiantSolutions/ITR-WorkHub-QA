@@ -22,7 +22,7 @@ export default function AssignTemplate() {
   const [targetSearch, setTargetSearch] = useState("");
   const [weights, setWeights] = useState({}); // kraId -> weight string
   const [kpiEdits, setKpiEdits] = useState({}); // kraId -> [{title, description, weight}]
-  const [expandedKra, setExpandedKra] = useState(null); // kraId currently showing its KPI editor
+  const [assignedUserIds, setAssignedUserIds] = useState(new Set()); // who already has a KRA assignment for the selected cycle
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +56,20 @@ export default function AssignTemplate() {
     };
   }, [id]);
 
+  // Refresh whenever the cycle changes so the Individual picker can leave
+  // already-assigned people out entirely, instead of letting HR pick them
+  // and only learning it failed after clicking Assign.
+  useEffect(() => {
+    if (!cycleId) return setAssignedUserIds(new Set());
+    let cancelled = false;
+    API.get("/pms/kra/assignments/assigned-user-ids", { params: { cycleId } })
+      .then(({ data }) => !cancelled && setAssignedUserIds(new Set((data || []).map(String))))
+      .catch(() => !cancelled && setAssignedUserIds(new Set()));
+    return () => {
+      cancelled = true;
+    };
+  }, [cycleId]);
+
   const totalWeight = useMemo(
     () => Object.values(weights).reduce((sum, w) => sum + (Number(w) || 0), 0),
     [weights],
@@ -81,9 +95,10 @@ export default function AssignTemplate() {
 
   const filteredUsers = useMemo(() => {
     const q = targetSearch.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
-  }, [users, targetSearch]);
+    const unassigned = users.filter((u) => !assignedUserIds.has(String(u._id)));
+    if (!q) return unassigned;
+    return unassigned.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+  }, [users, targetSearch, assignedUserIds]);
 
   const filteredGroups = useMemo(() => {
     const q = targetSearch.trim().toLowerCase();
@@ -211,7 +226,13 @@ export default function AssignTemplate() {
               <div className="max-h-56 overflow-y-auto space-y-1 rounded-xl border border-slate-100 p-1">
                 {mode === "user" ? (
                   filteredUsers.length === 0 ? (
-                    <p className="text-center text-xs text-slate-400 py-4">No matches</p>
+                    <p className="text-center text-xs text-slate-400 py-4">
+                      {!cycleId
+                        ? "Select a cycle to see who's available"
+                        : !targetSearch.trim() && assignedUserIds.size > 0
+                          ? "Everyone already has a KRA assignment for this cycle"
+                          : "No matches"}
+                    </p>
                   ) : (
                     filteredUsers.map((u) => {
                       const checked = selectedUserIds.has(u._id);
@@ -265,16 +286,15 @@ export default function AssignTemplate() {
                   Total: {totalWeight}%
                 </span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2.5">
                 {(template.kras || []).map((k) => {
-                  const isExpanded = expandedKra === k._id;
                   const kpiRows = getKpiEdit(k._id, k);
                   const namedKpiRows = kpiRows.filter((kpi) => kpi.title.trim());
                   const kpiTotal = namedKpiRows.reduce((sum, kpi) => sum + (Number(kpi.weight) || 0), 0);
                   return (
-                    <div key={k._id} className="space-y-1.5">
-                      <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2">
-                        <span className="flex-1 text-sm text-slate-800">{k.name}</span>
+                    <div key={k._id} className="rounded-xl border border-slate-200 overflow-hidden">
+                      <div className="flex items-center gap-2.5 px-3 py-2 bg-slate-50">
+                        <span className="flex-1 text-sm font-semibold text-slate-800">{k.name}</span>
                         <input
                           type="number"
                           min={0}
@@ -297,54 +317,45 @@ export default function AssignTemplate() {
                           className="w-20 rounded-lg border border-slate-200 text-sm px-2 py-1 text-right"
                         />
                         <span className="text-xs text-slate-400">%</span>
-                        <button
-                          type="button"
-                          onClick={() => setExpandedKra(isExpanded ? null : k._id)}
-                          className="text-xs font-semibold text-violet-600 hover:underline shrink-0"
-                        >
-                          {isExpanded ? "Hide KPIs" : "Edit KPI weights"}
-                        </button>
                       </div>
 
-                      {isExpanded && (
-                        <div className="ml-4 rounded-xl border border-slate-200 bg-slate-50/60 p-3 space-y-2">
-                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">KPI weights for {k.name}</p>
-                          {kpiRows.map((kpi, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                              <input
-                                value={kpi.title}
-                                onChange={(e) => updateKpiField(k._id, k, i, "title", e.target.value)}
-                                placeholder="KPI title"
-                                className="flex-1 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
-                              />
-                              <input
-                                value={kpi.weight}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  if (v !== "" && (Number(v) < 0 || Number(v) > 100)) return;
-                                  updateKpiField(k._id, k, i, "weight", v);
-                                }}
-                                type="number"
-                                min={0}
-                                max={100}
-                                placeholder="Weight %"
-                                className="w-20 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
-                              />
-                              <button type="button" onClick={() => removeKpiRow(k._id, k, i)} className="text-slate-400 hover:text-red-500 shrink-0">
-                                <Icons.Trash />
-                              </button>
-                            </div>
-                          ))}
-                          <button type="button" onClick={() => addKpiRow(k._id, k)} className="text-[11px] font-semibold text-violet-600">
-                            + Add KPI row
-                          </button>
-                          {namedKpiRows.length > 0 && (
-                            <p className={`text-[11px] font-semibold ${kpiTotal === 100 ? "text-emerald-600" : "text-amber-600"}`}>
-                              KPI weight total: {kpiTotal}% {kpiTotal !== 100 && "(must equal 100%)"}
-                            </p>
-                          )}
+                      <div className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">KPI weights</p>
+                          <p className={`text-[11px] font-semibold ${kpiTotal === 100 ? "text-emerald-600" : "text-amber-600"}`}>
+                            {kpiTotal}% / 100%
+                          </p>
                         </div>
-                      )}
+                        {kpiRows.map((kpi, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <input
+                              value={kpi.title}
+                              onChange={(e) => updateKpiField(k._id, k, i, "title", e.target.value)}
+                              placeholder="KPI title"
+                              className="flex-1 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
+                            />
+                            <input
+                              value={kpi.weight}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v !== "" && (Number(v) < 0 || Number(v) > 100)) return;
+                                updateKpiField(k._id, k, i, "weight", v);
+                              }}
+                              type="number"
+                              min={0}
+                              max={100}
+                              placeholder="Weight %"
+                              className="w-20 rounded-lg border border-slate-200 text-xs px-2.5 py-1.5 bg-white"
+                            />
+                            <button type="button" onClick={() => removeKpiRow(k._id, k, i)} className="text-slate-400 hover:text-red-500 shrink-0">
+                              <Icons.Trash />
+                            </button>
+                          </div>
+                        ))}
+                        <button type="button" onClick={() => addKpiRow(k._id, k)} className="text-[11px] font-semibold text-violet-600">
+                          + Add KPI row
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

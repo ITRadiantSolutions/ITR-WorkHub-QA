@@ -1,15 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
-// import { useNavigate } from "react-router-dom"; // only used by the disabled Actions/View button below
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { UserPlus, Search, RefreshCw } from "lucide-react"; // Eye icon only used by the disabled Actions/View button below
+import { UserPlus, Search, RefreshCw, Eye } from "lucide-react";
 import { employeesApi } from "../hrmsApi";
 
 // const ROLE_OPTIONS = ["employee", "manager", "hr"]; // only used by the disabled Role select below
 
 export default function Employees() {
-  // This page is view-only — role and module access are managed exclusively
-  // via the super-admin-gated Access Grants page.
-  // const navigate = useNavigate(); // only used by the disabled Actions/View button below
+  // Role and module access are managed exclusively via the super-admin-gated
+  // Access Grants page — this page stays read-only for those, but still
+  // links through to each employee's profile.
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -98,14 +99,14 @@ export default function Employees() {
               <th className="text-left px-4 py-3">Manager</th>
               <th className="text-left px-4 py-3">Role</th>
               <th className="text-left px-4 py-3">Status</th>
-              {/* <th className="text-left px-4 py-3">Actions</th> */}
+              <th className="text-left px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
             ) : employees.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400 italic">No employees found.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400 italic">No employees found.</td></tr>
             ) : (
               employees.map((e) => (
                 <tr key={e._id}>
@@ -131,11 +132,11 @@ export default function Employees() {
                       {e.archived?.hrms ? "Inactive" : "Active"}
                     </button> */}
                   </td>
-                  {/* <td className="px-4 py-3">
+                  <td className="px-4 py-3">
                     <button onClick={() => navigate(`/hrms/employees/${e._id}`)} className="text-cyan-700 font-semibold flex items-center gap-1 hover:underline">
                       <Eye className="w-3.5 h-3.5" /> View
                     </button>
-                  </td> */}
+                  </td>
                 </tr>
               ))
             )}

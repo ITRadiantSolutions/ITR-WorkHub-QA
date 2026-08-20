@@ -84,7 +84,10 @@ export default function TemplateCard({ assignment, cycle, loggedInUser, tIndex, 
   // and the submission itself in an editable status — missing either used
   // to still render an active-looking form that the backend would then
   // reject, instead of just not offering the controls in the first place.
-  const canEditResponses = canRespond && submission && ["draft", "manager_reviewed"].includes(submission.status);
+  // Once the manager has responded ("manager_reviewed"), the self-review
+  // locks — no revise-and-resubmit round — matching the server's
+  // EMPLOYEE_EDITABLE_STATUSES.
+  const canEditResponses = canRespond && submission && submission.status === "draft";
 
   const completedKras = (submission?.kraResponses || []).filter((r) => r.response?.trim() && r.rating > 0).length;
   const totalKras = assignment.kras?.length || 0;

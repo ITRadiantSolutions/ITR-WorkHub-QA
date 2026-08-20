@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import {
   listPips,
   getPip,
@@ -15,7 +15,7 @@ import {
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("pms"));
 
 router.get("/proof-url", getProofUrl);
 router.get("/employee/:employeeId/manager", getPipEmployeeManager);

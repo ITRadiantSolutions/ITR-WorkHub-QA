@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import { listGroups, getGroup, createGroup, updateGroup, deleteGroup } from "../../controllers/usersGroupController.js";
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("pms"));
 
 router.get("/", listGroups);
 router.post("/", createGroup);

@@ -73,23 +73,38 @@ export default function SubmissionDetail() {
   const [finalReport, setFinalReport] = useState({ managerOverallResponse: "", overallRating: "", oneOnOneDate: "", oneOnOneComment: "" });
   const finalReportSubmitting = useRef(false);
 
+  const syncFinalReportForm = (data) => {
+    setFinalReport({
+      managerOverallResponse: data.finalReport?.managerOverallResponse || "",
+      overallRating: data.finalReport?.overallRating || "",
+      oneOnOneDate: data.finalReport?.oneOnOneDate ? data.finalReport.oneOnOneDate.slice(0, 10) : "",
+      oneOnOneComment: data.finalReport?.oneOnOneComment || "",
+    });
+  };
+
   const load = () => {
     setLoading(true);
     API.get(`/pms/submissions/${id}`)
       .then((res) => {
         setSubmission(res.data);
-        setFinalReport({
-          managerOverallResponse: res.data.finalReport?.managerOverallResponse || "",
-          overallRating: res.data.finalReport?.overallRating || "",
-          oneOnOneDate: res.data.finalReport?.oneOnOneDate ? res.data.finalReport.oneOnOneDate.slice(0, 10) : "",
-          oneOnOneComment: res.data.finalReport?.oneOnOneComment || "",
-        });
+        syncFinalReportForm(res.data);
       })
       .catch(() => toast.error("Failed to load submission"))
       .finally(() => setLoading(false));
   };
 
   useEffect(load, [id]);
+
+  // Refreshes the per-KRA responses/status only — unlike load(), this must
+  // NOT touch the finalReport form state. "Complete review" and "Save final
+  // report" are two independent actions on this page; resyncing finalReport
+  // from the server here would silently wipe out an overall
+  // summary/rating/date/notes the manager had typed but not yet saved,
+  // the instant they clicked "Complete review" first.
+  const refreshSubmission = () =>
+    API.get(`/pms/submissions/${id}`)
+      .then((res) => setSubmission(res.data))
+      .catch(() => toast.error("Failed to refresh submission"));
 
   // TemplateCard.jsx (the "My KRAs" page) gates the same self-review form on
   // whether HR has actually opened the cycle's response window for this
@@ -110,7 +125,10 @@ export default function SubmissionDetail() {
   const isWindowOpenFor = (window) => Boolean(window?.enabled) && (window?.selectedUserIds || []).map(String).includes(String(userId));
   const employeeWindowOpen = isWindowOpenFor(cycle?.employeeResponse);
 
-  const canEditResponses = isEmployee && employeeWindowOpen && ["draft", "manager_reviewed"].includes(submission?.status);
+  // Once the manager has responded ("manager_reviewed"), the self-review
+  // locks — no revise-and-resubmit round — matching the server's
+  // EMPLOYEE_EDITABLE_STATUSES.
+  const canEditResponses = isEmployee && employeeWindowOpen && submission?.status === "draft";
   // The employee has to submit their self-rating before the manager's side
   // opens up — "draft" is the only status that means they haven't yet.
   const canManagerRespond = isManagerOrHr && submission?.status !== "draft";
@@ -165,7 +183,7 @@ export default function SubmissionDetail() {
     try {
       await API.post(`/pms/submissions/${id}/manager-review`, { kraReviews });
       toast.success("Review saved");
-      load();
+      await refreshSubmission();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to save review");
     } finally {
@@ -252,7 +270,7 @@ export default function SubmissionDetail() {
               </div>
             </motion.div>
 
-            {isEmployee && !employeeWindowOpen && ["draft", "manager_reviewed"].includes(submission.status) && (
+            {isEmployee && !employeeWindowOpen && submission.status === "draft" && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700">
                 <Lock className="w-4 h-4 shrink-0" />
                 HR hasn't opened the response window for this cycle yet — you can't fill in or submit your self-review until they do.
@@ -335,13 +353,39 @@ export default function SubmissionDetail() {
               );
             })}
 
-            {isManagerOrHr && (
+            {(isManagerOrHr || isEmployee) && (submission.finalReport?.managerSubmitted || isManagerOrHr) && (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white shadow-sm border border-slate-100 overflow-hidden">
                 <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
                   <h3 className="font-semibold text-slate-800 text-sm">Final report</h3>
                 </div>
                 <div className="p-4">
-                  {!canManagerRespond ? (
+                  {submission.finalReport?.managerSubmitted ? (
+                    // Once saved, this is a closed record — no re-editing, no
+                    // Save button. Also the only branch an employee ever sees:
+                    // previously the whole "Final report" card was hidden from
+                    // them entirely, so their own summary/rating/1:1 notes
+                    // only ever "appeared" to the manager/HR who wrote them.
+                    <div className="space-y-3.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Overall summary</label>
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{submission.finalReport.managerOverallResponse || "—"}</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Overall rating</label>
+                          <StarPicker value={submission.finalReport.overallRating} disabled tone="violet" />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">1:1 meeting date</label>
+                          <p className="text-sm text-slate-700 mb-2.5">
+                            {submission.finalReport.oneOnOneDate ? new Date(submission.finalReport.oneOnOneDate).toLocaleDateString("en-IN") : "—"}
+                          </p>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">1:1 notes</label>
+                          <p className="text-sm text-slate-700 whitespace-pre-wrap">{submission.finalReport.oneOnOneComment || "—"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : !canManagerRespond ? (
                     <div className="flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-3.5 py-3 text-xs font-semibold text-amber-700">
                       <Lock className="w-4 h-4 shrink-0" />
                       Waiting for the employee to submit their self-review before you can add a final report.

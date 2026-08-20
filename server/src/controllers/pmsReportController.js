@@ -69,12 +69,20 @@ export const getEmployeeReport = async (req, res) => {
     "cycleId",
     "name start end reportVisibility",
   );
-  // A non-HR caller viewing their own report is still gated by each cycle's
-  // HR-controlled reportVisibility (none/all/selected) — HR sees everything.
+  // A non-HR caller viewing their own report is gated by two independent
+  // things: the cycle's HR-controlled reportVisibility (none/all/selected),
+  // AND whether their own manager has actually sent their final report yet
+  // (finalReport.managerSubmitted). Turning reportVisibility on for a cycle
+  // is a blanket switch — it used to surface every submission in that cycle
+  // the instant it flipped, including ones whose manager hadn't finished
+  // (or even started) their final report, showing a clickable "your turn"
+  // card for a report that was never actually sent. HR still sees everything
+  // regardless, same as before.
   const visible =
     req.user.roles.pms === "hr"
       ? submissions
       : submissions.filter((s) => {
+          if (!s.finalReport?.managerSubmitted) return false;
           const mode = s.cycleId?.reportVisibility?.mode;
           if (mode === "all") return true;
           if (mode === "selected") {

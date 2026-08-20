@@ -7,9 +7,13 @@ const POST_FIELDS = [
   "priority", "applicationDeadline",
 ];
 
+// Recruiters run the day-to-day job post lifecycle alongside HR; they just
+// don't get HR's broader authority (employee records, payroll, approvals).
+const isRecruitmentStaff = (user) => ["hr", "recruiter"].includes(user.roles.hrms);
+
 export const listJobPosts = async (req, res) => {
   const filter = {};
-  if (req.user.roles.hrms === "hr") {
+  if (isRecruitmentStaff(req.user)) {
     if (req.query.status?.trim()) filter.status = req.query.status.trim();
   } else {
     filter.status = "published";
@@ -23,7 +27,7 @@ export const listJobPosts = async (req, res) => {
 export const getJobPost = async (req, res) => {
   const jobPost = await JobPost.findById(req.params.id);
   if (!jobPost) return res.status(404).json({ message: "Job post not found" });
-  if (jobPost.status !== "published" && req.user.roles.hrms !== "hr") {
+  if (jobPost.status !== "published" && !isRecruitmentStaff(req.user)) {
     return res.status(403).json({ message: "Forbidden" });
   }
   res.json(jobPost);

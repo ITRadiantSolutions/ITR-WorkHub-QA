@@ -57,8 +57,12 @@ const isValidRating = (v) => v === null || v === undefined || (Number.isInteger(
 // managerAvg is a computed average of several 1-5 ratings, so it can be fractional.
 const isValidAvgRating = (v) => v === null || v === undefined || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 5);
 
-// Statuses the employee is allowed to edit/(re)submit responses from.
-const EMPLOYEE_EDITABLE_STATUSES = ["draft", "manager_reviewed"];
+// Statuses the employee is allowed to edit/(re)submit responses from. Once
+// the manager has responded, the employee's self-review locks — no revise-
+// and-resubmit round. ("manager_reviewed" used to be included here to allow
+// exactly that second round; product decision reversed it — the employee
+// no longer sees an editable form once the manager has weighed in.)
+const EMPLOYEE_EDITABLE_STATUSES = ["draft"];
 
 export const listSubmissions = async (req, res) => {
   const filter = {};

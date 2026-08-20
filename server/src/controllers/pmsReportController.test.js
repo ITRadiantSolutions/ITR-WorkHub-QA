@@ -172,11 +172,12 @@ describe("getEmployeeReport", () => {
     expect(res.json).toHaveBeenCalledWith(submissions);
   });
 
-  it("lets an employee view their own submission once its cycle's reportVisibility is 'all'", async () => {
+  it("lets an employee view their own submission once its cycle's reportVisibility is 'all' and their manager has sent the final report", async () => {
     const userId = oid();
     const submissions = [
       {
         _id: oid(),
+        finalReport: { managerSubmitted: true },
         cycleId: { name: "Q1", start: "2026-01-01", end: "2026-03-31", reportVisibility: { mode: "all", visibleTo: [] } },
       },
     ];
@@ -188,6 +189,28 @@ describe("getEmployeeReport", () => {
 
     expect(Submission.find).toHaveBeenCalledWith({ employeeId: userId.toString() });
     expect(res.json).toHaveBeenCalledWith(submissions);
+  });
+
+  // A cycle-wide reportVisibility switch used to surface every submission in
+  // that cycle the moment it flipped on, including ones whose manager hadn't
+  // sent (or even started) the final report — a "your turn" card the
+  // employee could click into for a report that was never actually sent.
+  it("filters out a submission whose manager hasn't sent the final report yet, even when reportVisibility is 'all'", async () => {
+    const userId = oid();
+    const submissions = [
+      {
+        _id: oid(),
+        finalReport: { managerSubmitted: false },
+        cycleId: { name: "Q1", start: "2026-01-01", end: "2026-03-31", reportVisibility: { mode: "all", visibleTo: [] } },
+      },
+    ];
+    Submission.find.mockReturnValue(findPopulateChain(submissions));
+    const req = { params: { employeeId: userId.toString() }, user: employeeUser(userId) };
+    const res = mockRes();
+
+    await getEmployeeReport(req, res);
+
+    expect(res.json).toHaveBeenCalledWith([]);
   });
 
   // Fixed (doc §03 Phase 5 / §02 "View own finished report: Employee (once
@@ -212,11 +235,12 @@ describe("getEmployeeReport", () => {
     expect(res.json).toHaveBeenCalledWith([]);
   });
 
-  it("includes a submission when reportVisibility.mode is 'selected' and the employee is on the list", async () => {
+  it("includes a submission when reportVisibility.mode is 'selected', the employee is on the list, and their manager has sent the final report", async () => {
     const userId = oid();
     const submissions = [
       {
         _id: oid(),
+        finalReport: { managerSubmitted: true },
         cycleId: { name: "Q1", start: "2026-01-01", end: "2026-03-31", reportVisibility: { mode: "selected", visibleTo: [userId] } },
       },
     ];

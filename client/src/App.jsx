@@ -67,6 +67,15 @@ import HrmsReferrals from "./HRMS/pages/Referrals";
 import HrmsEmployees from "./HRMS/pages/Employees";
 import HrmsEmployeeProfile from "./HRMS/pages/EmployeeProfile";
 import HrmsMyTeam from "./HRMS/pages/MyTeam";
+import HrmsOrganization from "./HRMS/pages/Organization";
+import HrmsLeave from "./HRMS/pages/Leave";
+import HrmsHrRequests from "./HRMS/pages/HrRequests";
+import HrmsPayroll from "./HRMS/pages/Payroll";
+import HrmsExpenses from "./HRMS/pages/Expenses";
+import HrmsAssets from "./HRMS/pages/Assets";
+import HrmsLifecycle from "./HRMS/pages/Lifecycle";
+import HrmsAnnouncements from "./HRMS/pages/Announcements";
+import HrmsDocuments from "./HRMS/pages/Documents";
 import AccessGrants from "./pages/AccessGrants";
 import Guide from "./pages/Guide";
 import { Toaster } from "sonner";
@@ -409,6 +418,38 @@ function App() {
                 }
               />
               <Route
+                path="/hrms/leave"
+                element={
+                  <ProtectedRoute>
+                    <HrmsLeave />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/payroll"
+                element={
+                  <ProtectedRoute>
+                    <HrmsPayroll />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/expenses"
+                element={
+                  <ProtectedRoute>
+                    <HrmsExpenses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/hr-requests"
+                element={
+                  <ProtectedRoute>
+                    <HrmsHrRequests />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/hrms/jobs"
                 element={
                   <ProtectedRoute>
@@ -437,6 +478,46 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <HrmsEmployeeProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/organization"
+                element={
+                  <ProtectedRoute>
+                    <HrmsOrganization />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/assets"
+                element={
+                  <ProtectedRoute>
+                    <HrmsAssets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/documents"
+                element={
+                  <ProtectedRoute>
+                    <HrmsDocuments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/announcements"
+                element={
+                  <ProtectedRoute>
+                    <HrmsAnnouncements />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/lifecycle"
+                element={
+                  <ProtectedRoute>
+                    <HrmsLifecycle />
                   </ProtectedRoute>
                 }
               />

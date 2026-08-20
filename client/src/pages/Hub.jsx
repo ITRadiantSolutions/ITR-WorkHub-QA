@@ -25,6 +25,12 @@ const TRACKER_ROUTES = {
 const TILES = [
   {
     key: "flowtrack",
+    // user.archived is keyed by the schema's module names (see
+    // server/src/models/User.js), which don't all match this tile's own
+    // `key` (used for the React list key / CSS decor lookup) — flowtrack's
+    // is "tracker" there. Used below instead of `tile.key` for the archived
+    // check so the tile actually reflects real access.
+    moduleKey: "tracker",
     title: "FlowTrack",
     description: "Plan, organize and track work across projects, sprints, tasks and bugs.",
     icon: "Zap",
@@ -83,6 +89,7 @@ const TILES = [
   },
   {
     key: "visitors",
+    moduleKey: "vms", // same mismatch as flowtrack above — schema key is "vms", not "visitors"
     title: "VMS",
     description: "Approve visitors, review host requests and manage check-ins.",
     icon: "UserPlus",
@@ -434,7 +441,7 @@ export default function Hub() {
             const Icon = Icons[tile.icon];
             const a = ACCENTS[tile.accent];
             const Decor = DECORS[tile.decor];
-            const archived = Boolean(user?.archived?.[tile.key]);
+            const archived = Boolean(user?.archived?.[tile.moduleKey || tile.key]);
             return (
               <button
                 key={tile.key}

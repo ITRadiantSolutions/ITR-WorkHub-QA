@@ -59,6 +59,21 @@ import hrmsJobRequestRoutes from "./routes/hrms/jobRequest.routes.js";
 import hrmsJobPostRoutes from "./routes/hrms/jobPost.routes.js";
 import hrmsReferralRoutes from "./routes/hrms/referral.routes.js";
 import hrmsDashboardRoutes from "./routes/hrms/dashboard.routes.js";
+import hrmsDepartmentRoutes from "./routes/hrms/department.routes.js";
+import hrmsDesignationRoutes from "./routes/hrms/designation.routes.js";
+import hrmsGradeRoutes from "./routes/hrms/grade.routes.js";
+import hrmsLocationRoutes from "./routes/hrms/location.routes.js";
+import hrmsLeaveTypeRoutes from "./routes/hrms/leaveType.routes.js";
+import hrmsLeaveRequestRoutes from "./routes/hrms/leaveRequest.routes.js";
+import hrmsHrRequestRoutes from "./routes/hrms/hrRequest.routes.js";
+import hrmsSalaryStructureRoutes from "./routes/hrms/salaryStructure.routes.js";
+import hrmsPayslipRoutes from "./routes/hrms/payslip.routes.js";
+import hrmsExpenseRoutes from "./routes/hrms/expense.routes.js";
+import hrmsAssetRoutes from "./routes/hrms/asset.routes.js";
+import hrmsOnboardingRoutes from "./routes/hrms/onboarding.routes.js";
+import hrmsOffboardingRoutes from "./routes/hrms/offboarding.routes.js";
+import hrmsAnnouncementRoutes from "./routes/hrms/announcement.routes.js";
+import hrmsDocumentRoutes from "./routes/hrms/document.routes.js";
 
 // Express app only — no listen(), no DB connect, no cron jobs. Kept separate
 // from server.js so tests (supertest) can import and exercise it directly
@@ -115,6 +130,21 @@ app.use("/api/hrms/job-requests", hrmsJobRequestRoutes);
 app.use("/api/hrms/job-posts", hrmsJobPostRoutes);
 app.use("/api/hrms/referrals", hrmsReferralRoutes);
 app.use("/api/hrms/dashboard", hrmsDashboardRoutes);
+app.use("/api/hrms/departments", hrmsDepartmentRoutes);
+app.use("/api/hrms/designations", hrmsDesignationRoutes);
+app.use("/api/hrms/grades", hrmsGradeRoutes);
+app.use("/api/hrms/locations", hrmsLocationRoutes);
+app.use("/api/hrms/leave-types", hrmsLeaveTypeRoutes);
+app.use("/api/hrms/leave-requests", hrmsLeaveRequestRoutes);
+app.use("/api/hrms/hr-requests", hrmsHrRequestRoutes);
+app.use("/api/hrms/salary-structures", hrmsSalaryStructureRoutes);
+app.use("/api/hrms/payslips", hrmsPayslipRoutes);
+app.use("/api/hrms/expenses", hrmsExpenseRoutes);
+app.use("/api/hrms/assets", hrmsAssetRoutes);
+app.use("/api/hrms/onboarding", hrmsOnboardingRoutes);
+app.use("/api/hrms/offboarding", hrmsOffboardingRoutes);
+app.use("/api/hrms/announcements", hrmsAnnouncementRoutes);
+app.use("/api/hrms/documents", hrmsDocumentRoutes);
 
 // Serve the built React client, when present — the deploy workflow copies
 // client/dist here so one App Service can host both API and frontend on

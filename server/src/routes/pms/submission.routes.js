@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect } from "../../middleware/authMiddleware.js";
+import { protect, requireModuleAccess } from "../../middleware/authMiddleware.js";
 import {
   listSubmissions,
   getSubmission,
@@ -11,7 +11,7 @@ import {
 } from "../../controllers/submissionController.js";
 
 const router = Router();
-router.use(protect);
+router.use(protect, requireModuleAccess("pms"));
 
 router.get("/", listSubmissions);
 router.post("/from-assignment/:assignmentId", getOrCreateFromAssignment);

@@ -7,8 +7,8 @@ export const MANAGE_MODULES = [
   { key: "pms", label: "PMS", icon: Target, accent: "violet", roles: ["employee", "manager", "hr"], defaultRole: "employee", hasArchive: true },
   { key: "lms", label: "LMS", icon: BookOpen, accent: "amber", roles: ["employee", "manager", "admin"], defaultRole: "employee", hasArchive: true },
   { key: "vms", label: "VMS", icon: ShieldCheck, accent: "rose", roles: ["host", "receptionist", "admin"], defaultRole: "host", hasArchive: true },
-  { key: "tracker", label: "FlowTrack", icon: Zap, accent: "indigo", roles: ["ADMIN", "PM", "DEVELOPER", "QA", "BUSINESS_USER"], defaultRole: "BUSINESS_USER", hasArchive: false },
-  { key: "hrms", label: "HRMS", icon: Briefcase, accent: "cyan", roles: ["employee", "manager", "hr"], defaultRole: "employee", hasArchive: true },
+  { key: "tracker", label: "FlowTrack", icon: Zap, accent: "indigo", roles: ["ADMIN", "PM", "DEVELOPER", "QA", "BUSINESS_USER"], defaultRole: "BUSINESS_USER", hasArchive: true },
+  { key: "hrms", label: "HRMS", icon: Briefcase, accent: "cyan", roles: ["employee", "manager", "hr", "recruiter"], defaultRole: "employee", hasArchive: true },
 ];
 
 // A manager can grant/revoke access for their direct reports, but capped

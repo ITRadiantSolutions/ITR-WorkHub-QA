@@ -93,6 +93,22 @@ export const searchUserSuggestions = async (req, res) => {
   res.json(users.map((u) => u.name));
 };
 
+// AssignTemplate.jsx's individual-person picker: who already has a KRA
+// assignment for this cycle, so the picker can leave them out entirely
+// instead of letting HR pick them and only finding out — as an
+// "already assigned" toast naming them — after clicking Assign. Deliberately
+// separate from listAssignments (whose per-role filtering only ever returns
+// the caller's *own* assignments for a manager caller) since this needs
+// every assignee in the cycle regardless of who's asking, but only their
+// ids — never assignment content — to keep the exposure minimal.
+export const listAssignedUserIdsForCycle = async (req, res) => {
+  if (!requirePmsHrOrManager(req, res)) return;
+  const { cycleId } = req.query;
+  if (!cycleId) return res.status(400).json({ message: "cycleId is required" });
+  const userIds = await KraAssignment.distinct("assignedTo", { cycleId });
+  res.json(userIds);
+};
+
 export const listAssignments = async (req, res) => {
   const filter = {};
   if (req.query.cycleId) filter.cycleId = req.query.cycleId;

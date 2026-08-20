@@ -1,0 +1,178 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import mongoose from "mongoose";
+
+vi.mock("../models/Offboarding.js", () => ({
+  default: { create: vi.fn(), find: vi.fn(), findById: vi.fn(), findOne: vi.fn() },
+}));
+vi.mock("../models/AssetAssignment.js", () => ({
+  default: { countDocuments: vi.fn().mockResolvedValue(0) },
+}));
+vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
+vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
+
+import Offboarding from "../models/Offboarding.js";
+import AssetAssignment from "../models/AssetAssignment.js";
+import { notifyUsers } from "../utils/notify.js";
+import {
+  initiateOffboarding,
+  listOffboarding,
+  getMyOffboarding,
+  recordExitInterview,
+  processFinalSettlement,
+} from "./hrmsOffboardingController.js";
+
+const oid = () => new mongoose.Types.ObjectId();
+
+const mockRes = () => {
+  const res = {};
+  res.status = vi.fn().mockReturnValue(res);
+  res.json = vi.fn().mockReturnValue(res);
+  return res;
+};
+
+const makeDoc = (fields) => ({ ...fields, toObject: function () { return { ...this }; } });
+
+const makeQuery = (result) => {
+  const query = {};
+  query.populate = vi.fn().mockReturnValue(query);
+  query.sort = vi.fn().mockResolvedValue(result);
+  query.then = (resolve) => resolve(result);
+  return query;
+};
+
+const hrUser = () => ({ _id: oid(), roles: { hrms: "hr" } });
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  AssetAssignment.countDocuments.mockResolvedValue(0);
+});
+
+describe("initiateOffboarding", () => {
+  it("400s when required fields are missing", async () => {
+    const req = { body: { employeeId: oid().toString() }, user: hrUser() };
+    const res = mockRes();
+
+    await initiateOffboarding(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(Offboarding.create).not.toHaveBeenCalled();
+  });
+
+  it("409s when offboarding already exists for this employee", async () => {
+    const error = new Error("dup");
+    error.code = 11000;
+    Offboarding.create.mockRejectedValue(error);
+
+    const req = { body: { employeeId: oid().toString(), resignationDate: "2026-08-01", lastWorkingDate: "2026-09-01" }, user: hrUser() };
+    const res = mockRes();
+
+    await initiateOffboarding(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
+  it("creates a record and notifies the employee", async () => {
+    const employeeId = oid();
+    Offboarding.create.mockResolvedValue({ _id: oid() });
+    Offboarding.findById.mockReturnValue(makeQuery(makeDoc({ employee: { _id: employeeId } })));
+
+    const req = { body: { employeeId: employeeId.toString(), resignationDate: "2026-08-01", lastWorkingDate: "2026-09-01" }, user: hrUser() };
+    const res = mockRes();
+
+    await initiateOffboarding(req, res);
+
+    expect(Offboarding.create).toHaveBeenCalledWith(expect.objectContaining({ employee: employeeId.toString() }));
+    expect(notifyUsers).toHaveBeenCalledWith([employeeId.toString()], expect.objectContaining({ type: "offboardingInitiated" }));
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+});
+
+describe("listOffboarding", () => {
+  it("filters by status and attaches pendingAssetReturns", async () => {
+    const employeeId = oid();
+    Offboarding.find.mockReturnValue(makeQuery([makeDoc({ employee: { _id: employeeId } })]));
+    AssetAssignment.countDocuments.mockResolvedValue(2);
+
+    const res = mockRes();
+    await listOffboarding({ query: { status: "notice_period" }, user: hrUser() }, res);
+
+    expect(Offboarding.find).toHaveBeenCalledWith({ status: "notice_period" });
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ pendingAssetReturns: 2 })]);
+  });
+});
+
+describe("getMyOffboarding", () => {
+  it("404s when no record exists", async () => {
+    Offboarding.findOne.mockReturnValue(makeQuery(null));
+    const req = { user: { _id: oid() } };
+    const res = mockRes();
+
+    await getMyOffboarding(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+});
+
+describe("recordExitInterview", () => {
+  it("404s when not found", async () => {
+    Offboarding.findById.mockResolvedValue(null);
+    const req = { params: { id: oid().toString() }, body: {}, user: hrUser() };
+    const res = mockRes();
+
+    await recordExitInterview(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("records the exit interview", async () => {
+    const employeeId = oid();
+    const offboarding = makeDoc({ _id: oid(), employee: employeeId, save: vi.fn().mockResolvedValue(undefined) });
+    Offboarding.findById.mockResolvedValueOnce(offboarding).mockReturnValueOnce(makeQuery(makeDoc({ employee: { _id: employeeId } })));
+
+    const req = { params: { id: offboarding._id.toString() }, body: { notes: "Good conversation" }, user: hrUser() };
+    await recordExitInterview(req, mockRes());
+
+    expect(offboarding.exitInterview.conducted).toBe(true);
+    expect(offboarding.exitInterview.notes).toBe("Good conversation");
+  });
+});
+
+describe("processFinalSettlement", () => {
+  it("409s when the exit interview hasn't been conducted", async () => {
+    Offboarding.findById.mockResolvedValue(makeDoc({ _id: oid(), exitInterview: { conducted: false } }));
+    const req = { params: { id: oid().toString() }, body: {}, user: hrUser() };
+    const res = mockRes();
+
+    await processFinalSettlement(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
+  it("409s when assets are still pending return", async () => {
+    Offboarding.findById.mockResolvedValue(makeDoc({ _id: oid(), employee: oid(), exitInterview: { conducted: true } }));
+    AssetAssignment.countDocuments.mockResolvedValue(1);
+
+    const req = { params: { id: oid().toString() }, body: {}, user: hrUser() };
+    const res = mockRes();
+
+    await processFinalSettlement(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
+  it("clears the employee once interview is done and assets are returned", async () => {
+    const employeeId = oid();
+    const offboarding = makeDoc({
+      _id: oid(), employee: employeeId, exitInterview: { conducted: true },
+      save: vi.fn().mockResolvedValue(undefined),
+    });
+    Offboarding.findById.mockResolvedValueOnce(offboarding).mockReturnValueOnce(makeQuery(makeDoc({ employee: { _id: employeeId } })));
+    AssetAssignment.countDocuments.mockResolvedValue(0);
+
+    const req = { params: { id: offboarding._id.toString() }, body: { notes: "All settled" }, user: hrUser() };
+    await processFinalSettlement(req, mockRes());
+
+    expect(offboarding.finalSettlement.processed).toBe(true);
+    expect(offboarding.status).toBe("cleared");
+  });
+});
