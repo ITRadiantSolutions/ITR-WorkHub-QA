@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { CalendarDays, Plus, X, Check, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Plus, X, Check, XCircle, ChevronLeft, ChevronRight, Paperclip, Users, Gift } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { leaveTypesApi, leaveRequestsApi } from "../hrmsApi";
+import { leaveTypesApi, leaveRequestsApi, employeesApi } from "../hrmsApi";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -44,7 +44,9 @@ function BalanceStrip({ balance, onSelect }) {
           <p className="text-xs font-semibold text-slate-500 truncate">{b.leaveType.name}</p>
           <p className="text-xl font-extrabold text-slate-900 mt-1">{b.remaining}</p>
           <p className="text-[11px] text-slate-400">
-            of {b.allocated} days{b.carriedForward > 0 && ` (incl. ${b.carriedForward} carried forward)`}
+            of {b.allocated} days
+            {b.carriedForward > 0 && ` (incl. ${b.carriedForward} carried forward)`}
+            {b.granted > 0 && ` (incl. ${b.granted} granted)`}
           </p>
         </button>
       ))}
@@ -145,19 +147,31 @@ function LeaveDetailsModal({ balance, onClose }) {
   );
 }
 
-function ApplyLeaveModal({ leaveTypes, onClose, onSubmit, saving }) {
-  const [form, setForm] = useState({ leaveType: leaveTypes[0]?._id || "", startDate: "", endDate: "", isHalfDay: false, halfDaySession: "first_half", reason: "" });
+function ApplyLeaveModal({ leaveTypes, employees, onClose, onSubmit, saving }) {
+  const [form, setForm] = useState({
+    employeeId: employees?.[0]?._id || "",
+    leaveType: leaveTypes[0]?._id || "",
+    startDate: "", endDate: "", isHalfDay: false, halfDaySession: "first_half", reason: "",
+  });
+  const [file, setFile] = useState(null);
   const set = (f) => (e) => setForm((p) => ({ ...p, [f]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
 
-  const valid = form.leaveType && form.startDate && (form.isHalfDay ? true : form.endDate);
+  const selectedType = leaveTypes.find((t) => t._id === form.leaveType);
+  const valid = form.leaveType && form.startDate && (form.isHalfDay ? true : form.endDate) && (!employees || form.employeeId) && (!selectedType?.requiresDocument || file);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Apply for leave</h2>
+          <h2 className="text-lg font-bold text-slate-900">{employees ? "Apply for leave (on behalf of employee)" : "Apply for leave"}</h2>
           <button onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
+
+        {employees && (
+          <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.employeeId} onChange={set("employeeId")}>
+            {employees.map((e) => <option key={e._id} value={e._id}>{e.name}</option>)}
+          </select>
+        )}
 
         <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.leaveType} onChange={set("leaveType")}>
           {leaveTypes.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
@@ -186,18 +200,69 @@ function ApplyLeaveModal({ leaveTypes, onClose, onSubmit, saving }) {
         )}
 
         <textarea placeholder="Reason (optional)" rows={2} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.reason} onChange={set("reason")} />
+
+        {selectedType?.requiresDocument && (
+          <label className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer border border-dashed border-slate-300 rounded-xl px-3 py-2">
+            <Paperclip className="w-4 h-4" />
+            {file ? file.name : `${selectedType.name} requires a supporting document`}
+            <input type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          </label>
+        )}
+
         <p className="text-xs text-slate-400">
-          Weekends and company holidays don't count toward the day total. If a request goes beyond your balance, the extra days are applied as unpaid (loss of pay) rather than blocked.
+          {employees
+            ? "Applying on behalf of an employee skips the overlap check — use this to correct or combine periods they couldn't submit themselves."
+            : "Weekends and company holidays don't count toward the day total. If a request goes beyond your balance, the extra days are applied as unpaid (loss of pay) rather than blocked."}
         </p>
 
         <div className="flex justify-end gap-2 pt-1">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold">Cancel</button>
           <button
             disabled={saving || !valid}
-            onClick={() => onSubmit({ ...form, endDate: form.isHalfDay ? form.startDate : form.endDate })}
+            onClick={() => onSubmit({ ...form, endDate: form.isHalfDay ? form.startDate : form.endDate }, file)}
             className="px-4 py-2 rounded-xl bg-cyan-700 text-white text-sm font-semibold disabled:opacity-60"
           >
             {saving ? "Submitting..." : "Apply"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GrantLeaveModal({ leaveTypes, employees, onClose, onSubmit, saving }) {
+  const [form, setForm] = useState({ employeeId: employees[0]?._id || "", leaveTypeId: leaveTypes[0]?._id || "", days: "", reason: "" });
+  const set = (f) => (e) => setForm((p) => ({ ...p, [f]: e.target.value }));
+  const valid = form.employeeId && form.leaveTypeId && Number(form.days) > 0;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">Grant leave balance</h2>
+          <button onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+
+        <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.employeeId} onChange={set("employeeId")}>
+          {employees.map((e) => <option key={e._id} value={e._id}>{e.name}</option>)}
+        </select>
+        <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.leaveTypeId} onChange={set("leaveTypeId")}>
+          {leaveTypes.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+        </select>
+        <input type="number" step="0.5" min="0.5" placeholder="Days to credit" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.days} onChange={set("days")} />
+        <input placeholder="Reason (e.g. worked Saturday)" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.reason} onChange={set("reason")} />
+        <p className="text-xs text-slate-400">
+          For leave types like Comp-Off or Election Day that don't accrue on their own, this is the only way to give an employee a balance.
+        </p>
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold">Cancel</button>
+          <button
+            disabled={saving || !valid}
+            onClick={() => onSubmit({ ...form, days: Number(form.days) })}
+            className="px-4 py-2 rounded-xl bg-cyan-700 text-white text-sm font-semibold disabled:opacity-60"
+          >
+            {saving ? "Granting..." : "Grant"}
           </button>
         </div>
       </div>
@@ -251,6 +316,15 @@ function ReviewModal({ request, onClose, onReview }) {
   );
 }
 
+const openLeaveDocument = async (r) => {
+  try {
+    const res = await leaveRequestsApi.documentUrl(r._id);
+    window.open(res.data.url, "_blank", "noopener,noreferrer");
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Failed to open document");
+  }
+};
+
 function RequestTable({ rows, showEmployee, onReview, onCancel }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -282,7 +356,12 @@ function RequestTable({ rows, showEmployee, onReview, onCancel }) {
                 {r.lopDays > 0 && <span className="text-red-600 text-xs font-semibold"> ({r.lopDays} LOP)</span>}
               </td>
               <td className="px-4 py-3"><Badge status={r.status} /></td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 flex items-center gap-3">
+                {r.documentFileName && (
+                  <button onClick={() => openLeaveDocument(r)} className="flex items-center gap-1 text-slate-500 font-semibold hover:underline text-xs">
+                    <Paperclip className="w-3.5 h-3.5" /> Document
+                  </button>
+                )}
                 {onReview && ["pending_manager", "pending_skip_level"].includes(r.status) && (
                   <button onClick={() => onReview(r)} className="text-cyan-700 font-semibold hover:underline text-xs">Review</button>
                 )}
@@ -385,6 +464,9 @@ export default function Leave() {
   const [all, setAll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showApply, setShowApply] = useState(false);
+  const [showApplyForEmployee, setShowApplyForEmployee] = useState(false);
+  const [showGrant, setShowGrant] = useState(false);
+  const [employees, setEmployees] = useState([]);
   const [reviewing, setReviewing] = useState(null);
   const [detailsFor, setDetailsFor] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -405,20 +487,56 @@ export default function Leave() {
     ];
     if (isManager) calls.push(leaveRequestsApi.team().then((r) => setTeam(r.data || [])));
     if (isHr) calls.push(leaveRequestsApi.all().then((r) => setAll(r.data || [])));
+    if (isHr) calls.push(employeesApi.list().then((r) => setEmployees(r.data || [])));
     Promise.all(calls).catch(() => toast.error("Failed to load leave data")).finally(() => setLoading(false));
   }, [isManager, isHr]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  const handleApply = async (form) => {
+  const toFormData = (form, file) => {
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+    if (file) fd.append("document", file);
+    return fd;
+  };
+
+  const handleApply = async (form, file) => {
     setSaving(true);
     try {
-      await leaveRequestsApi.create(form);
+      await leaveRequestsApi.create(toFormData(form, file));
       toast.success("Leave request submitted");
       setShowApply(false);
       loadAll();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit request");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApplyForEmployee = async (form, file) => {
+    setSaving(true);
+    try {
+      await leaveRequestsApi.createForEmployee(toFormData(form, file));
+      toast.success("Leave request submitted on the employee's behalf");
+      setShowApplyForEmployee(false);
+      loadAll();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to submit request");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGrant = async (form) => {
+    setSaving(true);
+    try {
+      await leaveRequestsApi.grant(form);
+      toast.success("Leave balance granted");
+      setShowGrant(false);
+      loadAll();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to grant leave");
     } finally {
       setSaving(false);
     }
@@ -454,9 +572,21 @@ export default function Leave() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Apply for time off and track your balance.</p>
         </div>
-        <button onClick={() => setShowApply(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-sm font-semibold shadow">
-          <Plus className="w-4 h-4" /> Apply for leave
-        </button>
+        <div className="flex gap-2">
+          {isHr && (
+            <>
+              <button onClick={() => setShowGrant(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50">
+                <Gift className="w-4 h-4" /> Grant leave
+              </button>
+              <button onClick={() => setShowApplyForEmployee(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50">
+                <Users className="w-4 h-4" /> Apply for employee
+              </button>
+            </>
+          )}
+          <button onClick={() => setShowApply(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-sm font-semibold shadow">
+            <Plus className="w-4 h-4" /> Apply for leave
+          </button>
+        </div>
       </div>
 
       <BalanceStrip balance={balance} onSelect={setDetailsFor} />
@@ -484,6 +614,24 @@ export default function Leave() {
 
       {showApply && (
         <ApplyLeaveModal leaveTypes={leaveTypes} saving={saving} onClose={() => setShowApply(false)} onSubmit={handleApply} />
+      )}
+      {showApplyForEmployee && (
+        <ApplyLeaveModal
+          leaveTypes={leaveTypes}
+          employees={employees}
+          saving={saving}
+          onClose={() => setShowApplyForEmployee(false)}
+          onSubmit={handleApplyForEmployee}
+        />
+      )}
+      {showGrant && (
+        <GrantLeaveModal
+          leaveTypes={leaveTypes}
+          employees={employees}
+          saving={saving}
+          onClose={() => setShowGrant(false)}
+          onSubmit={handleGrant}
+        />
       )}
       {reviewing && (
         <ReviewModal request={reviewing} onClose={() => setReviewing(null)} onReview={handleReview} />

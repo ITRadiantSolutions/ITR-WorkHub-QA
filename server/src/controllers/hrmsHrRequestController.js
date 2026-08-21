@@ -2,11 +2,12 @@ import HrRequest, { HR_REQUEST_TYPES } from "../models/HrRequest.js";
 import User from "../models/User.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 
 const populateRequest = (query) =>
   query.populate("requestedBy", "name email").populate("assignedTo", "name email");
 
-const hrUserIds = async () => (await User.find({ "roles.hrms": "hr" }).select("_id")).map((u) => u._id);
+const hrUsers = async () => User.find({ "roles.hrms": "hr" }).select("_id email");
 
 export const createHrRequest = async (req, res) => {
   const { type, subject, description } = req.body;
@@ -26,13 +27,18 @@ export const createHrRequest = async (req, res) => {
     type: "database", event: "hrms.hrRequest.created", action: "hrms.hrRequest.created",
     actorId: req.user._id, targetId: hrRequest._id, oldValue: null, newValue: { type, status: "open" },
   });
-  notifyUsers(await hrUserIds(), {
+  const hr = await hrUsers();
+  notifyUsers(hr.map((h) => h._id), {
     title: "New HR request",
     message: `${req.user.name} raised an HR request: "${hrRequest.subject}".`,
     type: "hrRequestSubmitted",
     activityType: "create",
     performedBy: req.user._id,
   });
+  hr.forEach((h) => sendHrmsEmail(
+    h.email, "New HR request awaiting response", "HR request submitted",
+    `<p><strong>${req.user.name}</strong> raised an HR request: <strong>${hrRequest.subject}</strong> (${type.replace(/_/g, " ")}).</p>`,
+  ));
 
   res.status(201).json(await populateRequest(HrRequest.findById(hrRequest._id)));
 };
@@ -72,7 +78,7 @@ export const assignHrRequest = async (req, res) => {
 };
 
 export const resolveHrRequest = async (req, res) => {
-  const hrRequest = await HrRequest.findById(req.params.id);
+  const hrRequest = await HrRequest.findById(req.params.id).populate("requestedBy", "name email");
   if (!hrRequest) return res.status(404).json({ message: "HR request not found" });
   if (hrRequest.status === "resolved") {
     return res.status(409).json({ message: "This request is already resolved" });
@@ -87,13 +93,17 @@ export const resolveHrRequest = async (req, res) => {
     type: "database", event: "hrms.hrRequest.resolved", action: "hrms.hrRequest.resolved",
     actorId: req.user._id, targetId: hrRequest._id, oldValue: { status: "open" }, newValue: { status: "resolved" },
   });
-  notifyUsers([hrRequest.requestedBy], {
+  notifyUsers([hrRequest.requestedBy._id], {
     title: "HR request resolved",
     message: `Your HR request "${hrRequest.subject}" has been resolved.`,
     type: "hrRequestResolved",
     activityType: "status_change",
     performedBy: req.user._id,
   });
+  sendHrmsEmail(
+    hrRequest.requestedBy.email, `Your HR request "${hrRequest.subject}" has been resolved`, "HR request resolved",
+    `<p>Your HR request <strong>${hrRequest.subject}</strong> has been resolved.</p>${hrRequest.resolutionNote ? `<p>${hrRequest.resolutionNote}</p>` : ""}`,
+  );
 
   res.json(await populateRequest(HrRequest.findById(hrRequest._id)));
 };

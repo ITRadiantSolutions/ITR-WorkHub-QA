@@ -1,4 +1,5 @@
 import Designation from "../models/Designation.js";
+import User from "../models/User.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 
 const FIELDS = ["name", "department", "level"];
@@ -20,6 +21,34 @@ export const listDesignations = async (req, res) => {
 
   const designations = await Designation.find(filter).populate("department", "name").sort({ level: -1, name: 1 });
   res.json(designations);
+};
+
+// Same rationale as importDepartmentsFromUsers — bootstraps from the free-text
+// User.designation values Azure AD sync already populated. Left unlinked to a
+// Department here (a designation name isn't reliably 1:1 with a department),
+// HR can set that afterward via the normal edit form.
+export const importDesignationsFromUsers = async (req, res) => {
+  const distinctNames = await User.distinct("designation");
+  const candidateNames = [...new Set(distinctNames.map((n) => n?.trim()).filter(Boolean))];
+
+  const existing = await Designation.find({ name: { $in: candidateNames } }).select("name");
+  const existingNames = new Set(existing.map((d) => d.name));
+  const toCreate = candidateNames.filter((name) => !existingNames.has(name));
+
+  if (toCreate.length === 0) {
+    return res.json({ imported: 0, names: [] });
+  }
+
+  const created = await Designation.insertMany(
+    toCreate.map((name) => ({ name, createdBy: req.user._id })),
+    { ordered: false },
+  );
+
+  writeAuditLog({
+    type: "database", event: "hrms.designation.importedFromUsers", action: "hrms.designation.importedFromUsers",
+    actorId: req.user._id, targetId: null, oldValue: null, newValue: { names: toCreate },
+  });
+  res.json({ imported: created.length, names: created.map((d) => d.name) });
 };
 
 export const createDesignation = async (req, res) => {

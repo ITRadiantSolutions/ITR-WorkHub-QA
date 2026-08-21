@@ -10,13 +10,35 @@ const payslipSchema = new mongoose.Schema(
     components: [
       {
         name: { type: String, required: true, trim: true },
-        type: { type: String, enum: ["earning", "deduction"], required: true },
+        type: { type: String, enum: ["earning", "contribution", "deduction"], required: true },
         amount: { type: Number, required: true },
       },
     ],
     grossEarnings: { type: Number, required: true },
+    totalContributions: { type: Number, default: 0 },
     totalDeductions: { type: Number, required: true },
     netPay: { type: Number, required: true },
+
+    // Everything below is a snapshot of the employee/salary-structure at
+    // generation time, for the same reason `components` is snapshotted —
+    // a later profile edit (e.g. a PAN correction) must never rewrite a
+    // payslip that's already been issued.
+    employeeNumber: { type: String, default: "" },
+    department: { type: String, default: "" },
+    designation: { type: String, default: "" },
+    location: { type: String, default: "" },
+    paymentMode: { type: String, default: "bank_transfer" },
+    uan: { type: String, default: "" },
+    panNumber: { type: String, default: "" },
+    dateOfBirth: { type: Date, default: null },
+    monthlySalary: { type: Number, default: 0 },
+    // Total calendar days in the pay cycle (not working-days-excluding-
+    // weekends — matches how the days/LOP figures read on a standard payslip).
+    totalWorkingDays: { type: Number, default: 0 },
+    lossOfPayDays: { type: Number, default: 0 },
+    actualPayableDays: { type: Number, default: 0 },
+    daysPayable: { type: Number, default: 0 },
+
     status: { type: String, enum: ["generated", "paid"], default: "generated" },
     generatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     paidAt: { type: Date, default: null },

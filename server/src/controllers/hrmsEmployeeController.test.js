@@ -4,9 +4,12 @@ import mongoose from "mongoose";
 vi.mock("../models/User.js", () => ({
   default: { find: vi.fn(), findById: vi.fn(), countDocuments: vi.fn() },
 }));
+vi.mock("../models/ProjectRoleAssignment.js", () => ({ default: {} }));
+vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 
 import User from "../models/User.js";
-import { listEmployees } from "./hrmsEmployeeController.js";
+import { writeAuditLog } from "../utils/activityLog.js";
+import { listEmployees, updateEmployeeHrFields, getOrgChart } from "./hrmsEmployeeController.js";
 
 const oid = () => new mongoose.Types.ObjectId();
 
@@ -95,5 +98,61 @@ describe("listEmployees", () => {
     await listEmployees({ query: { limit: "25" } }, mockRes());
 
     expect(query.skip).toHaveBeenCalledWith(0);
+  });
+});
+
+describe("getOrgChart", () => {
+  it("excludes archived and terminated employees, selecting only tree-relevant fields", async () => {
+    const roster = [{ _id: oid(), name: "A", managerId: null }];
+    const query = makeQuery(roster);
+    User.find.mockReturnValue(query);
+
+    const res = mockRes();
+    await getOrgChart({}, res);
+
+    expect(User.find).toHaveBeenCalledWith({
+      "archived.account": { $ne: true },
+      employmentStatus: { $ne: "terminated" },
+    });
+    expect(query.select).toHaveBeenCalledWith("name email department designation managerId");
+    expect(res.json).toHaveBeenCalledWith(roster);
+  });
+});
+
+describe("updateEmployeeHrFields", () => {
+  it("404s an unknown employee", async () => {
+    User.findById.mockResolvedValueOnce(null);
+    const res = mockRes();
+    await updateEmployeeHrFields({ params: { id: oid().toString() }, body: { employeeId: "EMP1001" }, user: { _id: oid() } }, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("saves employeeId (used to map biometric device PINs) and audit-logs the change", async () => {
+    const employee = { _id: oid(), employeeId: "", save: vi.fn() };
+    User.findById.mockResolvedValueOnce(employee).mockReturnValueOnce(makeQuery({ ...employee, employeeId: "EMP1001" }));
+
+    const actor = { _id: oid() };
+    const req = { params: { id: employee._id.toString() }, body: { employeeId: "EMP1001" }, user: actor };
+    const res = mockRes();
+
+    await updateEmployeeHrFields(req, res);
+
+    expect(employee.employeeId).toBe("EMP1001");
+    expect(employee.save).toHaveBeenCalled();
+    expect(writeAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      actorId: actor._id,
+      newValue: expect.objectContaining({ employeeId: "EMP1001" }),
+    }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ employeeId: "EMP1001" }));
+  });
+
+  it("treats an empty date string as null rather than passing it to the Date caster", async () => {
+    const employee = { _id: oid(), dateOfBirth: new Date("1999-08-02"), save: vi.fn() };
+    User.findById.mockResolvedValueOnce(employee).mockReturnValueOnce(makeQuery({ ...employee, dateOfBirth: null }));
+
+    const req = { params: { id: employee._id.toString() }, body: { dateOfBirth: "" }, user: { _id: oid() } };
+    await updateEmployeeHrFields(req, mockRes());
+
+    expect(employee.dateOfBirth).toBeNull();
   });
 });

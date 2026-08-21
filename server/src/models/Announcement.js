@@ -9,6 +9,14 @@ const announcementSchema = new mongoose.Schema(
     category: { type: String, enum: ANNOUNCEMENT_CATEGORIES, default: "general" },
     isPinned: { type: Boolean, default: false },
     expiresAt: { type: Date, default: null },
+    attachmentBlobName: { type: String, default: "" },
+    attachmentFileName: { type: String, default: "" },
+    acknowledgedBy: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        at: { type: Date, default: Date.now },
+      },
+    ],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true },

@@ -9,10 +9,12 @@ vi.mock("../models/User.js", () => ({ default: { find: vi.fn() } }));
 vi.mock("../config/blobStorage.js", () => ({ uploadAttachment: vi.fn(), createReadUrl: vi.fn(() => "https://signed.example/bill") }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
+vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
 
 import Expense from "../models/Expense.js";
 import User from "../models/User.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 import {
   createExpense,
   listMyExpenses,
@@ -68,12 +70,13 @@ describe("createExpense", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it("creates an expense and notifies the manager", async () => {
+  it("creates an expense, notifies the manager, and emails them", async () => {
     const manager = managerUser();
     const employee = employeeUser(manager._id);
     const created = { _id: oid() };
     Expense.create.mockResolvedValue(created);
     Expense.findById.mockReturnValue(makeQuery({ _id: created._id, status: "submitted" }));
+    User.find.mockReturnValue({ select: vi.fn().mockResolvedValue([{ email: "mo@example.com" }]) });
 
     const req = { body: { category: "travel", amount: 500, expenseDate: "2026-08-01" }, user: employee, file: null };
     const res = mockRes();
@@ -82,6 +85,7 @@ describe("createExpense", () => {
 
     expect(Expense.create).toHaveBeenCalledWith(expect.objectContaining({ employee: employee._id, amount: 500 }));
     expect(notifyUsers).toHaveBeenCalledWith([manager._id], expect.objectContaining({ type: "expenseSubmitted" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("mo@example.com", expect.any(String), expect.any(String), expect.any(String));
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
@@ -159,10 +163,10 @@ describe("reviewExpense", () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
-  it("HR approves a submitted expense and notifies the employee", async () => {
+  it("HR approves a submitted expense, notifies, and emails the employee", async () => {
     const employeeId = oid();
     const expenseDoc = {
-      _id: oid(), status: "submitted", employee: { _id: employeeId, managerId: oid() }, category: "travel",
+      _id: oid(), status: "submitted", employee: { _id: employeeId, email: "eve@example.com", managerId: oid() }, category: "travel",
       save: vi.fn().mockResolvedValue(undefined),
     };
     Expense.findById.mockReturnValue(makeQuery(expenseDoc));
@@ -173,12 +177,13 @@ describe("reviewExpense", () => {
 
     expect(expenseDoc.status).toBe("approved");
     expect(notifyUsers).toHaveBeenCalledWith([employeeId], expect.objectContaining({ type: "expenseApproved" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
   });
 });
 
 describe("markExpenseReimbursed", () => {
   it("409s a non-approved expense", async () => {
-    Expense.findById.mockResolvedValue({ _id: oid(), status: "submitted" });
+    Expense.findById.mockReturnValue(makeQuery({ _id: oid(), status: "submitted" }));
     const req = { params: { id: oid().toString() }, user: hrUser() };
     const res = mockRes();
 
@@ -187,16 +192,20 @@ describe("markExpenseReimbursed", () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
-  it("marks an approved expense reimbursed", async () => {
+  it("marks an approved expense reimbursed, notifies, and emails the employee", async () => {
     const employeeId = oid();
-    const expenseDoc = { _id: oid(), status: "approved", employee: employeeId, category: "travel", save: vi.fn().mockResolvedValue(undefined) };
-    Expense.findById.mockResolvedValue(expenseDoc);
+    const expenseDoc = {
+      _id: oid(), status: "approved", employee: { _id: employeeId, email: "eve@example.com" }, category: "travel",
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    Expense.findById.mockReturnValue(makeQuery(expenseDoc));
 
     const req = { params: { id: expenseDoc._id.toString() }, user: hrUser() };
     await markExpenseReimbursed(req, mockRes());
 
     expect(expenseDoc.status).toBe("reimbursed");
     expect(notifyUsers).toHaveBeenCalledWith([employeeId], expect.objectContaining({ type: "expenseReimbursed" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
   });
 });
 

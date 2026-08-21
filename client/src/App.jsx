@@ -68,6 +68,7 @@ import HrmsReferrals from "./HRMS/pages/Referrals";
 import HrmsEmployees from "./HRMS/pages/Employees";
 import HrmsEmployeeProfile from "./HRMS/pages/EmployeeProfile";
 import HrmsMyTeam from "./HRMS/pages/MyTeam";
+import HrmsOrgChart from "./HRMS/pages/OrgChart";
 import HrmsOrganization from "./HRMS/pages/Organization";
 import HrmsLeave from "./HRMS/pages/Leave";
 import HrmsAttendance from "./HRMS/pages/Attendance";
@@ -544,6 +545,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <HrmsMyTeam />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hrms/org-chart"
+                element={
+                  <ProtectedRoute>
+                    <HrmsOrgChart />
                   </ProtectedRoute>
                 }
               />

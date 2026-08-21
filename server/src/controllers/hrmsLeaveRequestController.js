@@ -1,7 +1,9 @@
 import LeaveRequest from "../models/LeaveRequest.js";
 import LeaveType from "../models/LeaveType.js";
+import LeaveGrant from "../models/LeaveGrant.js";
 import User from "../models/User.js";
 import CompanyHoliday from "../models/CompanyHoliday.js";
+import { uploadAttachment, createReadUrl } from "../config/blobStorage.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 import { notifyUsers } from "../utils/notify.js";
 import { sendHrmsEmail } from "../utils/hrmsMailer.js";
@@ -84,12 +86,16 @@ const computeAccrual = (leaveType, joiningDate, asOf) => {
   return monthlyIncrement(leaveType.defaultDaysPerYear) * Math.min(monthsElapsed, 12);
 };
 
-// How many of last year's unused days roll into `year`, capped at the leave
-// type's carryForwardCap. Approximates last year's allocation using the
-// type's *current* defaultDaysPerYear — the model doesn't keep a history of
-// past allocations, so a mid-year policy change won't retroactively apply.
+// How many of last year's unused days roll into `year`, per the leave type's
+// carryForwardMode: none of it, half of it (rounded to the nearest half
+// day), all of it, or capped at carryForwardCap. Approximates last year's
+// allocation using the type's *current* defaultDaysPerYear — the model
+// doesn't keep a history of past allocations, so a mid-year policy change
+// won't retroactively apply.
 const computeCarryForward = async (employeeId, leaveType, year, joiningDate) => {
-  if (!leaveType.carryForwardCap) return 0;
+  const mode = leaveType.carryForwardMode || "none";
+  if (mode === "none") return 0;
+
   const prevYearStart = new Date(year - 1, 0, 1);
   const prevYearEnd = new Date(year - 1, 11, 31, 23, 59, 59, 999);
   if (joiningDate && joiningDate > prevYearEnd) return 0;
@@ -102,18 +108,35 @@ const computeCarryForward = async (employeeId, leaveType, year, joiningDate) => 
     startDate: { $gte: prevYearStart, $lte: prevYearEnd },
   }).select("paidDays");
   const prevYearUsed = prevYearRequests.reduce((sum, r) => sum + r.paidDays, 0);
-  return Math.max(0, Math.min(leaveType.carryForwardCap, prevYearAllocated - prevYearUsed));
+  const remaining = Math.max(0, prevYearAllocated - prevYearUsed);
+
+  if (mode === "half") return Math.round((remaining / 2) * 2) / 2;
+  if (mode === "all") return remaining;
+  return Math.min(leaveType.carryForwardCap, remaining); // fixed_cap
 };
 
 // "used" only counts paidDays — a loss-of-pay portion doesn't draw down the
 // paid balance (it wasn't payable in the first place).
+// Manual credits HR granted this calendar year (e.g. Comp-Off for weekend
+// work) — for leave types like Comp-Off/Election Day that otherwise accrue
+// nothing on their own, this is the only way a balance ever goes above zero.
+const grantedDaysFor = async (employeeId, leaveTypeId, year) => {
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+  const grants = await LeaveGrant.find({
+    employee: employeeId, leaveType: leaveTypeId, createdAt: { $gte: yearStart, $lte: yearEnd },
+  }).select("days");
+  return grants.reduce((sum, g) => sum + g.days, 0);
+};
+
 const balanceForType = async (employeeId, joiningDate, leaveType, asOf = new Date()) => {
   const year = asOf.getFullYear();
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
 
-  const [carriedForward, requests] = await Promise.all([
+  const [carriedForward, granted, requests] = await Promise.all([
     computeCarryForward(employeeId, leaveType, year, joiningDate),
+    grantedDaysFor(employeeId, leaveType._id, year),
     LeaveRequest.find({
       employee: employeeId,
       leaveType: leaveType._id,
@@ -124,21 +147,47 @@ const balanceForType = async (employeeId, joiningDate, leaveType, asOf = new Dat
 
   const used = requests.reduce((sum, r) => sum + r.paidDays, 0);
   const accrued = computeAccrual(leaveType, joiningDate, asOf);
-  const allocated = accrued + carriedForward;
-  return { accrued, carriedForward, allocated, used, remaining: allocated - used };
+  const allocated = accrued + carriedForward + granted;
+  return { accrued, carriedForward, granted, allocated, used, remaining: allocated - used };
 };
 
-export const createLeaveRequest = async (req, res) => {
+// Self-service requests can't overlap another active request for the same
+// employee, of any type — this is what actually prevents e.g. Sick Leave and
+// Paid Leave being applied for the same day, without hardcoding those two
+// types specifically. HR-on-behalf submissions skip this check, since HR
+// needs to be able to enter/correct overlapping records.
+const hasOverlappingRequest = async (employeeId, start, end) => {
+  const existing = await LeaveRequest.findOne({
+    employee: employeeId,
+    status: { $in: ACTIVE_STATUSES },
+    startDate: { $lte: end },
+    endDate: { $gte: start },
+  }).select("_id");
+  return Boolean(existing);
+};
+
+// Shared by both createLeaveRequest (self-service) and
+// createLeaveRequestForEmployee (HR-on-behalf) — everything about validating
+// and creating a request is identical between them except who the request is
+// for and whether overlapping requests are allowed.
+const submitLeaveRequest = async (req, res, { employee, allowOverlap }) => {
   const { leaveType, startDate, endDate, isHalfDay, halfDaySession, reason } = req.body;
   if (!leaveType) return res.status(400).json({ message: "leaveType is required" });
   if (!startDate || !endDate) return res.status(400).json({ message: "startDate and endDate are required" });
 
   const type = await LeaveType.findById(leaveType);
   if (!type || !type.isActive) return res.status(400).json({ message: "Invalid or inactive leave type" });
+  if (type.requiresDocument && !req.file) {
+    return res.status(400).json({ message: `${type.name} requires a supporting document to be attached` });
+  }
 
   const start = startOfDay(startDate);
   const end = startOfDay(endDate);
   if (start > end) return res.status(400).json({ message: "startDate cannot be after endDate" });
+
+  if (!allowOverlap && (await hasOverlappingRequest(employee._id, start, end))) {
+    return res.status(409).json({ message: "This overlaps an existing leave request for one or more of these dates" });
+  }
 
   let totalDays;
   if (isHalfDay) {
@@ -159,12 +208,12 @@ export const createLeaveRequest = async (req, res) => {
     }
   }
 
-  const balance = await balanceForType(req.user._id, req.user.joiningDate, type, start);
+  const balance = await balanceForType(employee._id, employee.joiningDate, type, start);
   const paidDays = Math.max(0, Math.min(totalDays, balance.remaining));
   const lopDays = totalDays - paidDays;
 
   const leaveRequest = await LeaveRequest.create({
-    employee: req.user._id,
+    employee: employee._id,
     leaveType,
     startDate: start,
     endDate: end,
@@ -174,31 +223,74 @@ export const createLeaveRequest = async (req, res) => {
     paidDays,
     lopDays,
     reason: reason?.trim() || "",
+    appliedBy: req.user._id,
   });
+
+  if (req.file) {
+    const uploaded = await uploadAttachment({
+      buffer: req.file.buffer,
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      scope: "hrms-leave-document",
+      parentId: leaveRequest._id.toString(),
+    });
+    leaveRequest.documentBlobName = uploaded.blobName;
+    leaveRequest.documentFileName = req.file.originalname;
+    await leaveRequest.save();
+  }
 
   writeAuditLog({
     type: "database", event: "hrms.leaveRequest.created", action: "hrms.leaveRequest.created",
-    actorId: req.user._id, targetId: leaveRequest._id, oldValue: null, newValue: { status: "pending_manager", totalDays, lopDays },
+    actorId: req.user._id, targetId: leaveRequest._id, oldValue: null,
+    newValue: { status: "pending_manager", totalDays, lopDays, employee: employee._id.toString() },
   });
 
-  const approverIds = req.user.managerId ? [req.user.managerId] : await hrUserIds();
+  const approverIds = employee.managerId ? [employee.managerId] : await hrUserIds();
   const approvers = await User.find({ _id: { $in: approverIds } }).select("email");
   const lopNote = lopDays > 0 ? ` (${lopDays} day(s) will be unpaid — beyond their balance)` : "";
   notifyUsers(approverIds, {
     title: "New leave request",
-    message: `${req.user.name} applied for ${totalDays} day(s) of ${type.name} leave.${lopNote}`,
+    message: `${employee.name} applied for ${totalDays} day(s) of ${type.name} leave.${lopNote}`,
     type: "leaveRequestSubmitted",
     activityType: "create",
     performedBy: req.user._id,
   });
   approvers.forEach((a) => sendHrmsEmail(
     a.email, "New leave request awaiting your approval", "Leave request submitted",
-    `<p><strong>${req.user.name}</strong> applied for <strong>${totalDays} day(s)</strong> of ${type.name} leave` +
+    `<p><strong>${employee.name}</strong> applied for <strong>${totalDays} day(s)</strong> of ${type.name} leave` +
       `${lopDays > 0 ? `, of which <strong>${lopDays}</strong> would be unpaid (beyond their balance)` : ""}.</p>` +
       `<p>Dates: ${toISODate(start)}${start.getTime() !== end.getTime() ? ` – ${toISODate(end)}` : ""}</p>`,
   ));
 
   res.status(201).json(await populateRequest(LeaveRequest.findById(leaveRequest._id)));
+};
+
+export const createLeaveRequest = (req, res) => submitLeaveRequest(req, res, { employee: req.user, allowOverlap: false });
+
+// HR applying leave on an employee's behalf — e.g. entering a combined
+// sick+paid period the employee couldn't submit themselves as one
+// self-service request, since overlapping requests are blocked there.
+export const createLeaveRequestForEmployee = async (req, res) => {
+  if (req.user.roles.hrms !== "hr") return res.status(403).json({ message: "Forbidden" });
+  const { employeeId } = req.body;
+  if (!employeeId) return res.status(400).json({ message: "employeeId is required" });
+
+  const employee = await User.findById(employeeId).select("name email managerId joiningDate");
+  if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+  await submitLeaveRequest(req, res, { employee, allowOverlap: true });
+};
+
+export const getLeaveDocumentUrl = async (req, res) => {
+  const leaveRequest = await LeaveRequest.findById(req.params.id).select("employee documentBlobName documentFileName");
+  if (!leaveRequest) return res.status(404).json({ message: "Leave request not found" });
+
+  const isOwner = leaveRequest.employee.toString() === req.user._id.toString();
+  const canView = req.user.roles.hrms === "hr" || req.user.roles.hrms === "manager" || isOwner;
+  if (!canView) return res.status(403).json({ message: "Forbidden" });
+  if (!leaveRequest.documentBlobName) return res.status(404).json({ message: "No document attached to this request" });
+
+  res.json({ url: createReadUrl(leaveRequest.documentBlobName), fileName: leaveRequest.documentFileName });
 };
 
 export const listMyLeaveRequests = async (req, res) => {
@@ -297,6 +389,13 @@ const buildLedger = async (employeeId, joiningDate, leaveType, year) => {
     }
   });
 
+  const grants = await LeaveGrant.find({
+    employee: employeeId, leaveType: leaveType._id, createdAt: { $gte: yearStart, $lte: yearEnd },
+  }).sort({ createdAt: 1 });
+  grants.forEach((g) => {
+    entries.push({ date: g.createdAt, change: g.days, reason: g.reason ? `Manually granted — ${g.reason}` : "Manually granted by HR" });
+  });
+
   entries.sort((a, b) => a.date - b.date);
   let running = 0;
   return entries.map((e) => { running += e.change; return { ...e, balance: running }; });
@@ -321,6 +420,45 @@ export const getLeaveLedger = async (req, res) => {
 
   const entries = await buildLedger(employeeId, joiningDate, leaveType, year);
   res.json({ leaveType, entries });
+};
+
+// HR-only manual balance credit — e.g. a Comp-Off day for weekend/holiday
+// work, or an ad-hoc Election Day grant. This is the only way a leave type
+// with no accrual of its own (defaultDaysPerYear: 0) ever has a balance.
+export const grantLeave = async (req, res) => {
+  const { employeeId, leaveTypeId, days, reason } = req.body;
+  if (!employeeId || !leaveTypeId) return res.status(400).json({ message: "employeeId and leaveTypeId are required" });
+  const daysNum = Number(days);
+  if (!Number.isFinite(daysNum) || daysNum <= 0) return res.status(400).json({ message: "days must be a positive number" });
+
+  const [employee, leaveType] = await Promise.all([
+    User.findById(employeeId).select("name email"),
+    LeaveType.findById(leaveTypeId),
+  ]);
+  if (!employee) return res.status(404).json({ message: "Employee not found" });
+  if (!leaveType || !leaveType.isActive) return res.status(400).json({ message: "Invalid or inactive leave type" });
+
+  const grant = await LeaveGrant.create({
+    employee: employeeId, leaveType: leaveTypeId, days: daysNum, reason: reason?.trim() || "", grantedBy: req.user._id,
+  });
+
+  writeAuditLog({
+    type: "database", event: "hrms.leaveGrant.created", action: "hrms.leaveGrant.created",
+    actorId: req.user._id, targetId: grant._id, oldValue: null, newValue: { employee: employeeId, leaveType: leaveTypeId, days: daysNum },
+  });
+  notifyUsers([employeeId], {
+    title: "Leave balance credited",
+    message: `HR credited you ${daysNum} day(s) of ${leaveType.name}${reason ? `: ${reason.trim()}` : ""}.`,
+    type: "leaveGranted",
+    activityType: "create",
+    performedBy: req.user._id,
+  });
+  sendHrmsEmail(
+    employee.email, `${daysNum} day(s) of ${leaveType.name} credited to your balance`, "Leave balance credited",
+    `<p>Hi ${employee.name}, HR credited <strong>${daysNum} day(s)</strong> of <strong>${leaveType.name}</strong> to your balance${reason ? `: ${reason.trim()}` : ""}.</p>`,
+  );
+
+  res.status(201).json(grant);
 };
 
 // Company-wide "who's out" view — any authenticated hrms user can see it

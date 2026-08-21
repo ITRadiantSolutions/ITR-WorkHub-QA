@@ -151,21 +151,24 @@ function PayrollTab({ salaryStructure, navigate }) {
   }
 
   const gross = salaryStructure.components.filter((c) => c.type === "earning").reduce((s, c) => s + c.amount, 0);
+  const contributions = salaryStructure.components.filter((c) => c.type === "contribution").reduce((s, c) => s + c.amount, 0);
   const deductions = salaryStructure.components.filter((c) => c.type === "deduction").reduce((s, c) => s + c.amount, 0);
+  const TYPE_LABELS = { earning: "Earning", contribution: "Contribution", deduction: "Deduction" };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden mb-4">
         {salaryStructure.components.map((c, i) => (
           <div key={i} className="flex justify-between px-4 py-2 text-sm">
-            <span className="text-slate-600">{c.name}</span>
-            <span className={c.type === "deduction" ? "text-red-600" : "text-slate-800"}>{c.type === "deduction" ? "−" : ""}{money(c.amount)}</span>
+            <span className="text-slate-600">{c.name} <span className="text-slate-400 font-normal">({TYPE_LABELS[c.type] || c.type})</span></span>
+            <span className={c.type !== "earning" ? "text-red-600" : "text-slate-800"}>{c.type !== "earning" ? "−" : ""}{money(c.amount)}</span>
           </div>
         ))}
       </div>
       <div className="flex justify-between text-sm text-slate-500"><span>Gross earnings</span><span>{money(gross)}</span></div>
+      <div className="flex justify-between text-sm text-slate-500"><span>Total contributions</span><span>−{money(contributions)}</span></div>
       <div className="flex justify-between text-sm text-slate-500"><span>Total deductions</span><span>−{money(deductions)}</span></div>
-      <div className="flex justify-between text-base font-extrabold text-slate-900 pt-1 border-t border-slate-100 mt-1"><span>Net pay</span><span>{money(gross - deductions)}</span></div>
+      <div className="flex justify-between text-base font-extrabold text-slate-900 pt-1 border-t border-slate-100 mt-1"><span>Net pay</span><span>{money(gross - contributions - deductions)}</span></div>
       <button onClick={() => navigate("/hrms/payroll")} className="mt-4 text-cyan-700 font-semibold text-xs hover:underline">
         Edit in Payroll → Salary Structures
       </button>
@@ -279,7 +282,9 @@ export default function EmployeeProfile() {
   const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("overview");
-  const [form, setForm] = useState({ department: "", designation: "", joiningDate: "", employmentStatus: "active" });
+  const [form, setForm] = useState({
+    department: "", designation: "", joiningDate: "", employmentStatus: "active", employeeId: "", dateOfBirth: "", panNumber: "",
+  });
 
   const [balance, setBalance] = useState([]);
   const [leaveHistory, setLeaveHistory] = useState([]);
@@ -300,6 +305,9 @@ export default function EmployeeProfile() {
           designation: res.data.employee.designation || "",
           joiningDate: res.data.employee.joiningDate ? res.data.employee.joiningDate.slice(0, 10) : "",
           employmentStatus: res.data.employee.employmentStatus || "active",
+          employeeId: res.data.employee.employeeId || "",
+          dateOfBirth: res.data.employee.dateOfBirth ? res.data.employee.dateOfBirth.slice(0, 10) : "",
+          panNumber: res.data.employee.panNumber || "",
         });
       })
       .catch((err) => {
@@ -410,6 +418,23 @@ export default function EmployeeProfile() {
             <div>
               <label className={label}>Reporting manager</label>
               <p className="text-sm text-slate-700 px-3 py-2">{employee.managerId?.name || "—"}</p>
+            </div>
+            <div>
+              <label className={label}>Employee ID</label>
+              <input
+                className={input}
+                value={form.employeeId}
+                onChange={(e) => setForm((p) => ({ ...p, employeeId: e.target.value }))}
+                placeholder="e.g. matches biometric device PIN"
+              />
+            </div>
+            <div>
+              <label className={label}>Date of birth</label>
+              <input type="date" className={input} value={form.dateOfBirth} onChange={(e) => setForm((p) => ({ ...p, dateOfBirth: e.target.value }))} />
+            </div>
+            <div>
+              <label className={label}>PAN number</label>
+              <input className={input} value={form.panNumber} onChange={(e) => setForm((p) => ({ ...p, panNumber: e.target.value.toUpperCase() }))} placeholder="e.g. ABCDE1234F" />
             </div>
           </div>
           <button onClick={save} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-sm font-semibold shadow disabled:opacity-60">

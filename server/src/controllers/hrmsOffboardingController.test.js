@@ -7,12 +7,16 @@ vi.mock("../models/Offboarding.js", () => ({
 vi.mock("../models/AssetAssignment.js", () => ({
   default: { countDocuments: vi.fn().mockResolvedValue(0) },
 }));
+vi.mock("../models/User.js", () => ({ default: { findById: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
+vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
 
 import Offboarding from "../models/Offboarding.js";
 import AssetAssignment from "../models/AssetAssignment.js";
+import User from "../models/User.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 import {
   initiateOffboarding,
   listOffboarding,
@@ -41,10 +45,12 @@ const makeQuery = (result) => {
 };
 
 const hrUser = () => ({ _id: oid(), roles: { hrms: "hr" } });
+const makeSelectQuery = (result) => ({ select: vi.fn().mockResolvedValue(result) });
 
 beforeEach(() => {
   vi.clearAllMocks();
   AssetAssignment.countDocuments.mockResolvedValue(0);
+  User.findById.mockReturnValue(makeSelectQuery({ name: "Eve Employee", email: "eve@example.com" }));
 });
 
 describe("initiateOffboarding", () => {
@@ -55,6 +61,17 @@ describe("initiateOffboarding", () => {
     await initiateOffboarding(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
+    expect(Offboarding.create).not.toHaveBeenCalled();
+  });
+
+  it("404s an unknown employee", async () => {
+    User.findById.mockReturnValue(makeSelectQuery(null));
+    const req = { body: { employeeId: oid().toString(), resignationDate: "2026-08-01", lastWorkingDate: "2026-09-01" }, user: hrUser() };
+    const res = mockRes();
+
+    await initiateOffboarding(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
     expect(Offboarding.create).not.toHaveBeenCalled();
   });
 
@@ -71,7 +88,7 @@ describe("initiateOffboarding", () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
-  it("creates a record and notifies the employee", async () => {
+  it("creates a record, notifies, and emails the employee", async () => {
     const employeeId = oid();
     Offboarding.create.mockResolvedValue({ _id: oid() });
     Offboarding.findById.mockReturnValue(makeQuery(makeDoc({ employee: { _id: employeeId } })));
@@ -83,6 +100,7 @@ describe("initiateOffboarding", () => {
 
     expect(Offboarding.create).toHaveBeenCalledWith(expect.objectContaining({ employee: employeeId.toString() }));
     expect(notifyUsers).toHaveBeenCalledWith([employeeId.toString()], expect.objectContaining({ type: "offboardingInitiated" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
     expect(res.status).toHaveBeenCalledWith(201);
   });
 });
@@ -139,7 +157,7 @@ describe("recordExitInterview", () => {
 
 describe("processFinalSettlement", () => {
   it("409s when the exit interview hasn't been conducted", async () => {
-    Offboarding.findById.mockResolvedValue(makeDoc({ _id: oid(), exitInterview: { conducted: false } }));
+    Offboarding.findById.mockReturnValue(makeQuery(makeDoc({ _id: oid(), exitInterview: { conducted: false } })));
     const req = { params: { id: oid().toString() }, body: {}, user: hrUser() };
     const res = mockRes();
 
@@ -149,7 +167,7 @@ describe("processFinalSettlement", () => {
   });
 
   it("409s when assets are still pending return", async () => {
-    Offboarding.findById.mockResolvedValue(makeDoc({ _id: oid(), employee: oid(), exitInterview: { conducted: true } }));
+    Offboarding.findById.mockReturnValue(makeQuery(makeDoc({ _id: oid(), employee: { _id: oid() }, exitInterview: { conducted: true } })));
     AssetAssignment.countDocuments.mockResolvedValue(1);
 
     const req = { params: { id: oid().toString() }, body: {}, user: hrUser() };
@@ -160,13 +178,13 @@ describe("processFinalSettlement", () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
-  it("clears the employee once interview is done and assets are returned", async () => {
+  it("clears the employee, notifies, and emails them once interview is done and assets are returned", async () => {
     const employeeId = oid();
     const offboarding = makeDoc({
-      _id: oid(), employee: employeeId, exitInterview: { conducted: true },
+      _id: oid(), employee: { _id: employeeId, name: "Eve Employee", email: "eve@example.com" }, exitInterview: { conducted: true },
       save: vi.fn().mockResolvedValue(undefined),
     });
-    Offboarding.findById.mockResolvedValueOnce(offboarding).mockReturnValueOnce(makeQuery(makeDoc({ employee: { _id: employeeId } })));
+    Offboarding.findById.mockReturnValueOnce(makeQuery(offboarding)).mockReturnValueOnce(makeQuery(makeDoc({ employee: { _id: employeeId } })));
     AssetAssignment.countDocuments.mockResolvedValue(0);
 
     const req = { params: { id: offboarding._id.toString() }, body: { notes: "All settled" }, user: hrUser() };
@@ -174,5 +192,7 @@ describe("processFinalSettlement", () => {
 
     expect(offboarding.finalSettlement.processed).toBe(true);
     expect(offboarding.status).toBe("cleared");
+    expect(notifyUsers).toHaveBeenCalledWith([employeeId], expect.objectContaining({ type: "offboardingSettled" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
   });
 });

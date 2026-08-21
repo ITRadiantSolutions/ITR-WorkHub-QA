@@ -1,7 +1,9 @@
 import AssetAssignment from "../models/AssetAssignment.js";
 import Asset from "../models/Asset.js";
+import User from "../models/User.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 
 const populateAssignment = (query) =>
   query.populate("asset").populate("employee", "name email").populate("assignedBy", "name email");
@@ -13,6 +15,9 @@ export const assignAsset = async (req, res) => {
   const asset = await Asset.findById(assetId);
   if (!asset) return res.status(404).json({ message: "Asset not found" });
   if (asset.status !== "available") return res.status(409).json({ message: `Asset is currently '${asset.status}', not available` });
+
+  const employee = await User.findById(employeeId).select("name email");
+  if (!employee) return res.status(404).json({ message: "Employee not found" });
 
   const assignment = await AssetAssignment.create({ asset: assetId, employee: employeeId, assignedBy: req.user._id });
   asset.status = "assigned";
@@ -29,6 +34,10 @@ export const assignAsset = async (req, res) => {
     activityType: "create",
     performedBy: req.user._id,
   });
+  sendHrmsEmail(
+    employee.email, "An asset has been assigned to you", "Asset assigned",
+    `<p>Hi ${employee.name}, <strong>${asset.name}</strong> (${asset.assetTag}) has been assigned to you.</p>`,
+  );
 
   res.status(201).json(await populateAssignment(AssetAssignment.findById(assignment._id)));
 };

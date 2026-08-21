@@ -8,10 +8,12 @@ vi.mock("../models/HrRequest.js", () => ({
 vi.mock("../models/User.js", () => ({ default: { find: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
+vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
 
 import HrRequest from "../models/HrRequest.js";
 import User from "../models/User.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 import { createHrRequest, listMyHrRequests, listHrRequests, assignHrRequest, resolveHrRequest } from "./hrmsHrRequestController.js";
 
 const oid = () => new mongoose.Types.ObjectId();
@@ -59,12 +61,12 @@ describe("createHrRequest", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it("creates a request and notifies HR", async () => {
+  it("creates a request, notifies HR, and emails them", async () => {
     const employee = employeeUser();
     HrRequest.create.mockResolvedValue({ _id: oid() });
     HrRequest.findById.mockReturnValue(makeQuery({ _id: oid() }));
-    const hrIds = [oid()];
-    User.find.mockReturnValue({ select: vi.fn().mockResolvedValue(hrIds.map((id) => ({ _id: id }))) });
+    const hrId = oid();
+    User.find.mockReturnValue({ select: vi.fn().mockResolvedValue([{ _id: hrId, email: "helen@example.com" }]) });
 
     const req = { body: { type: "salary_certificate", subject: "Need a salary certificate" }, user: employee };
     const res = mockRes();
@@ -74,7 +76,8 @@ describe("createHrRequest", () => {
     expect(HrRequest.create).toHaveBeenCalledWith(
       expect.objectContaining({ requestedBy: employee._id, type: "salary_certificate" }),
     );
-    expect(notifyUsers).toHaveBeenCalledWith(hrIds, expect.objectContaining({ type: "hrRequestSubmitted" }));
+    expect(notifyUsers).toHaveBeenCalledWith([hrId], expect.objectContaining({ type: "hrRequestSubmitted" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("helen@example.com", expect.any(String), expect.any(String), expect.any(String));
     expect(res.status).toHaveBeenCalledWith(201);
   });
 });
@@ -138,7 +141,7 @@ describe("assignHrRequest", () => {
 
 describe("resolveHrRequest", () => {
   it("409s resolving an already-resolved request", async () => {
-    HrRequest.findById.mockResolvedValueOnce({ _id: oid(), status: "resolved" });
+    HrRequest.findById.mockReturnValueOnce(makeQuery({ _id: oid(), status: "resolved" }));
     const req = { params: { id: oid().toString() }, body: {}, user: hrUser() };
     const res = mockRes();
 
@@ -147,10 +150,13 @@ describe("resolveHrRequest", () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
-  it("resolves and notifies the requester", async () => {
+  it("resolves, notifies, and emails the requester", async () => {
     const requesterId = oid();
-    const doc = { _id: oid(), status: "in_progress", requestedBy: requesterId, subject: "Salary certificate", save: vi.fn().mockResolvedValue(undefined) };
-    HrRequest.findById.mockResolvedValueOnce(doc).mockReturnValueOnce(makeQuery({ ...doc, status: "resolved" }));
+    const doc = {
+      _id: oid(), status: "in_progress", requestedBy: { _id: requesterId, email: "eve@example.com" },
+      subject: "Salary certificate", save: vi.fn().mockResolvedValue(undefined),
+    };
+    HrRequest.findById.mockReturnValueOnce(makeQuery(doc)).mockReturnValueOnce(makeQuery({ ...doc, status: "resolved" }));
 
     const req = { params: { id: doc._id.toString() }, body: { resolutionNote: "Emailed" }, user: hrUser() };
     await resolveHrRequest(req, mockRes());
@@ -158,5 +164,6 @@ describe("resolveHrRequest", () => {
     expect(doc.status).toBe("resolved");
     expect(doc.resolutionNote).toBe("Emailed");
     expect(notifyUsers).toHaveBeenCalledWith([requesterId], expect.objectContaining({ type: "hrRequestResolved" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
   });
 });

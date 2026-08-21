@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Fingerprint, X, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Fingerprint, X, CheckCircle2, ChevronLeft, ChevronRight, Send, Check, XCircle } from "lucide-react";
 import { attendanceApi, employeesApi } from "../hrmsApi";
 import { isHRMS_HR, isHRMS_Manager } from "../../utils/hrmsrolecheck";
 import { useAuth } from "../../context/AuthContext";
@@ -24,6 +24,12 @@ const STATUS_LABELS = {
   weekend: "Weekend",
 };
 const STATUS_OPTIONS = Object.keys(STATUS_TONE);
+
+const REQUEST_STATUS_TONE = {
+  pending: "bg-amber-50 text-amber-700",
+  approved: "bg-emerald-50 text-emerald-700",
+  rejected: "bg-red-50 text-red-700",
+};
 
 const Badge = ({ status }) => (
   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_TONE[status] || "bg-slate-100 text-slate-600"}`}>
@@ -176,10 +182,142 @@ function DayDetailsModal({ day, onClose, canRegularize, onRegularized }) {
   );
 }
 
+function RegularizationRequestModal({ defaultDate, onClose, onSubmitted }) {
+  const [date, setDate] = useState(defaultDate || todayStr());
+  const [status, setStatus] = useState("present");
+  const [firstIn, setFirstIn] = useState("");
+  const [lastOut, setLastOut] = useState("");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (!reason.trim()) {
+      toast.error("Please explain why this needs correcting");
+      return;
+    }
+    setSaving(true);
+    try {
+      await attendanceApi.requestRegularization({
+        date,
+        requestedStatus: status,
+        requestedFirstIn: firstIn ? `${date}T${firstIn}:00` : undefined,
+        requestedLastOut: lastOut ? `${date}T${lastOut}:00` : undefined,
+        reason: reason.trim(),
+      });
+      toast.success("Regularization request submitted");
+      onSubmitted();
+      onClose();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to submit request");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">Request correction</h2>
+          <button onClick={onClose}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 mb-1">Date</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 mb-1">Correct status</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm">
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">First in (optional)</label>
+            <input type="time" value={firstIn} onChange={(e) => setFirstIn(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Last out (optional)</label>
+            <input type="time" value={lastOut} onChange={(e) => setLastOut(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 mb-1">Reason</label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={2}
+            placeholder="e.g. Device was offline, forgot to swipe"
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"
+          />
+        </div>
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-700 text-white text-xs font-semibold disabled:opacity-60"
+        >
+          <Send className="w-3.5 h-3.5" /> {saving ? "Submitting..." : "Submit request"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MyRequestsList({ requests }) {
+  if (!requests.length) return null;
+  return (
+    <div className="mt-6">
+      <p className="text-xs font-semibold text-slate-500 mb-2">My regularization requests</p>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-400">
+            <tr>
+              <th className="text-left px-4 py-2.5">Date</th>
+              <th className="text-left px-4 py-2.5">Requested</th>
+              <th className="text-left px-4 py-2.5">Reason</th>
+              <th className="text-left px-4 py-2.5">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {requests.map((r) => (
+              <tr key={r._id}>
+                <td className="px-4 py-2.5 text-slate-700">{fmtDate(r.date)}</td>
+                <td className="px-4 py-2.5">
+                  <Badge status={r.requestedStatus} />
+                </td>
+                <td className="px-4 py-2.5 text-slate-500">{r.reason}</td>
+                <td className="px-4 py-2.5">
+                  <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${REQUEST_STATUS_TONE[r.status]}`}>{r.status}</span>
+                  {r.decisionComment && <span className="block text-[11px] text-slate-400 mt-0.5">{r.decisionComment}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function MyAttendance() {
   const [month, setMonth] = useState(() => todayStr().slice(0, 7));
   const [days, setDays] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+
+  const loadRequests = useCallback(() => {
+    attendanceApi
+      .myRequests()
+      .then((r) => setMyRequests(r.data || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Refetch when the selected month changes — not an initial-mount-only effect.
@@ -192,6 +330,10 @@ function MyAttendance() {
       .finally(() => setLoading(false));
   }, [month]);
 
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -201,6 +343,12 @@ function MyAttendance() {
           onChange={(e) => setMonth(e.target.value)}
           className="border border-slate-200 rounded-xl px-3 py-2 text-sm"
         />
+        <button
+          onClick={() => setShowRequestModal(true)}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-700 text-white text-xs font-semibold"
+        >
+          <Send className="w-3.5 h-3.5" /> Request correction
+        </button>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -244,6 +392,163 @@ function MyAttendance() {
           </tbody>
         </table>
       </div>
+
+      <MyRequestsList requests={myRequests} />
+
+      {showRequestModal && (
+        <RegularizationRequestModal
+          onClose={() => setShowRequestModal(false)}
+          onSubmitted={loadRequests}
+        />
+      )}
+    </div>
+  );
+}
+
+function RegularizationReviewModal({ request, onClose, onDecided }) {
+  const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const decide = async (action) => {
+    setSaving(true);
+    try {
+      await attendanceApi.reviewRequest(request._id, action, comment);
+      toast.success(action === "approve" ? "Request approved" : "Request rejected");
+      onDecided();
+      onClose();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to submit decision");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">{request.employee?.name}</h2>
+          <button onClick={onClose}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">{fmtDate(request.date)}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500">Requesting:</span>
+          <Badge status={request.requestedStatus} />
+        </div>
+        {(request.requestedFirstIn || request.requestedLastOut) && (
+          <p className="text-xs text-slate-500">
+            {request.requestedFirstIn && `In ${fmtTime(request.requestedFirstIn)}`}
+            {request.requestedFirstIn && request.requestedLastOut && " · "}
+            {request.requestedLastOut && `Out ${fmtTime(request.requestedLastOut)}`}
+          </p>
+        )}
+        <p className="text-sm text-slate-600 bg-slate-50 rounded-xl p-3">{request.reason}</p>
+
+        {request.status === "pending" ? (
+          <>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={2}
+              placeholder="Comment (optional)"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => decide("reject")}
+                disabled={saving}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-red-200 text-red-600 text-xs font-semibold disabled:opacity-60"
+              >
+                <XCircle className="w-3.5 h-3.5" /> Reject
+              </button>
+              <button
+                onClick={() => decide("approve")}
+                disabled={saving}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-700 text-white text-xs font-semibold disabled:opacity-60"
+              >
+                <Check className="w-3.5 h-3.5" /> Approve
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className={`text-xs font-semibold px-3 py-2 rounded-xl ${REQUEST_STATUS_TONE[request.status]}`}>
+            {request.status === "approved" ? "Approved" : "Rejected"}
+            {request.decisionComment && ` — ${request.decisionComment}`}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RegularizationQueue({ isHr }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const call = isHr ? attendanceApi.allRequests() : attendanceApi.teamRequests();
+    call
+      .then((r) => setRequests(r.data || []))
+      .catch(() => toast.error("Failed to load requests"))
+      .finally(() => setLoading(false));
+  }, [isHr]);
+
+  useEffect(() => {
+    // Refetch if the viewer's role scope (hr vs manager) changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
+  return (
+    <div>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-400">
+            <tr>
+              <th className="text-left px-4 py-2.5">Employee</th>
+              <th className="text-left px-4 py-2.5">Date</th>
+              <th className="text-left px-4 py-2.5">Requested</th>
+              <th className="text-left px-4 py-2.5">Reason</th>
+              <th className="text-left px-4 py-2.5">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-slate-400">
+                  Loading...
+                </td>
+              </tr>
+            ) : requests.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-slate-400 italic">
+                  No regularization requests.
+                </td>
+              </tr>
+            ) : (
+              requests.map((r) => (
+                <tr key={r._id} onClick={() => setSelected(r)} className="cursor-pointer hover:bg-slate-50">
+                  <td className="px-4 py-2.5 text-slate-700 font-medium">{r.employee?.name || "—"}</td>
+                  <td className="px-4 py-2.5 text-slate-600">{fmtDate(r.date)}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge status={r.requestedStatus} />
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-500 max-w-xs truncate">{r.reason}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${REQUEST_STATUS_TONE[r.status]}`}>{r.status}</span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {selected && <RegularizationReviewModal request={selected} onClose={() => setSelected(null)} onDecided={load} />}
     </div>
   );
 }
@@ -460,10 +765,18 @@ export default function Attendance() {
           >
             {hr ? "All Employees" : "My Team"}
           </button>
+          <button
+            onClick={() => setTab("requests")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold ${tab === "requests" ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600"}`}
+          >
+            Regularization Requests
+          </button>
         </div>
       )}
 
-      {tab === "mine" ? <MyAttendance /> : <TeamAttendance isHr={hr} />}
+      {tab === "mine" && <MyAttendance />}
+      {tab === "team" && <TeamAttendance isHr={hr} />}
+      {tab === "requests" && <RegularizationQueue isHr={hr} />}
     </div>
   );
 }

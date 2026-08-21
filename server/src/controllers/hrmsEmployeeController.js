@@ -5,7 +5,8 @@ import { writeAuditLog } from "../utils/activityLog.js";
 // HR-specific employee-profile fields only — role/manager/archive are edited
 // through the existing generic /api/users/:id endpoints (see hrmsRoutes.md /
 // userController.js), so this controller doesn't duplicate that logic.
-const HR_EDITABLE_FIELDS = ["department", "designation", "joiningDate", "employmentStatus"];
+const HR_EDITABLE_FIELDS = ["department", "designation", "joiningDate", "employmentStatus", "employeeId", "dateOfBirth", "panNumber"];
+const DATE_FIELDS = ["joiningDate", "dateOfBirth"];
 
 // `limit` is opt-in: existing callers that just want the full roster for a
 // <select> (Payroll, Assets, Lifecycle, Documents pickers) keep getting a
@@ -38,6 +39,18 @@ export const listEmployees = async (req, res) => {
   res.json(employees);
 };
 
+// Flat roster (not a pre-built tree) so the client owns the layout — matches
+// the pattern used elsewhere in HRMS (e.g. MyTeam.jsx builds its own list
+// from raw records) and keeps this endpoint reusable for search/filter too.
+// Open to any HRMS user (not HR-only): everyone should be able to browse the
+// org chart, same as Keka.
+export const getOrgChart = async (req, res) => {
+  const employees = await User.find({ "archived.account": { $ne: true }, employmentStatus: { $ne: "terminated" } })
+    .select("name email department designation managerId")
+    .sort({ name: 1 });
+  res.json(employees);
+};
+
 export const getEmployeeProfile = async (req, res) => {
   const employee = await User.findById(req.params.id).select("-password").populate("managerId", "name email");
   if (!employee) return res.status(404).json({ message: "Employee not found" });
@@ -57,9 +70,12 @@ export const updateEmployeeHrFields = async (req, res) => {
   const newValue = {};
   for (const field of HR_EDITABLE_FIELDS) {
     if (req.body[field] === undefined) continue;
+    // An empty date <input> submits "" — Mongoose's Date caster rejects
+    // that (Invalid Date) rather than treating it as "unset".
+    const value = DATE_FIELDS.includes(field) && req.body[field] === "" ? null : req.body[field];
     oldValue[field] = employee[field];
-    employee[field] = req.body[field];
-    newValue[field] = req.body[field];
+    employee[field] = value;
+    newValue[field] = value;
   }
   await employee.save();
 

@@ -8,11 +8,15 @@ vi.mock("../models/SalaryStructure.js", () => ({
   default: { findOne: vi.fn(), find: vi.fn() },
 }));
 vi.mock("../models/User.js", () => ({ default: { findById: vi.fn() } }));
+vi.mock("../models/LeaveRequest.js", () => ({ default: { find: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
 vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
 vi.mock("pdfkit", () => {
+  // Real pdfkit tracks a cursor via the settable `y` property (our layout
+  // code both reads and assigns doc.y), so a getter-only stub isn't enough.
   class FakePDFDocument {
+    constructor() { this._y = 100; this._handlers = {}; }
     pipe() { return this; }
     fontSize() { return this; }
     font() { return this; }
@@ -23,8 +27,17 @@ vi.mock("pdfkit", () => {
     moveTo() { return this; }
     lineTo() { return this; }
     stroke() { return this; }
-    end() { return this; }
-    get y() { return 100; }
+    image() { return this; }
+    on(event, handler) { this._handlers[event] = handler; return this; }
+    end() {
+      // Mimics the buffer-rendering path (renderPayslipPdfBuffer): emit one
+      // data chunk then end, synchronously, so tests can await the Promise.
+      this._handlers.data?.(Buffer.from("fake-pdf-bytes"));
+      this._handlers.end?.();
+      return this;
+    }
+    get y() { return this._y; }
+    set y(value) { this._y = value; }
   }
   return { default: FakePDFDocument };
 });
@@ -32,6 +45,7 @@ vi.mock("pdfkit", () => {
 import Payslip from "../models/Payslip.js";
 import SalaryStructure from "../models/SalaryStructure.js";
 import User from "../models/User.js";
+import LeaveRequest from "../models/LeaveRequest.js";
 import { notifyUsers } from "../utils/notify.js";
 import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 import {
@@ -55,8 +69,36 @@ const mockRes = () => {
 
 const hrUser = () => ({ _id: oid(), roles: { hrms: "hr" } });
 
+// notifyPayslipGenerated renders the PDF (for the email attachment) on a
+// fire-and-forget .then()/.catch() chain, deliberately not awaited by the
+// controller so a slow render never delays the HTTP response — flush the
+// microtask queue so that background work settles before asserting on it.
+const flushMicrotasks = () => new Promise((resolve) => setImmediate(resolve));
+
+// Enough fields for drawPayslipPdf to render without throwing — Payslip.create
+// is mocked, so nothing here needs to be a real Mongoose document.
+const fullPayslip = (overrides = {}) => ({
+  _id: oid(), month: 8, year: 2026, status: "generated",
+  components: [{ name: "Basic", type: "earning", amount: 1000 }],
+  grossEarnings: 1000, totalContributions: 0, totalDeductions: 0, netPay: 1000,
+  employeeNumber: "", department: "", designation: "", location: "", paymentMode: "bank_transfer",
+  uan: "", panNumber: "", dateOfBirth: null, monthlySalary: 0,
+  totalWorkingDays: 31, lossOfPayDays: 0, actualPayableDays: 31, daysPayable: 31,
+  ...overrides,
+});
+
+// User.findById(...).select(...).populate("locationId", "name") — resolves
+// directly, since the controller always awaits the full chain.
+const makeUserQuery = (result) => {
+  const query = {};
+  query.select = vi.fn().mockReturnValue(query);
+  query.populate = vi.fn().mockResolvedValue(result);
+  return query;
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
+  LeaveRequest.find.mockReturnValue({ select: vi.fn().mockResolvedValue([]) });
 });
 
 describe("generatePayslip", () => {
@@ -72,7 +114,7 @@ describe("generatePayslip", () => {
 
   it("404s when the employee has no salary structure", async () => {
     SalaryStructure.findOne.mockResolvedValue(null);
-    User.findById.mockReturnValue({ select: vi.fn().mockResolvedValue({ _id: oid(), name: "Eve", email: "eve@example.com" }) });
+    User.findById.mockReturnValue(makeUserQuery({ _id: oid(), name: "Eve", email: "eve@example.com" }));
     const req = { body: { employeeId: oid().toString(), month: 8, year: 2026 }, user: hrUser() };
     const res = mockRes();
 
@@ -81,34 +123,67 @@ describe("generatePayslip", () => {
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
-  it("computes gross/deductions/net and notifies + emails the employee", async () => {
+  it("computes gross/contributions/deductions/net, snapshots profile fields, and notifies + emails the employee", async () => {
     const employeeId = oid();
     SalaryStructure.findOne.mockResolvedValue({
       components: [
         { name: "Basic", type: "earning", amount: 50000 },
         { name: "HRA", type: "earning", amount: 10000 },
-        { name: "PF", type: "deduction", amount: 1800 },
+        { name: "PF Employee", type: "contribution", amount: 1800 },
+        { name: "Professional Tax", type: "deduction", amount: 200 },
       ],
+      paymentMode: "bank_transfer",
+      uan: "101655166440",
+      monthlySalary: 60000,
     });
-    User.findById.mockReturnValue({ select: vi.fn().mockResolvedValue({ _id: employeeId, name: "Eve", email: "eve@example.com" }) });
-    Payslip.create.mockResolvedValue({ _id: oid() });
+    User.findById.mockReturnValue(makeUserQuery({
+      _id: employeeId, name: "Eve", email: "eve@example.com", employeeId: "EMP1001",
+      department: "Engineering", designation: "Developer", panNumber: "ABCDE1234F",
+      dateOfBirth: new Date("1999-08-02"), locationId: { name: "Hyderabad" },
+    }));
+    Payslip.create.mockResolvedValue(fullPayslip({ employee: employeeId, netPay: 58000 }));
 
     const req = { body: { employeeId: employeeId.toString(), month: 8, year: 2026 }, user: hrUser() };
     const res = mockRes();
 
     await generatePayslip(req, res);
+    await flushMicrotasks();
 
     expect(Payslip.create).toHaveBeenCalledWith(
-      expect.objectContaining({ grossEarnings: 60000, totalDeductions: 1800, netPay: 58200 }),
+      expect.objectContaining({
+        grossEarnings: 60000, totalContributions: 1800, totalDeductions: 200, netPay: 58000,
+        employeeNumber: "EMP1001", department: "Engineering", designation: "Developer",
+        location: "Hyderabad", panNumber: "ABCDE1234F", uan: "101655166440", monthlySalary: 60000,
+        totalWorkingDays: 31, lossOfPayDays: 0, actualPayableDays: 31, daysPayable: 31,
+      }),
     );
     expect(notifyUsers).toHaveBeenCalledWith([employeeId], expect.objectContaining({ type: "payslipGenerated" }));
-    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
+    expect(sendHrmsEmail).toHaveBeenCalledWith(
+      "eve@example.com", expect.any(String), expect.any(String), expect.any(String),
+      [expect.objectContaining({ filename: expect.stringContaining(".pdf"), content: expect.any(Buffer), contentType: "application/pdf" })],
+    );
     expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it("attributes a month's loss-of-pay days from approved leave requests starting that month", async () => {
+    const employeeId = oid();
+    SalaryStructure.findOne.mockResolvedValue({ components: [{ name: "Basic", type: "earning", amount: 30000 }] });
+    User.findById.mockReturnValue(makeUserQuery({ _id: employeeId, name: "Eve", email: "eve@example.com" }));
+    LeaveRequest.find.mockReturnValue({ select: vi.fn().mockResolvedValue([{ lopDays: 1.5 }, { lopDays: 2 }]) });
+    Payslip.create.mockResolvedValue(fullPayslip());
+
+    const req = { body: { employeeId: employeeId.toString(), month: 8, year: 2026 }, user: hrUser() };
+    await generatePayslip(req, mockRes());
+    await flushMicrotasks();
+
+    expect(Payslip.create).toHaveBeenCalledWith(
+      expect.objectContaining({ lossOfPayDays: 3.5, totalWorkingDays: 31, actualPayableDays: 27.5, daysPayable: 27.5 }),
+    );
   });
 
   it("409s a duplicate period", async () => {
     SalaryStructure.findOne.mockResolvedValue({ components: [{ name: "Basic", type: "earning", amount: 1000 }] });
-    User.findById.mockReturnValue({ select: vi.fn().mockResolvedValue({ _id: oid(), name: "Eve", email: "eve@example.com" }) });
+    User.findById.mockReturnValue(makeUserQuery({ _id: oid(), name: "Eve", email: "eve@example.com" }));
     const error = new Error("dup");
     error.code = 11000;
     Payslip.create.mockRejectedValue(error);
@@ -145,12 +220,13 @@ describe("generateBulkPayslips", () => {
         { employee: archived, components: [{ name: "Basic", type: "earning", amount: 1000 }] },
       ]),
     });
-    Payslip.create.mockResolvedValue({ _id: oid() });
+    Payslip.create.mockResolvedValue(fullPayslip());
 
     const req = { body: { month: 8, year: 2026 }, user: hrUser() };
     const res = mockRes();
 
     await generateBulkPayslips(req, res);
+    await flushMicrotasks();
 
     expect(Payslip.create).toHaveBeenCalledTimes(1);
     expect(Payslip.create).toHaveBeenCalledWith(expect.objectContaining({ employee: active._id }));
@@ -266,8 +342,15 @@ describe("getPayslipPdf", () => {
     const employee = { _id: oid(), name: "Eve", email: "e@example.com" };
     const payslip = {
       _id: oid(), month: 8, year: 2026, status: "generated", employee,
-      components: [{ name: "Basic", type: "earning", amount: 1000 }],
-      grossEarnings: 1000, totalDeductions: 0, netPay: 1000,
+      components: [
+        { name: "Basic", type: "earning", amount: 1000 },
+        { name: "PF Employee", type: "contribution", amount: 100 },
+        { name: "Professional Tax", type: "deduction", amount: 50 },
+      ],
+      grossEarnings: 1000, totalContributions: 100, totalDeductions: 50, netPay: 850,
+      employeeNumber: "EMP1001", department: "Engineering", designation: "Developer", location: "Hyderabad",
+      paymentMode: "bank_transfer", uan: "101655166440", panNumber: "ABCDE1234F", dateOfBirth: new Date("1999-08-02"),
+      monthlySalary: 60000, totalWorkingDays: 31, lossOfPayDays: 0, actualPayableDays: 31, daysPayable: 31,
     };
     Payslip.findById.mockReturnValue({ populate: vi.fn().mockResolvedValue(payslip) });
 

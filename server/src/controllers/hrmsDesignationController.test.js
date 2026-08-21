@@ -2,12 +2,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import mongoose from "mongoose";
 
 vi.mock("../models/Designation.js", () => ({
-  default: { create: vi.fn(), find: vi.fn(), findById: vi.fn() },
+  default: { create: vi.fn(), find: vi.fn(), findById: vi.fn(), insertMany: vi.fn() },
 }));
+vi.mock("../models/User.js", () => ({ default: { distinct: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 
 import Designation from "../models/Designation.js";
-import { listDesignations, createDesignation, updateDesignation, setDesignationStatus } from "./hrmsDesignationController.js";
+import User from "../models/User.js";
+import {
+  listDesignations,
+  createDesignation,
+  updateDesignation,
+  setDesignationStatus,
+  importDesignationsFromUsers,
+} from "./hrmsDesignationController.js";
 
 const oid = () => new mongoose.Types.ObjectId();
 
@@ -87,6 +95,34 @@ describe("updateDesignation", () => {
     await updateDesignation(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+});
+
+describe("importDesignationsFromUsers", () => {
+  it("creates a designation for each distinct, non-empty User.designation not already present", async () => {
+    User.distinct.mockResolvedValue(["Software Engineer", "", null, "Software Engineer", "QA Lead"]);
+    Designation.find.mockReturnValue({ select: vi.fn().mockResolvedValue([{ name: "QA Lead" }]) });
+    Designation.insertMany.mockResolvedValue([{ name: "Software Engineer" }]);
+
+    const res = mockRes();
+    await importDesignationsFromUsers({ user: hrUser() }, res);
+
+    expect(Designation.insertMany).toHaveBeenCalledWith(
+      [expect.objectContaining({ name: "Software Engineer" })],
+      { ordered: false },
+    );
+    expect(res.json).toHaveBeenCalledWith({ imported: 1, names: ["Software Engineer"] });
+  });
+
+  it("does nothing when there are no distinct designation values", async () => {
+    User.distinct.mockResolvedValue([]);
+    Designation.find.mockReturnValue({ select: vi.fn().mockResolvedValue([]) });
+
+    const res = mockRes();
+    await importDesignationsFromUsers({ user: hrUser() }, res);
+
+    expect(Designation.insertMany).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ imported: 0, names: [] });
   });
 });
 

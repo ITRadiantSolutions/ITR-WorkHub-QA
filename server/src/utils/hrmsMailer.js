@@ -14,10 +14,10 @@ ${bodyHtml}
 <p style="margin-top:16px;font-weight:600;color:#0e7490;">HRMS</p>
 </td></tr></table></body></html>`;
 
-export async function sendHrmsEmail(toEmail, subject, title, bodyHtml) {
+export async function sendHrmsEmail(toEmail, subject, title, bodyHtml, attachments = []) {
   if (!toEmail) return;
   try {
-    await sendMail(toEmail, subject, wrap(title, bodyHtml));
+    await sendMail(toEmail, subject, wrap(title, bodyHtml), { attachments });
   } catch (error) {
     console.error("sendHrmsEmail failed:", error.message);
   }

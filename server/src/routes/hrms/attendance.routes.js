@@ -10,6 +10,11 @@ import {
   getEmployeePunches,
   getMyAttendance,
   regularizeDay,
+  createRegularizationRequest,
+  listMyRegularizationRequests,
+  listTeamRegularizationRequests,
+  listRegularizationRequests,
+  reviewRegularizationRequest,
 } from "../../controllers/hrmsAttendanceController.js";
 
 const router = Router();
@@ -23,6 +28,16 @@ router.use(protect, requireModuleAccess("hrms"));
 
 router.get("/mine", getMyAttendance);
 router.get("/summary", allowRoles("hrms", "hr", "manager"), getDailySummary);
+
+// Self-service regularization requests — literal paths registered ahead of
+// the /:employeeId/punches param route below, though "punches" as the fixed
+// second segment there means there's no actual overlap either way.
+router.post("/requests", createRegularizationRequest);
+router.get("/requests/mine", listMyRegularizationRequests);
+router.get("/requests/team", allowRoles("hrms", "manager"), listTeamRegularizationRequests);
+router.get("/requests", allowRoles("hrms", "hr"), listRegularizationRequests);
+router.patch("/requests/:id/review", allowRoles("hrms", "manager", "hr"), reviewRegularizationRequest);
+
 router.get("/", allowRoles("hrms", "hr", "manager"), listAttendance);
 router.get("/:employeeId/punches", allowRoles("hrms", "hr", "manager"), getEmployeePunches);
 router.post("/manual", allowRoles("hrms", "hr"), manualPunch);

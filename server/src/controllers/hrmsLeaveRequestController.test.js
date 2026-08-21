@@ -2,27 +2,34 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import mongoose from "mongoose";
 
 vi.mock("../models/LeaveRequest.js", () => ({
-  default: { create: vi.fn(), find: vi.fn(), findById: vi.fn() },
+  default: { create: vi.fn(), find: vi.fn(), findOne: vi.fn(), findById: vi.fn() },
 }));
 vi.mock("../models/LeaveType.js", () => ({
   default: { find: vi.fn(), findById: vi.fn() },
+}));
+vi.mock("../models/LeaveGrant.js", () => ({
+  default: { create: vi.fn(), find: vi.fn() },
 }));
 vi.mock("../models/User.js", () => ({ default: { find: vi.fn(), findById: vi.fn() } }));
 vi.mock("../models/CompanyHoliday.js", () => ({
   default: { find: vi.fn(), findOne: vi.fn() },
 }));
+vi.mock("../config/blobStorage.js", () => ({ uploadAttachment: vi.fn(), createReadUrl: vi.fn(() => "https://signed.example/document") }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
 vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
 
 import LeaveRequest from "../models/LeaveRequest.js";
 import LeaveType from "../models/LeaveType.js";
+import LeaveGrant from "../models/LeaveGrant.js";
 import User from "../models/User.js";
 import CompanyHoliday from "../models/CompanyHoliday.js";
+import { uploadAttachment } from "../config/blobStorage.js";
 import { notifyUsers } from "../utils/notify.js";
 import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 import {
   createLeaveRequest,
+  createLeaveRequestForEmployee,
   listMyLeaveRequests,
   listTeamLeaveRequests,
   listLeaveRequests,
@@ -30,6 +37,8 @@ import {
   getLeaveBalanceForEmployee,
   getLeaveCalendar,
   getLeaveLedger,
+  getLeaveDocumentUrl,
+  grantLeave,
   reviewLeaveRequest,
   cancelLeaveRequest,
 } from "./hrmsLeaveRequestController.js";
@@ -68,6 +77,8 @@ beforeEach(() => {
   CompanyHoliday.find.mockReturnValue(makeSelectQuery([]));
   CompanyHoliday.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue(null) });
   User.find.mockReturnValue({ select: vi.fn().mockResolvedValue([]) });
+  LeaveRequest.findOne.mockReturnValue(makeSelectQuery(null)); // no overlapping request by default
+  LeaveGrant.find.mockReturnValue(makeQuery([])); // no manual grants by default — supports both .select() and .sort()
 });
 
 afterEach(() => {
@@ -202,6 +213,138 @@ describe("createLeaveRequest — loss of pay instead of blocking", () => {
   });
 });
 
+describe("createLeaveRequest — overlap and document requirements", () => {
+  it("409s a self-service request overlapping an existing active request", async () => {
+    LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Casual", isActive: true, defaultDaysPerYear: 12, carryForwardCap: 0 });
+    LeaveRequest.findOne.mockReturnValue(makeSelectQuery({ _id: oid() }));
+
+    const req = { body: { leaveType: oid().toString(), startDate: "2026-08-17", endDate: "2026-08-17" }, user: employeeUser() };
+    const res = mockRes();
+
+    await createLeaveRequest(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(LeaveRequest.create).not.toHaveBeenCalled();
+  });
+
+  it("400s when the leave type requires a document and none is attached", async () => {
+    LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Sick", isActive: true, defaultDaysPerYear: 6, requiresDocument: true });
+
+    const req = { body: { leaveType: oid().toString(), startDate: "2026-08-17", endDate: "2026-08-17" }, user: employeeUser() };
+    const res = mockRes();
+
+    await createLeaveRequest(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(LeaveRequest.create).not.toHaveBeenCalled();
+  });
+
+  it("uploads the attached document when the leave type requires one", async () => {
+    const type = { _id: oid(), name: "Sick", isActive: true, defaultDaysPerYear: 6, requiresDocument: true };
+    LeaveType.findById.mockResolvedValue(type);
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([]));
+    const created = { _id: oid(), save: vi.fn() };
+    LeaveRequest.create.mockResolvedValue(created);
+    LeaveRequest.findById.mockReturnValue(makeQuery({}));
+    uploadAttachment.mockResolvedValue({ blobName: "hrms-leave-document/abc.pdf" });
+
+    const req = {
+      body: { leaveType: type._id.toString(), startDate: "2026-08-17", endDate: "2026-08-17" },
+      file: { buffer: Buffer.from("x"), originalname: "cert.pdf", mimetype: "application/pdf" },
+      user: employeeUser(),
+    };
+    await createLeaveRequest(req, mockRes());
+
+    expect(uploadAttachment).toHaveBeenCalledWith(expect.objectContaining({ fileName: "cert.pdf", scope: "hrms-leave-document" }));
+    expect(created.documentBlobName).toBe("hrms-leave-document/abc.pdf");
+    expect(created.save).toHaveBeenCalled();
+  });
+});
+
+describe("createLeaveRequestForEmployee", () => {
+  it("403s a non-HR caller", async () => {
+    const req = { body: { employeeId: oid().toString() }, user: managerUser() };
+    const res = mockRes();
+
+    await createLeaveRequestForEmployee(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("400s when employeeId is missing", async () => {
+    const req = { body: {}, user: hrUser() };
+    const res = mockRes();
+
+    await createLeaveRequestForEmployee(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("404s an unknown employee", async () => {
+    User.findById.mockReturnValue({ select: vi.fn().mockResolvedValue(null) });
+    const req = { body: { employeeId: oid().toString() }, user: hrUser() };
+    const res = mockRes();
+
+    await createLeaveRequestForEmployee(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("skips the overlap check, unlike self-service submission", async () => {
+    const employee = { _id: oid(), name: "Eve", email: "eve@example.com", managerId: null, joiningDate: null };
+    User.findById.mockReturnValue({ select: vi.fn().mockResolvedValue(employee) });
+    LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Casual", isActive: true, defaultDaysPerYear: 12, carryForwardCap: 0 });
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([]));
+    LeaveRequest.create.mockResolvedValue({ _id: oid() });
+    LeaveRequest.findById.mockReturnValue(makeQuery({}));
+
+    const hr = hrUser();
+    const req = {
+      body: { employeeId: employee._id.toString(), leaveType: oid().toString(), startDate: "2026-08-17", endDate: "2026-08-17" },
+      user: hr,
+    };
+    const res = mockRes();
+    await createLeaveRequestForEmployee(req, res);
+
+    expect(LeaveRequest.findOne).not.toHaveBeenCalled();
+    expect(LeaveRequest.create).toHaveBeenCalledWith(expect.objectContaining({ employee: employee._id, appliedBy: hr._id }));
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+});
+
+describe("getLeaveDocumentUrl", () => {
+  it("404s when the request doesn't exist", async () => {
+    LeaveRequest.findById.mockReturnValue(makeSelectQuery(null));
+    const req = { params: { id: oid().toString() }, user: employeeUser() };
+    const res = mockRes();
+
+    await getLeaveDocumentUrl(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("403s someone who isn't the owner, a manager, or HR", async () => {
+    LeaveRequest.findById.mockReturnValue(makeSelectQuery({ _id: oid(), employee: oid(), documentBlobName: "x" }));
+    const req = { params: { id: oid().toString() }, user: employeeUser() };
+    const res = mockRes();
+
+    await getLeaveDocumentUrl(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("returns a signed URL for the owning employee", async () => {
+    const employee = employeeUser();
+    LeaveRequest.findById.mockReturnValue(makeSelectQuery({ _id: oid(), employee: employee._id, documentBlobName: "x", documentFileName: "cert.pdf" }));
+    const req = { params: { id: oid().toString() }, user: employee };
+    const res = mockRes();
+
+    await getLeaveDocumentUrl(req, res);
+
+    expect(res.json).toHaveBeenCalledWith({ url: "https://signed.example/document", fileName: "cert.pdf" });
+  });
+});
+
 describe("listMyLeaveRequests", () => {
   it("scopes to the calling employee", async () => {
     const employee = employeeUser();
@@ -266,6 +409,49 @@ describe("getMyLeaveBalance", () => {
     await getMyLeaveBalance({ user: employee }, res);
 
     expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ accrued: 5, allocated: 5, remaining: 5 })]);
+  });
+
+  it("carries forward half of last year's unused balance when carryForwardMode is 'half'", async () => {
+    // Joined before last year, so all 12 months of 2025 accrued 12 days; 4 used -> 8 remaining -> half = 4.
+    const employee = employeeUser(null, new Date("2020-01-01"));
+    const typeId = oid();
+    LeaveType.find.mockResolvedValue([{ _id: typeId, name: "Paid Leave", accrualType: "yearly", defaultDaysPerYear: 12, carryForwardMode: "half" }]);
+    LeaveRequest.find
+      .mockReturnValueOnce(makeSelectQuery([{ paidDays: 4 }])) // prior-year usage (computeCarryForward)
+      .mockReturnValueOnce(makeSelectQuery([])); // this-year usage (balanceForType)
+
+    const res = mockRes();
+    await getMyLeaveBalance({ user: employee }, res);
+
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ carriedForward: 4 })]);
+  });
+
+  it("carries forward all of last year's unused balance when carryForwardMode is 'all'", async () => {
+    const employee = employeeUser(null, new Date("2020-01-01"));
+    const typeId = oid();
+    LeaveType.find.mockResolvedValue([{ _id: typeId, name: "Paid Leave", accrualType: "yearly", defaultDaysPerYear: 12, carryForwardMode: "all" }]);
+    LeaveRequest.find
+      .mockReturnValueOnce(makeSelectQuery([{ paidDays: 4 }]))
+      .mockReturnValueOnce(makeSelectQuery([]));
+
+    const res = mockRes();
+    await getMyLeaveBalance({ user: employee }, res);
+
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ carriedForward: 8 })]);
+  });
+
+  it("caps carry-forward at carryForwardCap when carryForwardMode is 'fixed_cap'", async () => {
+    const employee = employeeUser(null, new Date("2020-01-01"));
+    const typeId = oid();
+    LeaveType.find.mockResolvedValue([{ _id: typeId, name: "Paid Leave", accrualType: "yearly", defaultDaysPerYear: 12, carryForwardMode: "fixed_cap", carryForwardCap: 3 }]);
+    LeaveRequest.find
+      .mockReturnValueOnce(makeSelectQuery([{ paidDays: 4 }])) // 8 remaining, capped at 3
+      .mockReturnValueOnce(makeSelectQuery([]));
+
+    const res = mockRes();
+    await getMyLeaveBalance({ user: employee }, res);
+
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ carriedForward: 3 })]);
   });
 });
 
@@ -374,6 +560,87 @@ describe("getLeaveLedger", () => {
 
     expect(User.findById).toHaveBeenCalledWith(employeeId.toString());
     expect(res.status).not.toHaveBeenCalledWith(403);
+  });
+});
+
+describe("grantLeave", () => {
+  it("400s when employeeId or leaveTypeId is missing", async () => {
+    const req = { body: { days: 1 }, user: hrUser() };
+    const res = mockRes();
+
+    await grantLeave(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(LeaveGrant.create).not.toHaveBeenCalled();
+  });
+
+  it("400s a non-positive days value", async () => {
+    const req = { body: { employeeId: oid().toString(), leaveTypeId: oid().toString(), days: 0 }, user: hrUser() };
+    const res = mockRes();
+
+    await grantLeave(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("404s an unknown employee", async () => {
+    User.findById.mockReturnValue(makeSelectQuery(null));
+    LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Comp Off", isActive: true });
+    const req = { body: { employeeId: oid().toString(), leaveTypeId: oid().toString(), days: 1 }, user: hrUser() };
+    const res = mockRes();
+
+    await grantLeave(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("400s an inactive leave type", async () => {
+    User.findById.mockReturnValue(makeSelectQuery({ _id: oid(), name: "Eve", email: "eve@example.com" }));
+    LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Comp Off", isActive: false });
+    const req = { body: { employeeId: oid().toString(), leaveTypeId: oid().toString(), days: 1 }, user: hrUser() };
+    const res = mockRes();
+
+    await grantLeave(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("creates a grant, notifies, and emails the employee", async () => {
+    const employeeId = oid();
+    const employee = { _id: employeeId, name: "Eve Employee", email: "eve@example.com" };
+    const leaveType = { _id: oid(), name: "Comp Off", isActive: true };
+    User.findById.mockReturnValue(makeSelectQuery(employee));
+    LeaveType.findById.mockResolvedValue(leaveType);
+    LeaveGrant.create.mockResolvedValue({ _id: oid(), employee: employeeId, leaveType: leaveType._id, days: 1 });
+
+    const hr = hrUser();
+    const req = {
+      body: { employeeId: employeeId.toString(), leaveTypeId: leaveType._id.toString(), days: 1, reason: "Worked Saturday" },
+      user: hr,
+    };
+    const res = mockRes();
+    await grantLeave(req, res);
+
+    expect(LeaveGrant.create).toHaveBeenCalledWith(expect.objectContaining({
+      employee: employeeId.toString(), leaveType: leaveType._id.toString(), days: 1, reason: "Worked Saturday", grantedBy: hr._id,
+    }));
+    expect(notifyUsers).toHaveBeenCalledWith([employeeId.toString()], expect.objectContaining({ type: "leaveGranted" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+});
+
+describe("getMyLeaveBalance — manual grants", () => {
+  it("adds granted days into the allocated/remaining balance", async () => {
+    const employee = employeeUser();
+    LeaveType.find.mockResolvedValue([{ _id: oid(), name: "Comp Off", accrualType: "yearly", defaultDaysPerYear: 0, carryForwardMode: "none" }]);
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([]));
+    LeaveGrant.find.mockReturnValue(makeQuery([{ days: 1 }, { days: 0.5 }]));
+
+    const res = mockRes();
+    await getMyLeaveBalance({ user: employee }, res);
+
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ accrued: 0, granted: 1.5, allocated: 1.5, remaining: 1.5 })]);
   });
 });
 

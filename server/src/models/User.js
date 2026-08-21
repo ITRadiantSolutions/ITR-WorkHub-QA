@@ -45,6 +45,8 @@ const userSchema = new mongoose.Schema(
     locationId: { type: mongoose.Schema.Types.ObjectId, ref: "Location", default: null },
     employeeId: { type: String, trim: true, default: "" },
     joiningDate: { type: Date, default: null },
+    dateOfBirth: { type: Date, default: null },
+    panNumber: { type: String, trim: true, default: "" },
     employmentStatus: {
       type: String,
       enum: ["active", "on_leave", "terminated"],

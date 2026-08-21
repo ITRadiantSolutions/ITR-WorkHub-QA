@@ -26,7 +26,10 @@ export async function getGraphAccessToken() {
   return tokenCache.token;
 }
 
-export async function sendMail(toEmail, subject, body, { html = true } = {}) {
+// `attachments`: [{ filename, content: Buffer, contentType }] — converted to
+// Graph's fileAttachment shape (base64 contentBytes) here so callers just
+// deal with plain Buffers.
+export async function sendMail(toEmail, subject, body, { html = true, attachments = [] } = {}) {
   const accessToken = await getGraphAccessToken();
   const url = `https://graph.microsoft.com/v1.0/users/${process.env.SENDER_EMAIL}/sendMail`;
 
@@ -37,6 +40,12 @@ export async function sendMail(toEmail, subject, body, { html = true } = {}) {
         subject,
         body: { contentType: html ? "HTML" : "Text", content: body },
         toRecipients: [{ emailAddress: { address: toEmail } }],
+        attachments: attachments.map((a) => ({
+          "@odata.type": "#microsoft.graph.fileAttachment",
+          name: a.filename,
+          contentType: a.contentType || "application/octet-stream",
+          contentBytes: a.content.toString("base64"),
+        })),
       },
       saveToSentItems: true,
     },

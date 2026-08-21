@@ -17,6 +17,15 @@ const leaveRequestSchema = new mongoose.Schema(
     paidDays: { type: Number, required: true },
     lopDays: { type: Number, default: 0 },
     reason: { type: String, trim: true, default: "" },
+    // Who actually submitted this — the employee themselves normally, or HR
+    // when applying on an employee's behalf (e.g. correcting a combined
+    // sick+paid period the employee couldn't submit as one self-service
+    // request, since overlapping requests are blocked for self-service).
+    appliedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    // Supporting document (e.g. a medical certificate) — required at
+    // submission when the leave type's requiresDocument is set.
+    documentBlobName: { type: String, default: "" },
+    documentFileName: { type: String, default: "" },
 
     // Two-step chain: the reporting manager approves first (pending_manager),
     // then it routes to the manager's own manager for final sign-off

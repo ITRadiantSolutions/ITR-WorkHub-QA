@@ -23,6 +23,16 @@ export const employeesApi = {
   accessAuditLogs: (params) => API.get("/users/access-audit-logs", { params }),
 };
 
+export const orgChartApi = {
+  list: () => API.get("/hrms/org-chart"),
+};
+
+export const holidaysApi = {
+  list: (year) => API.get("/hrms/holidays", { params: { year } }),
+  add: (data) => API.post("/hrms/holidays", data),
+  remove: (date) => API.delete(`/hrms/holidays/${date}`),
+};
+
 export const attendanceApi = {
   mine: (params) => API.get("/hrms/attendance/mine", { params }),
   summary: (params) => API.get("/hrms/attendance/summary", { params }),
@@ -30,6 +40,11 @@ export const attendanceApi = {
   punchesFor: (employeeId, params) => API.get(`/hrms/attendance/${employeeId}/punches`, { params }),
   manualPunch: (data) => API.post("/hrms/attendance/manual", data),
   regularize: (id, data) => API.patch(`/hrms/attendance/${id}/regularize`, data),
+  requestRegularization: (data) => API.post("/hrms/attendance/requests", data),
+  myRequests: () => API.get("/hrms/attendance/requests/mine"),
+  teamRequests: () => API.get("/hrms/attendance/requests/team"),
+  allRequests: (params) => API.get("/hrms/attendance/requests", { params }),
+  reviewRequest: (id, action, comment) => API.patch(`/hrms/attendance/requests/${id}/review`, { action, comment }),
 };
 
 export const departmentsApi = {
@@ -37,6 +52,7 @@ export const departmentsApi = {
   create: (data) => API.post("/hrms/departments", data),
   update: (id, data) => API.put(`/hrms/departments/${id}`, data),
   setStatus: (id, isActive) => API.patch(`/hrms/departments/${id}/status`, { isActive }),
+  importFromUsers: () => API.post("/hrms/departments/import-from-users"),
 };
 
 export const designationsApi = {
@@ -44,6 +60,7 @@ export const designationsApi = {
   create: (data) => API.post("/hrms/designations", data),
   update: (id, data) => API.put(`/hrms/designations/${id}`, data),
   setStatus: (id, isActive) => API.patch(`/hrms/designations/${id}/status`, { isActive }),
+  importFromUsers: () => API.post("/hrms/designations/import-from-users"),
 };
 
 export const gradesApi = {
@@ -68,7 +85,10 @@ export const leaveTypesApi = {
 };
 
 export const leaveRequestsApi = {
-  create: (data) => API.post("/hrms/leave-requests", data),
+  create: (formData) => API.post("/hrms/leave-requests", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  createForEmployee: (formData) => API.post("/hrms/leave-requests/for-employee", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  documentUrl: (id) => API.get(`/hrms/leave-requests/${id}/document-url`),
+  grant: (data) => API.post("/hrms/leave-requests/grant", data),
   mine: (params) => API.get("/hrms/leave-requests/mine", { params }),
   team: (params) => API.get("/hrms/leave-requests/team", { params }),
   all: (params) => API.get("/hrms/leave-requests", { params }),
@@ -141,9 +161,11 @@ export const offboardingApi = {
 
 export const announcementsApi = {
   list: (params) => API.get("/hrms/announcements", { params }),
-  create: (data) => API.post("/hrms/announcements", data),
-  update: (id, data) => API.put(`/hrms/announcements/${id}`, data),
+  create: (formData) => API.post("/hrms/announcements", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  update: (id, formData) => API.put(`/hrms/announcements/${id}`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
   remove: (id) => API.delete(`/hrms/announcements/${id}`),
+  acknowledge: (id) => API.post(`/hrms/announcements/${id}/acknowledge`),
+  attachmentUrl: (id) => API.get(`/hrms/announcements/${id}/attachment-url`),
 };
 
 export const documentsApi = {

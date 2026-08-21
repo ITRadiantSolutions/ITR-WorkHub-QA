@@ -1,11 +1,16 @@
 import crypto from "crypto";
 import AttendancePunch from "../models/AttendancePunch.js";
 import AttendanceDay from "../models/AttendanceDay.js";
+import AttendanceRegularization from "../models/AttendanceRegularization.js";
 import User from "../models/User.js";
 import CompanyHoliday from "../models/CompanyHoliday.js";
 import LeaveRequest from "../models/LeaveRequest.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
+
+const ATTENDANCE_STATUSES = ["present", "half_day", "absent", "on_leave", "holiday", "weekend"];
+const hrUserIds = async () => (await User.find({ "roles.hrms": "hr" }).select("_id")).map((u) => u._id);
 
 // A day counts "present" once worked time (first punch -> last punch) clears
 // this; below it but with at least one punch, it's a half day so HR has a
@@ -252,8 +257,9 @@ export const getMyAttendance = async (req, res) => {
 // HR correction for a day missing/wrong punches — PATCH /hrms/attendance/:id/regularize
 export const regularizeDay = async (req, res) => {
   const { status, note } = req.body;
-  const ALLOWED = ["present", "half_day", "absent", "on_leave", "holiday", "weekend"];
-  if (!ALLOWED.includes(status)) return res.status(400).json({ message: `status must be one of: ${ALLOWED.join(", ")}` });
+  if (!ATTENDANCE_STATUSES.includes(status)) {
+    return res.status(400).json({ message: `status must be one of: ${ATTENDANCE_STATUSES.join(", ")}` });
+  }
 
   const day = await AttendanceDay.findById(req.params.id);
   if (!day) return res.status(404).json({ message: "Attendance record not found" });
@@ -280,4 +286,136 @@ export const regularizeDay = async (req, res) => {
   });
 
   res.json(await populateEmployee(AttendanceDay.findById(day._id)));
+};
+
+const populateRegularization = (query) =>
+  query.populate("employee", "name email managerId").populate("decidedBy", "name email");
+
+// Employee self-service — POST /hrms/attendance/requests. Routes to the
+// employee's manager for approval, same fallback-to-HR shape as Expense's
+// review flow; falls back to HR when there's no manager on file.
+export const createRegularizationRequest = async (req, res) => {
+  const { date, requestedStatus, requestedFirstIn, requestedLastOut, reason } = req.body;
+  if (!date || !ATTENDANCE_STATUSES.includes(requestedStatus)) {
+    return res.status(400).json({ message: `date is required and requestedStatus must be one of: ${ATTENDANCE_STATUSES.join(", ")}` });
+  }
+  if (!reason?.trim()) return res.status(400).json({ message: "reason is required" });
+
+  const existing = await AttendanceRegularization.findOne({ employee: req.user._id, date, status: "pending" });
+  if (existing) return res.status(409).json({ message: "A regularization request for this date is already pending" });
+
+  const request = await AttendanceRegularization.create({
+    employee: req.user._id,
+    date,
+    requestedStatus,
+    requestedFirstIn: requestedFirstIn ? new Date(requestedFirstIn) : null,
+    requestedLastOut: requestedLastOut ? new Date(requestedLastOut) : null,
+    reason: reason.trim(),
+  });
+
+  writeAuditLog({
+    type: "database", event: "hrms.attendance.regularizationRequested", action: "hrms.attendance.regularizationRequested",
+    actorId: req.user._id, targetId: request._id, oldValue: null, newValue: { date, requestedStatus },
+  });
+
+  const approverIds = req.user.managerId ? [req.user.managerId] : await hrUserIds();
+  notifyUsers(approverIds, {
+    title: "Attendance regularization request",
+    message: `${req.user.name} requested to mark ${date} as "${requestedStatus.replace(/_/g, " ")}".`,
+    type: "attendanceRegularizationRequested",
+    activityType: "create",
+    performedBy: req.user._id,
+  });
+
+  res.status(201).json(await populateRegularization(AttendanceRegularization.findById(request._id)));
+};
+
+export const listMyRegularizationRequests = async (req, res) => {
+  const requests = await populateRegularization(AttendanceRegularization.find({ employee: req.user._id })).sort({ createdAt: -1 });
+  res.json(requests);
+};
+
+export const listTeamRegularizationRequests = async (req, res) => {
+  const reports = await User.find({ managerId: req.user._id }).select("_id");
+  const requests = await populateRegularization(
+    AttendanceRegularization.find({ employee: { $in: reports.map((r) => r._id) } }),
+  ).sort({ createdAt: -1 });
+  res.json(requests);
+};
+
+export const listRegularizationRequests = async (req, res) => {
+  const filter = {};
+  if (req.query.status?.trim()) filter.status = req.query.status.trim();
+  const requests = await populateRegularization(AttendanceRegularization.find(filter)).sort({ createdAt: -1 });
+  res.json(requests);
+};
+
+const canDecideRegularization = (request, user) => {
+  if (user.roles.hrms === "hr") return true;
+  return user.roles.hrms === "manager" && request.employee.managerId?.toString() === user._id.toString();
+};
+
+// PATCH /hrms/attendance/requests/:id/review — approving writes the
+// requested correction into AttendanceDay (creating it if the employee never
+// punched that day at all); rejecting just records the decision.
+export const reviewRegularizationRequest = async (req, res) => {
+  const { action, comment } = req.body;
+  if (!["approve", "reject"].includes(action)) return res.status(400).json({ message: "action must be 'approve' or 'reject'" });
+
+  const request = await populateRegularization(AttendanceRegularization.findById(req.params.id));
+  if (!request) return res.status(404).json({ message: "Regularization request not found" });
+  if (!canDecideRegularization(request, req.user)) return res.status(403).json({ message: "Forbidden" });
+  if (request.status !== "pending") return res.status(409).json({ message: `Cannot review a request with status '${request.status}'` });
+
+  request.status = action === "approve" ? "approved" : "rejected";
+  request.decidedBy = req.user._id;
+  request.decidedAt = new Date();
+  request.decisionComment = comment?.trim() || "";
+  await request.save();
+
+  if (request.status === "approved") {
+    const workedSeconds =
+      request.requestedFirstIn && request.requestedLastOut
+        ? Math.max(0, (new Date(request.requestedLastOut) - new Date(request.requestedFirstIn)) / 1000)
+        : undefined;
+
+    await AttendanceDay.findOneAndUpdate(
+      { employee: request.employee._id, date: request.date },
+      {
+        $set: {
+          status: request.requestedStatus,
+          ...(request.requestedFirstIn ? { firstIn: request.requestedFirstIn } : {}),
+          ...(request.requestedLastOut ? { lastOut: request.requestedLastOut } : {}),
+          ...(workedSeconds !== undefined ? { workedSeconds } : {}),
+          isRegularized: true,
+          regularizedBy: req.user._id,
+          regularizedAt: new Date(),
+          regularizationNote: request.reason,
+        },
+        $setOnInsert: { employee: request.employee._id, date: request.date },
+      },
+      { upsert: true },
+    );
+  }
+
+  writeAuditLog({
+    type: "database", event: `hrms.attendance.regularization.${request.status}`, action: `hrms.attendance.regularization.${request.status}`,
+    actorId: req.user._id, targetId: request._id, oldValue: { status: "pending" }, newValue: { status: request.status },
+  });
+
+  notifyUsers([request.employee._id], {
+    title: `Attendance regularization ${request.status}`,
+    message: `Your request to update attendance for ${request.date} was ${request.status}.`,
+    type: request.status === "approved" ? "attendanceRegularizationApproved" : "attendanceRegularizationRejected",
+    activityType: "status_change",
+    performedBy: req.user._id,
+  });
+  sendHrmsEmail(
+    request.employee.email,
+    `Attendance regularization ${request.status}`,
+    `Attendance regularization ${request.status}`,
+    `<p>Your request to update attendance for <strong>${request.date}</strong> to "${request.requestedStatus.replace(/_/g, " ")}" was <strong>${request.status}</strong>.</p>${request.decisionComment ? `<p>Comment: ${request.decisionComment}</p>` : ""}`,
+  );
+
+  res.json(request);
 };

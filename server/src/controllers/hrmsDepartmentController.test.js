@@ -2,12 +2,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import mongoose from "mongoose";
 
 vi.mock("../models/Department.js", () => ({
-  default: { create: vi.fn(), find: vi.fn(), findById: vi.fn() },
+  default: { create: vi.fn(), find: vi.fn(), findById: vi.fn(), insertMany: vi.fn() },
 }));
+vi.mock("../models/User.js", () => ({ default: { distinct: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 
 import Department from "../models/Department.js";
-import { listDepartments, createDepartment, updateDepartment, setDepartmentStatus } from "./hrmsDepartmentController.js";
+import User from "../models/User.js";
+import {
+  listDepartments,
+  createDepartment,
+  updateDepartment,
+  setDepartmentStatus,
+  importDepartmentsFromUsers,
+} from "./hrmsDepartmentController.js";
 
 const oid = () => new mongoose.Types.ObjectId();
 
@@ -109,6 +117,36 @@ describe("updateDepartment", () => {
 
     expect(department.name).toBe("New");
     expect(res.json).toHaveBeenCalledWith(department);
+  });
+});
+
+describe("importDepartmentsFromUsers", () => {
+  it("creates a department for each distinct, non-empty User.department not already present", async () => {
+    User.distinct.mockResolvedValue(["Engineering", "  Sales  ", "", null, "Engineering"]);
+    Department.find.mockReturnValue({ select: vi.fn().mockResolvedValue([{ name: "Engineering" }]) });
+    Department.insertMany.mockResolvedValue([{ name: "Sales" }]);
+
+    const req = { user: hrUser() };
+    const res = mockRes();
+
+    await importDepartmentsFromUsers(req, res);
+
+    expect(Department.insertMany).toHaveBeenCalledWith(
+      [expect.objectContaining({ name: "Sales" })],
+      { ordered: false },
+    );
+    expect(res.json).toHaveBeenCalledWith({ imported: 1, names: ["Sales"] });
+  });
+
+  it("does nothing when every distinct value already has a department", async () => {
+    User.distinct.mockResolvedValue(["Engineering"]);
+    Department.find.mockReturnValue({ select: vi.fn().mockResolvedValue([{ name: "Engineering" }]) });
+
+    const res = mockRes();
+    await importDepartmentsFromUsers({ user: hrUser() }, res);
+
+    expect(Department.insertMany).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ imported: 0, names: [] });
   });
 });
 

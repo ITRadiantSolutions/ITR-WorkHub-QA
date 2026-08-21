@@ -61,6 +61,28 @@ describe("createLeaveType", () => {
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
+  it("400s an invalid carryForwardMode", async () => {
+    const req = { body: { name: "Casual", carryForwardMode: "double" }, user: hrUser() };
+    const res = mockRes();
+
+    await createLeaveType(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(LeaveType.create).not.toHaveBeenCalled();
+  });
+
+  it("creates a leave type with carryForwardMode and requiresDocument", async () => {
+    const hr = hrUser();
+    LeaveType.create.mockResolvedValue({ _id: oid(), name: "Sick" });
+
+    const req = { body: { name: "Sick", carryForwardMode: "half", requiresDocument: true }, user: hr };
+    await createLeaveType(req, mockRes());
+
+    expect(LeaveType.create).toHaveBeenCalledWith(
+      expect.objectContaining({ carryForwardMode: "half", requiresDocument: true }),
+    );
+  });
+
   it("409s on a duplicate name", async () => {
     const error = new Error("dup");
     error.code = 11000;

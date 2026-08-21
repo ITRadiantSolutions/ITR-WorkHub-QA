@@ -1,7 +1,37 @@
 import Department from "../models/Department.js";
+import User from "../models/User.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 
 const FIELDS = ["name", "code", "description", "headId"];
+
+// User.department is a free-text string (populated by the Azure AD group
+// sync — see syncUsersFromAzureGroups in userController.js), separate from
+// this Department reference table that HR curates by hand. Bootstraps the
+// table from whatever distinct values already exist on employee records,
+// instead of HR retyping every department that Azure already gave us.
+export const importDepartmentsFromUsers = async (req, res) => {
+  const distinctNames = await User.distinct("department");
+  const candidateNames = [...new Set(distinctNames.map((n) => n?.trim()).filter(Boolean))];
+
+  const existing = await Department.find({ name: { $in: candidateNames } }).select("name");
+  const existingNames = new Set(existing.map((d) => d.name));
+  const toCreate = candidateNames.filter((name) => !existingNames.has(name));
+
+  if (toCreate.length === 0) {
+    return res.json({ imported: 0, names: [] });
+  }
+
+  const created = await Department.insertMany(
+    toCreate.map((name) => ({ name, createdBy: req.user._id })),
+    { ordered: false },
+  );
+
+  writeAuditLog({
+    type: "database", event: "hrms.department.importedFromUsers", action: "hrms.department.importedFromUsers",
+    actorId: req.user._id, targetId: null, oldValue: null, newValue: { names: toCreate },
+  });
+  res.json({ imported: created.length, names: created.map((d) => d.name) });
+};
 
 export const listDepartments = async (req, res) => {
   const filter = req.query.includeInactive === "true" ? {} : { isActive: true };

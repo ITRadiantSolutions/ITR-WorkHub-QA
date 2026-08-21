@@ -7,12 +7,16 @@ vi.mock("../models/AssetAssignment.js", () => ({
 vi.mock("../models/Asset.js", () => ({
   default: { findById: vi.fn() },
 }));
+vi.mock("../models/User.js", () => ({ default: { findById: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
+vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
 
 import AssetAssignment from "../models/AssetAssignment.js";
 import Asset from "../models/Asset.js";
+import User from "../models/User.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 import { assignAsset, returnAsset, listMyAssets, listAssetAssignments } from "./hrmsAssetAssignmentController.js";
 
 const oid = () => new mongoose.Types.ObjectId();
@@ -33,9 +37,11 @@ const makeQuery = (result) => {
 };
 
 const hrUser = () => ({ _id: oid(), roles: { hrms: "hr" } });
+const makeSelectQuery = (result) => ({ select: vi.fn().mockResolvedValue(result) });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  User.findById.mockReturnValue(makeSelectQuery({ name: "Eve Employee", email: "eve@example.com" }));
 });
 
 describe("assignAsset", () => {
@@ -69,7 +75,19 @@ describe("assignAsset", () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
-  it("assigns an available asset and notifies the employee", async () => {
+  it("404s an unknown employee", async () => {
+    Asset.findById.mockResolvedValue({ _id: oid(), status: "available" });
+    User.findById.mockReturnValue(makeSelectQuery(null));
+    const req = { body: { assetId: oid().toString(), employeeId: oid().toString() }, user: hrUser() };
+    const res = mockRes();
+
+    await assignAsset(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(AssetAssignment.create).not.toHaveBeenCalled();
+  });
+
+  it("assigns an available asset, notifies, and emails the employee", async () => {
     const asset = { _id: oid(), status: "available", name: "Dell XPS", assetTag: "A-1", save: vi.fn().mockResolvedValue(undefined) };
     Asset.findById.mockResolvedValue(asset);
     AssetAssignment.create.mockResolvedValue({ _id: oid() });
@@ -83,6 +101,7 @@ describe("assignAsset", () => {
 
     expect(asset.status).toBe("assigned");
     expect(notifyUsers).toHaveBeenCalledWith([employeeId.toString()], expect.objectContaining({ type: "assetAssigned" }));
+    expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
     expect(res.status).toHaveBeenCalledWith(201);
   });
 });

@@ -75,6 +75,8 @@ import hrmsOnboardingRoutes from "./routes/hrms/onboarding.routes.js";
 import hrmsOffboardingRoutes from "./routes/hrms/offboarding.routes.js";
 import hrmsAnnouncementRoutes from "./routes/hrms/announcement.routes.js";
 import hrmsDocumentRoutes from "./routes/hrms/document.routes.js";
+import hrmsOrgChartRoutes from "./routes/hrms/orgChart.routes.js";
+import hrmsHolidayRoutes from "./routes/hrms/holiday.routes.js";
 
 // Express app only — no listen(), no DB connect, no cron jobs. Kept separate
 // from server.js so tests (supertest) can import and exercise it directly
@@ -147,6 +149,8 @@ app.use("/api/hrms/onboarding", hrmsOnboardingRoutes);
 app.use("/api/hrms/offboarding", hrmsOffboardingRoutes);
 app.use("/api/hrms/announcements", hrmsAnnouncementRoutes);
 app.use("/api/hrms/documents", hrmsDocumentRoutes);
+app.use("/api/hrms/org-chart", hrmsOrgChartRoutes);
+app.use("/api/hrms/holidays", hrmsHolidayRoutes);
 
 // Serve the built React client, when present — the deploy workflow copies
 // client/dist here so one App Service can host both API and frontend on

@@ -7,6 +7,9 @@ const companyHolidaySchema = new mongoose.Schema(
   {
     date: { type: String, required: true, unique: true }, // "YYYY-MM-DD"
     label: { type: String, trim: true, default: "" },
+    // A floater/optional holiday — employees choose whether to take it (paired
+    // with the Floater Leave type) rather than it applying to everyone.
+    isFloater: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true },

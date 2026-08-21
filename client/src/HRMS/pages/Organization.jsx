@@ -96,16 +96,32 @@ const ENTITIES = {
         ],
       },
       { key: "defaultDaysPerYear", label: "Days per year", type: "number" },
-      { key: "carryForwardCap", label: "Carry-forward cap (0 = none)", type: "number" },
+      {
+        key: "carryForwardMode",
+        label: "Carry-forward",
+        type: "select",
+        options: [
+          { value: "none", label: "None" },
+          { value: "half", label: "Half of remaining days" },
+          { value: "all", label: "All remaining days" },
+          { value: "fixed_cap", label: "Fixed cap (set below)" },
+        ],
+      },
+      { key: "carryForwardCap", label: "Carry-forward cap (only used for \"Fixed cap\")", type: "number" },
+      { key: "requiresDocument", label: "Requires a supporting document to apply", type: "checkbox" },
     ],
     columns: [
       { key: "name", label: "Name" },
       { key: "code", label: "Code" },
       { key: "accrualLabel", label: "Accrual" },
       { key: "defaultDaysPerYear", label: "Days/year" },
-      { key: "carryForwardCap", label: "Carry-forward" },
+      { key: "carryForwardLabel", label: "Carry-forward" },
     ],
-    toRow: (t) => ({ ...t, accrualLabel: t.accrualType === "yearly" ? "Yearly" : "Monthly" }),
+    toRow: (t) => ({
+      ...t,
+      accrualLabel: t.accrualType === "yearly" ? "Yearly" : "Monthly",
+      carryForwardLabel: { none: "None", half: "Half", all: "All", fixed_cap: `Up to ${t.carryForwardCap}` }[t.carryForwardMode] || "None",
+    }),
   },
 };
 
@@ -209,6 +225,7 @@ function EntityPanel({ config, ctx, isHr }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -250,6 +267,20 @@ function EntityPanel({ config, ctx, isHr }) {
     }
   };
 
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const res = await config.api.importFromUsers();
+      const { imported } = res.data || {};
+      toast.success(imported > 0 ? `Imported ${imported} from employee records` : "Already up to date — nothing new to import");
+      if (imported > 0) load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const displayRows = rows.map((r) => (config.toRow ? config.toRow(r) : r));
 
   return (
@@ -257,12 +288,24 @@ function EntityPanel({ config, ctx, isHr }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">{rows.length} {config.label.toLowerCase()}</p>
         {isHr && (
-          <button
-            onClick={() => { setEditing(null); setShowForm(true); }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-semibold shadow"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add {config.label.slice(0, -1).toLowerCase()}
-          </button>
+          <div className="flex items-center gap-2">
+            {config.api.importFromUsers && (
+              <button
+                onClick={handleImport}
+                disabled={importing}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-cyan-200 text-cyan-700 hover:bg-cyan-50 text-xs font-semibold disabled:opacity-60"
+                title="Bootstrap this list from the department/designation values already on employee records"
+              >
+                {importing ? "Importing..." : "Import from employees"}
+              </button>
+            )}
+            <button
+              onClick={() => { setEditing(null); setShowForm(true); }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-semibold shadow"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add {config.label.slice(0, -1).toLowerCase()}
+            </button>
+          </div>
         )}
       </div>
 

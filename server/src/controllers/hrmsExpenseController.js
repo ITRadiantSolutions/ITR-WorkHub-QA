@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import { uploadAttachment, createReadUrl } from "../config/blobStorage.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 import { notifyUsers } from "../utils/notify.js";
+import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 
 const ALLOWED_BILL_MIME_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 
@@ -50,6 +51,7 @@ export const createExpense = async (req, res) => {
   });
 
   const approverIds = req.user.managerId ? [req.user.managerId] : await hrUserIds();
+  const approvers = await User.find({ _id: { $in: approverIds } }).select("email");
   notifyUsers(approverIds, {
     title: "New expense claim",
     message: `${req.user.name} submitted a ${category.replace(/_/g, " ")} expense of ${amountNum}.`,
@@ -57,6 +59,10 @@ export const createExpense = async (req, res) => {
     activityType: "create",
     performedBy: req.user._id,
   });
+  approvers.forEach((a) => sendHrmsEmail(
+    a.email, "New expense claim awaiting your approval", "Expense claim submitted",
+    `<p><strong>${req.user.name}</strong> submitted a <strong>${category.replace(/_/g, " ")}</strong> expense of <strong>${amountNum}</strong> for approval.</p>`,
+  ));
 
   res.status(201).json(await populateExpense(Expense.findById(expense._id)));
 };
@@ -121,12 +127,16 @@ export const reviewExpense = async (req, res) => {
     activityType: "status_change",
     performedBy: req.user._id,
   });
+  sendHrmsEmail(
+    expense.employee.email, `Your expense claim was ${expense.status}`, `Expense claim ${expense.status}`,
+    `<p>Your <strong>${expense.category.replace(/_/g, " ")}</strong> expense claim was <strong>${expense.status}</strong>${expense.decisionComment ? `: "${expense.decisionComment}"` : "."}</p>`,
+  );
 
   res.json(expense);
 };
 
 export const markExpenseReimbursed = async (req, res) => {
-  const expense = await Expense.findById(req.params.id);
+  const expense = await populateExpense(Expense.findById(req.params.id));
   if (!expense) return res.status(404).json({ message: "Expense not found" });
   if (expense.status !== "approved") {
     return res.status(409).json({ message: "Only an approved expense can be marked reimbursed" });
@@ -140,13 +150,17 @@ export const markExpenseReimbursed = async (req, res) => {
     type: "database", event: "hrms.expense.reimbursed", action: "hrms.expense.reimbursed",
     actorId: req.user._id, targetId: expense._id, oldValue: { status: "approved" }, newValue: { status: "reimbursed" },
   });
-  notifyUsers([expense.employee], {
+  notifyUsers([expense.employee._id], {
     title: "Expense reimbursed",
     message: `Your ${expense.category.replace(/_/g, " ")} expense claim has been reimbursed.`,
     type: "expenseReimbursed",
     activityType: "status_change",
     performedBy: req.user._id,
   });
+  sendHrmsEmail(
+    expense.employee.email, "Your expense claim has been reimbursed", "Expense reimbursed",
+    `<p>Your <strong>${expense.category.replace(/_/g, " ")}</strong> expense claim has been marked as reimbursed.</p>`,
+  );
 
   res.json(expense);
 };

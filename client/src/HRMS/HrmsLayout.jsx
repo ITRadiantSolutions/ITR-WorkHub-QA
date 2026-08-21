@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Briefcase,
@@ -7,6 +7,7 @@ import {
   Send,
   UserPlus,
   Users,
+  User,
   Building2,
   CalendarDays,
   LifeBuoy,
@@ -17,7 +18,9 @@ import {
   Megaphone,
   FileText,
   Fingerprint,
+  Network,
   ChevronRight,
+  ChevronDown,
   Moon,
   Sun,
   LogOut,
@@ -28,27 +31,56 @@ import getInitials from "../utils/getInitials";
 import ProfileModal from "../components/ProfileModal";
 import { isHRMS_HR, isHRMS_Manager } from "../utils/hrmsrolecheck";
 
-const TABS = [
+// Grouped into a handful of top-level entries (Keka's own left rail is just
+// Home/Me/Team/Org/etc.) instead of one long flat list — the flat version
+// grew to 16 rows and needed its own scrollbar. Groups collapse/expand;
+// individual items still navigate directly.
+const NAV = [
   { to: "/hrms", label: "Dashboard", icon: LayoutDashboard },
   { to: "/hrms/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/hrms/attendance", label: "Attendance", icon: Fingerprint },
-  { to: "/hrms/leave", label: "Leave", icon: CalendarDays },
-  { to: "/hrms/payroll", label: "Payroll", icon: Wallet },
-  { to: "/hrms/expenses", label: "Expenses", icon: Receipt },
-  { to: "/hrms/assets", label: "Assets", icon: Laptop },
-  { to: "/hrms/documents", label: "Documents", icon: FileText },
-  { to: "/hrms/hr-requests", label: "HR Requests", icon: LifeBuoy },
-  { to: "/hrms/jobs", label: "Jobs", icon: Briefcase },
-  { to: "/hrms/referrals", label: "Referrals", icon: Send },
+  {
+    key: "me",
+    label: "Me",
+    icon: User,
+    children: [
+      { to: "/hrms/attendance", label: "Attendance", icon: Fingerprint },
+      { to: "/hrms/leave", label: "Leave", icon: CalendarDays },
+      { to: "/hrms/payroll", label: "Payroll", icon: Wallet },
+      { to: "/hrms/expenses", label: "Expenses", icon: Receipt },
+      { to: "/hrms/assets", label: "Assets", icon: Laptop },
+      { to: "/hrms/documents", label: "Documents", icon: FileText },
+      { to: "/hrms/hr-requests", label: "HR Requests", icon: LifeBuoy },
+    ],
+  },
+  {
+    key: "hiring",
+    label: "Hiring",
+    icon: Briefcase,
+    children: [
+      { to: "/hrms/jobs", label: "Jobs", icon: Briefcase },
+      { to: "/hrms/referrals", label: "Referrals", icon: Send },
+    ],
+  },
   { to: "/hrms/my-team", label: "My Team", icon: Users, managerOnly: true },
-  { to: "/hrms/employees", label: "Employees", icon: UserPlus, hrOnly: true },
-  { to: "/hrms/organization", label: "Organization", icon: Building2, hrOnly: true },
-  { to: "/hrms/lifecycle", label: "Lifecycle", icon: UserCog, hrOnly: true },
+  { to: "/hrms/org-chart", label: "Org Chart", icon: Network },
+  {
+    key: "admin",
+    label: "Admin",
+    icon: Building2,
+    hrOnly: true,
+    children: [
+      { to: "/hrms/employees", label: "Employees", icon: UserPlus },
+      { to: "/hrms/organization", label: "Organization", icon: Building2 },
+      { to: "/hrms/lifecycle", label: "Lifecycle", icon: UserCog },
+    ],
+  },
   // Role/access assignment now happens only via the super-admin-gated
   // Access Grants page — see client/src/pages/AccessGrants.jsx.
 ];
 
 const ROLE_LABELS = { hr: "HR", manager: "Manager", employee: "Employee" };
+
+const isRouteActive = (pathname, to) => pathname === to || pathname.startsWith(`${to}/`);
 
 export default function HrmsLayout() {
   const { user, confirmLogout } = useAuth();
@@ -60,7 +92,39 @@ export default function HrmsLayout() {
   const hr = isHRMS_HR(user);
   const manager = isHRMS_Manager(user);
   const [showProfile, setShowProfile] = useState(false);
+  const [expanded, setExpanded] = useState(() => new Set());
   const roleLabel = ROLE_LABELS[user?.roles?.hrms] || "Employee";
+
+  const visibleNav = NAV.filter((item) => {
+    if (item.hrOnly) return hr;
+    if (item.managerOnly) return manager;
+    return true;
+  });
+
+  // Every navigable "to" across both flat items and group children, so the
+  // active route is the single longest match (otherwise "/hrms" — Dashboard
+  // — would also match every other page as a prefix).
+  const allRoutes = visibleNav.flatMap((item) => (item.children ? item.children.map((c) => c.to) : [item.to]));
+  const activeTo = allRoutes
+    .filter((to) => isRouteActive(location.pathname, to))
+    .sort((a, b) => b.length - a.length)[0];
+
+  // Auto-expand whichever group contains the active route — doesn't collapse
+  // a group the user opened manually elsewhere.
+  useEffect(() => {
+    const activeGroup = visibleNav.find((item) => item.children?.some((c) => c.to === activeTo));
+    if (activeGroup) setExpanded((prev) => (prev.has(activeGroup.key) ? prev : new Set(prev).add(activeGroup.key)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTo]);
+
+  const toggleGroup = (key) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen flex bg-[#F5F7FB]">
@@ -85,68 +149,98 @@ export default function HrmsLayout() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
-          {(() => {
-            const visibleTabs = TABS.filter((t) => {
-              if (t.hrOnly) return hr;
-              if (t.managerOnly) return manager;
-              return true;
-            });
-            const activeTo = visibleTabs
-              .filter((t) => location.pathname === t.to || location.pathname.startsWith(`${t.to}/`))
-              .sort((a, b) => b.to.length - a.to.length)[0]?.to;
-
-            return visibleTabs.map((t) => {
-              const Icon = t.icon;
-              const active = t.to === activeTo;
+          {visibleNav.map((item) => {
+            if (item.children) {
+              const isOpen = expanded.has(item.key);
+              const GroupIcon = item.icon;
+              const hasActiveChild = item.children.some((c) => c.to === activeTo);
               return (
-                <button
-                  key={t.to}
-                  onClick={() => navigate(t.to)}
-                  className={`relative w-full flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    active ? "bg-cyan-50 text-cyan-700" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                  }`}
-                >
-                  {active && <span className="absolute left-0.5 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-cyan-700" />}
-                  <Icon className="w-5 h-5 shrink-0" />
-                  {t.label}
-                </button>
+                <div key={item.key}>
+                  <button
+                    onClick={() => toggleGroup(item.key)}
+                    className={`w-full flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      hasActiveChild ? "text-cyan-700" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                    }`}
+                  >
+                    <GroupIcon className="w-5 h-5 shrink-0" />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {isOpen && (
+                    <div className="ml-[18px] pl-3 border-l border-gray-100 space-y-0.5 mt-0.5 mb-1">
+                      {item.children.map((c) => {
+                        const ChildIcon = c.icon;
+                        const active = c.to === activeTo;
+                        return (
+                          <button
+                            key={c.to}
+                            onClick={() => navigate(c.to)}
+                            className={`w-full flex items-center gap-2.5 pl-3 pr-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              active ? "bg-cyan-50 text-cyan-700" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                            }`}
+                          >
+                            <ChildIcon className="w-4 h-4 shrink-0" />
+                            {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
-            });
-          })()}
+            }
+
+            const Icon = item.icon;
+            const active = item.to === activeTo;
+            return (
+              <button
+                key={item.to}
+                onClick={() => navigate(item.to)}
+                className={`relative w-full flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  active ? "bg-cyan-50 text-cyan-700" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                }`}
+              >
+                {active && <span className="absolute left-0.5 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-cyan-700" />}
+                <Icon className="w-5 h-5 shrink-0" />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
 
-        <div className="px-3 py-3 border-t border-gray-100 space-y-1 shrink-0">
+        <div className="px-2.5 py-2 border-t border-gray-100 shrink-0">
           <button
             onClick={() => setShowProfile(true)}
-            className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-gray-50 transition"
+            className="w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 transition"
           >
-            <div className="w-9 h-9 rounded-full bg-cyan-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+            <div className="w-7 h-7 rounded-full bg-cyan-700 text-white font-bold flex items-center justify-center text-[11px] shrink-0 shadow-sm">
               {initials}
             </div>
             <div className="text-left min-w-0 flex-1">
-              <p className="text-sm font-bold text-gray-800 truncate">{user?.name || "User"}</p>
-              <p className="text-xs text-gray-400">{roleLabel}</p>
+              <p className="text-xs font-bold text-gray-800 truncate leading-tight">{user?.name || "User"}</p>
+              <p className="text-[11px] text-gray-400 leading-tight">{roleLabel}</p>
             </div>
-            <span className="text-gray-300 shrink-0">
-              <ChevronRight className="w-4 h-4" />
-            </span>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
           </button>
 
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition"
-          >
-            {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            <span className="flex-1 text-left">Theme</span>
-            <span className="text-xs font-bold text-gray-400">{isDark ? "Dark" : "Light"}</span>
-          </button>
-          <button
-            onClick={() => confirmLogout()}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-red-50 hover:text-red-600 transition"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
+          <div className="flex items-center gap-1 mt-1">
+            <button
+              onClick={toggleTheme}
+              title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition"
+            >
+              {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+              {isDark ? "Dark" : "Light"}
+            </button>
+            <button
+              onClick={() => confirmLogout()}
+              title="Logout"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:bg-red-50 hover:text-red-600 transition"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Logout
+            </button>
+          </div>
         </div>
       </aside>
 

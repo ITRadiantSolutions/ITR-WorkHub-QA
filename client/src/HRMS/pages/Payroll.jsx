@@ -19,6 +19,9 @@ const Badge = ({ status }) => (
 
 const money = (n) => Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const TYPE_LABELS = { earning: "Earning", contribution: "Contribution", deduction: "Deduction" };
+const PAYMENT_MODE_LABELS = { bank_transfer: "Bank Transfer", cash: "Cash", cheque: "Cheque" };
+
 const downloadPayslipPdf = async (payslip) => {
   try {
     const res = await payslipsApi.pdf(payslip._id);
@@ -49,9 +52,9 @@ function PayslipDetailModal({ payslip, onClose }) {
         <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
           {payslip.components.map((c, i) => (
             <div key={i} className="flex justify-between px-4 py-2 text-sm">
-              <span className="text-slate-600">{c.name}</span>
-              <span className={c.type === "deduction" ? "text-red-600" : "text-slate-800"}>
-                {c.type === "deduction" ? "−" : ""}{money(c.amount)}
+              <span className="text-slate-600">{c.name} <span className="text-slate-400 font-normal">({TYPE_LABELS[c.type] || c.type})</span></span>
+              <span className={c.type !== "earning" ? "text-red-600" : "text-slate-800"}>
+                {c.type !== "earning" ? "−" : ""}{money(c.amount)}
               </span>
             </div>
           ))}
@@ -59,6 +62,7 @@ function PayslipDetailModal({ payslip, onClose }) {
 
         <div className="space-y-1 text-sm">
           <div className="flex justify-between text-slate-500"><span>Gross earnings</span><span>{money(payslip.grossEarnings)}</span></div>
+          <div className="flex justify-between text-slate-500"><span>Total contributions</span><span>−{money(payslip.totalContributions)}</span></div>
           <div className="flex justify-between text-slate-500"><span>Total deductions</span><span>−{money(payslip.totalDeductions)}</span></div>
           <div className="flex justify-between text-base font-extrabold text-slate-900 pt-1 border-t border-slate-100"><span>Net pay</span><span>{money(payslip.netPay)}</span></div>
         </div>
@@ -150,6 +154,9 @@ function BulkGenerateModal({ onClose, onSubmit, saving }) {
 function SalaryStructureEditor({ employees }) {
   const [employeeId, setEmployeeId] = useState(employees[0]?._id || "");
   const [components, setComponents] = useState([]);
+  const [paymentMode, setPaymentMode] = useState("bank_transfer");
+  const [uan, setUan] = useState("");
+  const [monthlySalary, setMonthlySalary] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -157,10 +164,19 @@ function SalaryStructureEditor({ employees }) {
     if (!id) return;
     setLoading(true);
     salaryStructuresApi.get(id)
-      .then((r) => setComponents(r.data.components || []))
+      .then((r) => {
+        setComponents(r.data.components || []);
+        setPaymentMode(r.data.paymentMode || "bank_transfer");
+        setUan(r.data.uan || "");
+        setMonthlySalary(r.data.monthlySalary || "");
+      })
       .catch((err) => {
-        if (err.response?.status === 404) setComponents([]);
-        else toast.error("Failed to load salary structure");
+        if (err.response?.status === 404) {
+          setComponents([]);
+          setPaymentMode("bank_transfer");
+          setUan("");
+          setMonthlySalary("");
+        } else toast.error("Failed to load salary structure");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -172,6 +188,7 @@ function SalaryStructureEditor({ employees }) {
   const removeRow = (i) => setComponents((rows) => rows.filter((_, idx) => idx !== i));
 
   const gross = components.filter((c) => c.type === "earning").reduce((s, c) => s + Number(c.amount || 0), 0);
+  const contributions = components.filter((c) => c.type === "contribution").reduce((s, c) => s + Number(c.amount || 0), 0);
   const deductions = components.filter((c) => c.type === "deduction").reduce((s, c) => s + Number(c.amount || 0), 0);
 
   const handleSave = async () => {
@@ -180,6 +197,9 @@ function SalaryStructureEditor({ employees }) {
       await salaryStructuresApi.upsert({
         employeeId,
         components: components.map((c) => ({ ...c, amount: Number(c.amount) || 0 })),
+        paymentMode,
+        uan,
+        monthlySalary: Number(monthlySalary) || 0,
       });
       toast.success("Salary structure saved");
     } catch (err) {
@@ -199,12 +219,30 @@ function SalaryStructureEditor({ employees }) {
         <p className="text-sm text-slate-400">Loading...</p>
       ) : (
         <>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 block mb-1">Payment mode</label>
+              <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+                {Object.entries(PAYMENT_MODE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 block mb-1">UAN</label>
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={uan} onChange={(e) => setUan(e.target.value)} placeholder="PF UAN number" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 block mb-1">Monthly salary (reference)</label>
+              <input type="number" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={monthlySalary} onChange={(e) => setMonthlySalary(e.target.value)} placeholder="e.g. 54168" />
+            </div>
+          </div>
+
           <div className="space-y-2">
             {components.map((c, i) => (
               <div key={i} className="flex gap-2 items-center">
                 <input placeholder="Component name" className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" value={c.name} onChange={(e) => updateRow(i, "name", e.target.value)} />
                 <select className="rounded-xl border border-slate-200 px-3 py-2 text-sm" value={c.type} onChange={(e) => updateRow(i, "type", e.target.value)}>
                   <option value="earning">Earning</option>
+                  <option value="contribution">Contribution</option>
                   <option value="deduction">Deduction</option>
                 </select>
                 <input type="number" placeholder="Amount" className="w-32 rounded-xl border border-slate-200 px-3 py-2 text-sm" value={c.amount} onChange={(e) => updateRow(i, "amount", e.target.value)} />
@@ -220,7 +258,7 @@ function SalaryStructureEditor({ employees }) {
 
           <div className="flex items-center justify-between border-t border-slate-100 pt-4">
             <p className="text-sm text-slate-500">
-              Gross <span className="font-semibold text-slate-800">{money(gross)}</span> · Deductions <span className="font-semibold text-red-600">{money(deductions)}</span> · Net <span className="font-semibold text-slate-900">{money(gross - deductions)}</span>
+              Gross <span className="font-semibold text-slate-800">{money(gross)}</span> · Contributions <span className="font-semibold text-red-600">{money(contributions)}</span> · Deductions <span className="font-semibold text-red-600">{money(deductions)}</span> · Net <span className="font-semibold text-slate-900">{money(gross - contributions - deductions)}</span>
             </p>
             <button disabled={saving || !components.length} onClick={handleSave} className="px-4 py-2 rounded-xl bg-cyan-700 text-white text-sm font-semibold disabled:opacity-60">
               {saving ? "Saving..." : "Save structure"}

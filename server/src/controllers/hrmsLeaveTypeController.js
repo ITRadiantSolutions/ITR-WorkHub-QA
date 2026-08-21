@@ -1,9 +1,11 @@
 import LeaveType from "../models/LeaveType.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 
-const FIELDS = ["name", "code", "defaultDaysPerYear", "accrualType", "carryForwardCap"];
+const FIELDS = ["name", "code", "defaultDaysPerYear", "accrualType", "carryForwardMode", "carryForwardCap", "requiresDocument"];
+const CARRY_FORWARD_MODES = ["none", "half", "all", "fixed_cap"];
 
 const validAccrualType = (value) => value === undefined || ["monthly", "yearly"].includes(value);
+const validCarryForwardMode = (value) => value === undefined || CARRY_FORWARD_MODES.includes(value);
 
 export const listLeaveTypes = async (req, res) => {
   const filter = req.query.includeInactive === "true" ? {} : { isActive: true };
@@ -15,6 +17,9 @@ export const createLeaveType = async (req, res) => {
   if (!req.body.name?.trim()) return res.status(400).json({ message: "name is required" });
   if (!validAccrualType(req.body.accrualType)) {
     return res.status(400).json({ message: "accrualType must be 'monthly' or 'yearly'" });
+  }
+  if (!validCarryForwardMode(req.body.carryForwardMode)) {
+    return res.status(400).json({ message: `carryForwardMode must be one of: ${CARRY_FORWARD_MODES.join(", ")}` });
   }
 
   const payload = {};
@@ -42,6 +47,9 @@ export const updateLeaveType = async (req, res) => {
   if (!leaveType) return res.status(404).json({ message: "Leave type not found" });
   if (!validAccrualType(req.body.accrualType)) {
     return res.status(400).json({ message: "accrualType must be 'monthly' or 'yearly'" });
+  }
+  if (!validCarryForwardMode(req.body.carryForwardMode)) {
+    return res.status(400).json({ message: `carryForwardMode must be one of: ${CARRY_FORWARD_MODES.join(", ")}` });
   }
 
   const oldValue = {};
