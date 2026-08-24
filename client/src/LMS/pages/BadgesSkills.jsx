@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { badgesApi, skillsApi, assignmentsApi, employeeSkillsApi } from "../lmsApi.js";
+import { badgesApi, skillsApi, skillTestsApi, assignmentsApi, employeeSkillsApi } from "../lmsApi.js";
 import Icons from "../../components/Icons.jsx";
 
 const TABS = [
@@ -135,11 +136,13 @@ function BadgesTab() {
 }
 
 function SkillsTab() {
+  const navigate = useNavigate();
   const [skills, setSkills] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(null);
   const [newCategory, setNewCategory] = useState("");
+  const [generatingId, setGeneratingId] = useState(null);
 
   const load = () =>
     skillsApi
@@ -205,6 +208,19 @@ function SkillsTab() {
       load();
     } catch {
       toast.error("Failed to delete skill");
+    }
+  };
+
+  const generateTest = async (skill) => {
+    setGeneratingId(skill._id);
+    try {
+      const { data } = await skillTestsApi.generate(skill._id);
+      toast.success(`Generated ${data.questionPool.length} questions — review before publishing`);
+      navigate(`/lms/manage-skill-tests/${data._id}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to generate questions");
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -281,6 +297,14 @@ function SkillsTab() {
               <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${skill.status === "Active" ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-slate-500 bg-slate-50 border-slate-200"}`}>
                 {skill.status}
               </span>
+              <button
+                onClick={() => generateTest(skill)}
+                disabled={generatingId === skill._id}
+                title="Generate a 50-question test for this skill with AI"
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 hover:underline disabled:opacity-50 disabled:no-underline"
+              >
+                <Icons.Zap /> {generatingId === skill._id ? "Generating…" : "Generate Test"}
+              </button>
               <button onClick={() => setForm(skill)} className="text-[10px] font-semibold text-amber-600 hover:underline">
                 Edit
               </button>

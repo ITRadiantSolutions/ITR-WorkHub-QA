@@ -171,7 +171,14 @@ const hasOverlappingRequest = async (employeeId, start, end) => {
 // and creating a request is identical between them except who the request is
 // for and whether overlapping requests are allowed.
 const submitLeaveRequest = async (req, res, { employee, allowOverlap }) => {
-  const { leaveType, startDate, endDate, isHalfDay, halfDaySession, reason } = req.body;
+  const { leaveType, startDate, endDate, halfDaySession, reason } = req.body;
+  // The request goes through multer (multipart/form-data, to allow an
+  // optional document alongside it), so every field — including this
+  // checkbox — arrives as a string. req.body.isHalfDay is "false" when
+  // unchecked, and the *string* "false" is truthy in JS — `if (isHalfDay)`
+  // or `Boolean(isHalfDay)` on the raw value would treat every request as a
+  // half-day, ignoring the actual date range.
+  const isHalfDay = req.body.isHalfDay === true || req.body.isHalfDay === "true";
   if (!leaveType) return res.status(400).json({ message: "leaveType is required" });
   if (!startDate || !endDate) return res.status(400).json({ message: "startDate and endDate are required" });
 
@@ -209,6 +216,16 @@ const submitLeaveRequest = async (req, res, { employee, allowOverlap }) => {
   }
 
   const balance = await balanceForType(employee._id, employee.joiningDate, type, start);
+  // Fixed-quota event leave (Bereavement, Election Day, Paternity, ...) isn't
+  // meant to be "borrowed" past its balance the way accrual-based leave is —
+  // block outright instead of splitting the excess into loss-of-pay. HR's
+  // on-behalf path still goes through this (they can grant more balance
+  // first via grantLeave, or use a leave type that allows it).
+  if (type.allowExcessAsLop === false && totalDays > balance.remaining) {
+    return res.status(400).json({
+      message: `Only ${balance.remaining} day(s) of ${type.name} remaining this year — this leave type doesn't allow going beyond the balance.`,
+    });
+  }
   const paidDays = Math.max(0, Math.min(totalDays, balance.remaining));
   const lopDays = totalDays - paidDays;
 
@@ -217,7 +234,7 @@ const submitLeaveRequest = async (req, res, { employee, allowOverlap }) => {
     leaveType,
     startDate: start,
     endDate: end,
-    isHalfDay: Boolean(isHalfDay),
+    isHalfDay,
     halfDaySession: isHalfDay ? halfDaySession : null,
     totalDays,
     paidDays,

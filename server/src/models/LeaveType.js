@@ -18,6 +18,12 @@ const leaveTypeSchema = new mongoose.Schema(
     // e.g. Sick Leave requiring a medical certificate — enforced at request
     // submission time, for both self-service and HR-on-behalf requests.
     requiresDocument: { type: Boolean, default: false },
+    // Whether a self-service request beyond the remaining balance is allowed
+    // to go through with the excess marked unpaid (loss of pay), or is
+    // blocked outright. True matches the general accrual-based types (Paid,
+    // Sick) — false is for fixed-quota event leave (Bereavement, Election
+    // Day, Paternity) where "borrowing" days via LOP isn't meant to happen.
+    allowExcessAsLop: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },

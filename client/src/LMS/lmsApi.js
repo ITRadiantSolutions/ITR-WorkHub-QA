@@ -105,6 +105,7 @@ export const skillTestsApi = {
   allAdmin: () => API.get("/lms/skill-tests/admin"),
   byIdAdmin: (testId) => API.get(`/lms/skill-tests/admin/${testId}`),
   create: (data) => API.post("/lms/skill-tests/admin", data),
+  generate: (skillId, count) => API.post("/lms/skill-tests/admin/generate", { skillId, count }),
   update: (testId, data) => API.put(`/lms/skill-tests/admin/${testId}`, data),
   remove: (testId) => API.delete(`/lms/skill-tests/admin/${testId}`),
   assignGroups: (testId, skillGroupIds) => API.post(`/lms/skill-tests/admin/${testId}/assign`, { skillGroupIds }),

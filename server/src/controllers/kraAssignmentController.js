@@ -11,6 +11,26 @@ const requirePmsHrOrManager = (req, res) => {
   return true;
 };
 
+// Manager tier is scoped to self + direct reports for every mutation below —
+// mirrors the read-side check listAssignments/getAssignment already apply.
+// HR, already required by requirePmsHrOrManager, stays unrestricted.
+const managerAllowedIds = async (managerId) => {
+  const reports = await User.find({ managerId }).select("_id");
+  return new Set([String(managerId), ...reports.map((r) => String(r._id))]);
+};
+
+const assertManagerScope = async (req, res, assigneeIds) => {
+  if (req.user.roles.pms !== "manager") return true;
+  const allowed = await managerAllowedIds(req.user._id);
+  const ids = Array.isArray(assigneeIds) ? assigneeIds : [assigneeIds];
+  const notAllowed = ids.filter((id) => !allowed.has(String(id)));
+  if (notAllowed.length) {
+    res.status(403).json({ message: "You can only manage KRAs for your direct reports" });
+    return false;
+  }
+  return true;
+};
+
 // UserKraSearch.jsx's main table: every user matching a name filter, each
 // annotated with whether they have KRA assignments and a flattened summary
 // of those assignments — used to browse "who has what" rather than fetch
@@ -170,6 +190,7 @@ export const assignToUser = async (req, res) => {
   const { cycleId, templateId, userId, userIds, kras } = req.body;
   const targetIds = (Array.isArray(userIds) && userIds.length ? userIds : userId ? [userId] : []).map(String);
   if (!cycleId || !targetIds.length) return res.status(400).json({ message: "cycleId and at least one user are required" });
+  if (!(await assertManagerScope(req, res, targetIds))) return;
 
   const alreadyAssigned = await alreadyAssignedIds(cycleId, targetIds);
   const toCreate = targetIds.filter((id) => !alreadyAssigned.has(id));
@@ -206,6 +227,7 @@ export const assignToGroup = async (req, res) => {
   if (!group) return res.status(404).json({ message: "Group not found" });
 
   const memberIds = group.members.map(String);
+  if (!(await assertManagerScope(req, res, memberIds))) return;
   const alreadyAssigned = await alreadyAssignedIds(cycleId, memberIds);
   const toCreate = memberIds.filter((id) => !alreadyAssigned.has(id));
   const skippedIds = memberIds.filter((id) => alreadyAssigned.has(id));
@@ -234,6 +256,7 @@ export const updateAssignment = async (req, res) => {
   const { kras, status } = req.body;
   const assignment = await KraAssignment.findById(req.params.id);
   if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+  if (!(await assertManagerScope(req, res, assignment.assignedTo))) return;
 
   if (kras !== undefined) assignment.kras = kras;
   if (status !== undefined) assignment.status = status;
@@ -244,8 +267,10 @@ export const updateAssignment = async (req, res) => {
 
 export const deleteAssignment = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
-  const assignment = await KraAssignment.findByIdAndDelete(req.params.id);
+  const assignment = await KraAssignment.findById(req.params.id);
   if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+  if (!(await assertManagerScope(req, res, assignment.assignedTo))) return;
+  await assignment.deleteOne();
   res.status(204).send();
 };
 
@@ -258,6 +283,7 @@ export const updateKra = async (req, res) => {
   if (!requirePmsHrOrManager(req, res)) return;
   const assignment = await KraAssignment.findById(req.params.id);
   if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+  if (!(await assertManagerScope(req, res, assignment.assignedTo))) return;
   const kra = assignment.kras.id(req.params.kraId);
   if (!kra) return res.status(404).json({ message: "KRA not found" });
 

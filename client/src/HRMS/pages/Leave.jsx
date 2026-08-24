@@ -147,7 +147,95 @@ function LeaveDetailsModal({ balance, onClose }) {
   );
 }
 
-function ApplyLeaveModal({ leaveTypes, employees, onClose, onSubmit, saving }) {
+const WEEKDAY_LABELS_MINI = ["S", "M", "T", "W", "T", "F", "S"];
+const toISODateLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// A compact single-month picker for the Apply modal — click a day to start a
+// range, click a second to close it (swapping if it's earlier than the
+// start), so the selected days are visibly highlighted instead of just
+// typed into two bare date inputs. In single-day mode (half-day requests)
+// every click just selects that one day.
+function MiniRangeCalendar({ startDate, endDate, onSelect, singleDay, maxEndDate }) {
+  const [cursor, setCursor] = useState(() => {
+    const base = startDate ? new Date(`${startDate}T00:00:00`) : new Date();
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  });
+  const month = cursor.getMonth();
+  const year = cursor.getFullYear();
+
+  const cells = useMemo(() => {
+    const firstOfMonth = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const leading = firstOfMonth.getDay();
+    const list = Array.from({ length: leading }, () => null);
+    for (let d = 1; d <= daysInMonth; d++) list.push(new Date(year, month, d));
+    return list;
+  }, [month, year]);
+
+  const handleClick = (day) => {
+    const iso = toISODateLocal(day);
+    if (singleDay) {
+      onSelect(iso, iso);
+      return;
+    }
+    if (!startDate || endDate) {
+      onSelect(iso, "");
+    } else if (iso < startDate) {
+      onSelect(iso, startDate);
+    } else {
+      if (maxEndDate && iso > maxEndDate) return;
+      onSelect(startDate, iso);
+    }
+  };
+
+  return (
+    <div className="border border-slate-200 rounded-xl p-3">
+      <div className="flex items-center justify-between mb-2">
+        <button type="button" onClick={() => setCursor(new Date(year, month - 1, 1))} className="p-1 rounded hover:bg-slate-50">
+          <ChevronLeft className="w-4 h-4 text-slate-400" />
+        </button>
+        <p className="text-sm font-bold text-slate-800">{MONTH_NAMES[month]} {year}</p>
+        <button type="button" onClick={() => setCursor(new Date(year, month + 1, 1))} className="p-1 rounded hover:bg-slate-50">
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {WEEKDAY_LABELS_MINI.map((w, i) => (
+          <div key={i} className="text-[10px] font-bold text-slate-400 text-center py-1">{w}</div>
+        ))}
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />;
+          const iso = toISODateLocal(day);
+          const isStart = iso === startDate;
+          const isEnd = iso === endDate;
+          const inRange = startDate && endDate && iso > startDate && iso < endDate;
+          const isBeyondCap = !singleDay && maxEndDate && startDate && !endDate && iso > maxEndDate;
+          return (
+            <button
+              type="button"
+              key={i}
+              disabled={isBeyondCap}
+              onClick={() => handleClick(day)}
+              className={`h-8 text-xs rounded-lg font-semibold transition ${
+                isStart || isEnd
+                  ? "bg-cyan-700 text-white"
+                  : inRange
+                    ? "bg-cyan-50 text-cyan-700"
+                    : isBeyondCap
+                      ? "text-slate-300 cursor-not-allowed"
+                      : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {day.getDate()}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ApplyLeaveModal({ leaveTypes, employees, balance, onClose, onSubmit, saving }) {
   const [form, setForm] = useState({
     employeeId: employees?.[0]?._id || "",
     leaveType: leaveTypes[0]?._id || "",
@@ -158,6 +246,21 @@ function ApplyLeaveModal({ leaveTypes, employees, onClose, onSubmit, saving }) {
 
   const selectedType = leaveTypes.find((t) => t._id === form.leaveType);
   const valid = form.leaveType && form.startDate && (form.isHalfDay ? true : form.endDate) && (!employees || form.employeeId) && (!selectedType?.requiresDocument || file);
+
+  // Fixed-quota event leave (allowExcessAsLop: false) can't be "borrowed"
+  // past its balance — cap what's selectable in the calendar to match, using
+  // the same balance data the strip above already shows. Not shown/enforced
+  // in the HR-on-behalf modal (no `balance` prop there) since HR may be
+  // correcting a record or the employee's balance separately.
+  const remainingForType = balance?.find((b) => b.leaveType._id === form.leaveType)?.remaining;
+  const capActive = selectedType?.allowExcessAsLop === false && typeof remainingForType === "number";
+  let maxEndDate = null; // null = uncapped
+  if (capActive && form.startDate) {
+    maxEndDate =
+      remainingForType > 0
+        ? toISODateLocal(new Date(new Date(`${form.startDate}T00:00:00`).getTime() + (remainingForType - 1) * 86400000))
+        : form.startDate; // nothing remaining — collapses the range to the start day itself
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
@@ -177,21 +280,40 @@ function ApplyLeaveModal({ leaveTypes, employees, onClose, onSubmit, saving }) {
           {leaveTypes.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
         </select>
 
-        <div className="grid grid-cols-2 gap-3">
-          <input type="date" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.startDate} onChange={set("startDate")} />
-          <input
-            type="date"
-            disabled={form.isHalfDay}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-            value={form.isHalfDay ? form.startDate : form.endDate}
-            onChange={set("endDate")}
-          />
-        </div>
-
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <input type="checkbox" checked={form.isHalfDay} onChange={set("isHalfDay")} className="rounded border-slate-300" />
+          <input
+            type="checkbox"
+            checked={form.isHalfDay}
+            onChange={(e) => setForm((p) => ({ ...p, isHalfDay: e.target.checked, endDate: e.target.checked ? p.startDate : p.endDate }))}
+            className="rounded border-slate-300"
+          />
           Half-day
         </label>
+
+        {capActive && (
+          <p className="text-xs text-amber-600 font-medium">
+            {remainingForType > 0
+              ? `Only ${remainingForType} day(s) of ${selectedType.name} remaining this year — the calendar won't let you select past that.`
+              : `No ${selectedType.name} balance remaining this year — contact HR for a grant.`}
+          </p>
+        )}
+
+        <MiniRangeCalendar
+          startDate={form.startDate}
+          endDate={form.endDate}
+          singleDay={form.isHalfDay}
+          maxEndDate={maxEndDate}
+          onSelect={(start, end) => setForm((p) => ({ ...p, startDate: start, endDate: end }))}
+        />
+        {form.startDate && (
+          <p className="text-xs text-slate-500">
+            Selected: <span className="font-semibold text-slate-700">{form.startDate}</span>
+            {form.endDate && form.endDate !== form.startDate && (
+              <> – <span className="font-semibold text-slate-700">{form.endDate}</span></>
+            )}
+          </p>
+        )}
+
         {form.isHalfDay && (
           <select className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.halfDaySession} onChange={set("halfDaySession")}>
             <option value="first_half">First half</option>
@@ -212,7 +334,9 @@ function ApplyLeaveModal({ leaveTypes, employees, onClose, onSubmit, saving }) {
         <p className="text-xs text-slate-400">
           {employees
             ? "Applying on behalf of an employee skips the overlap check — use this to correct or combine periods they couldn't submit themselves."
-            : "Weekends and company holidays don't count toward the day total. If a request goes beyond your balance, the extra days are applied as unpaid (loss of pay) rather than blocked."}
+            : capActive
+              ? "Weekends and company holidays don't count toward the day total. This leave type doesn't allow going beyond the balance."
+              : "Weekends and company holidays don't count toward the day total. If a request goes beyond your balance, the extra days are applied as unpaid (loss of pay) rather than blocked."}
         </p>
 
         <div className="flex justify-end gap-2 pt-1">
@@ -613,7 +737,7 @@ export default function Leave() {
       )}
 
       {showApply && (
-        <ApplyLeaveModal leaveTypes={leaveTypes} saving={saving} onClose={() => setShowApply(false)} onSubmit={handleApply} />
+        <ApplyLeaveModal leaveTypes={leaveTypes} balance={balance} saving={saving} onClose={() => setShowApply(false)} onSubmit={handleApply} />
       )}
       {showApplyForEmployee && (
         <ApplyLeaveModal

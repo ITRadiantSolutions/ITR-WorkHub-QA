@@ -123,11 +123,39 @@ function App() {
               <Route path="new" element={<TimesheetEntry />} />
               <Route path="new/:id" element={<TimesheetEntry />} />
               <Route path="history" element={<TimesheetHistory />} />
-              <Route path="review" element={<TimesheetReview />} />
-              <Route path="team-status" element={<TimesheetTeamStatus />} />
-              <Route path="nsa-report" element={<TimesheetNsaReport />} />
+              <Route
+                path="review"
+                element={
+                  <ProtectedRoute moduleRoles={{ module: "timesheet", roles: ["manager", "hr"] }}>
+                    <TimesheetReview />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="team-status"
+                element={
+                  <ProtectedRoute moduleRoles={{ module: "timesheet", roles: ["manager", "hr"] }}>
+                    <TimesheetTeamStatus />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="nsa-report"
+                element={
+                  <ProtectedRoute moduleRoles={{ module: "timesheet", roles: ["hr"] }}>
+                    <TimesheetNsaReport />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="manage" element={<TimesheetManage />} />
-              <Route path="reports" element={<TimesheetReports />} />
+              <Route
+                path="reports"
+                element={
+                  <ProtectedRoute moduleRoles={{ module: "timesheet", roles: ["manager", "hr"] }}>
+                    <TimesheetReports />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="guide" element={<TimesheetGuide />} />
             </Route>
             <Route element={<PmsLayout />}>
@@ -166,7 +194,7 @@ function App() {
               <Route
                 path="/PMS-userGroup"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "pms", roles: ["manager", "hr"] }}>
                     <PMSUserGroup />
                   </ProtectedRoute>
                 }
@@ -174,7 +202,7 @@ function App() {
               <Route
                 path="/pms/templates"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "pms", roles: ["hr"] }}>
                     <TemplatesList />
                   </ProtectedRoute>
                 }
@@ -182,7 +210,7 @@ function App() {
               <Route
                 path="/pms/templates/new"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "pms", roles: ["hr"] }}>
                     <TemplateBuilder />
                   </ProtectedRoute>
                 }
@@ -190,7 +218,7 @@ function App() {
               <Route
                 path="/pms/templates/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "pms", roles: ["hr"] }}>
                     <TemplateBuilder />
                   </ProtectedRoute>
                 }
@@ -198,7 +226,7 @@ function App() {
               <Route
                 path="/pms/assign/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "pms", roles: ["manager", "hr"] }}>
                     <AssignTemplate />
                   </ProtectedRoute>
                 }
@@ -206,7 +234,7 @@ function App() {
               <Route
                 path="/user-kra-search"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "pms", roles: ["manager", "hr"] }}>
                     <UserKraSearch />
                   </ProtectedRoute>
                 }
@@ -214,7 +242,7 @@ function App() {
               <Route
                 path="/pms/reviews"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "pms", roles: ["manager", "hr"] }}>
                     <ReviewQueue />
                   </ProtectedRoute>
                 }
@@ -332,7 +360,7 @@ function App() {
               <Route
                 path="/lms/manage"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <ManageCourses />
                   </ProtectedRoute>
                 }
@@ -340,7 +368,7 @@ function App() {
               <Route
                 path="/lms/manage/:courseId"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <CourseBuilder />
                   </ProtectedRoute>
                 }
@@ -348,7 +376,7 @@ function App() {
               <Route
                 path="/lms/assign"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <AssignCourses />
                   </ProtectedRoute>
                 }
@@ -356,7 +384,7 @@ function App() {
               <Route
                 path="/lms/badges-skills"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <BadgesSkills />
                   </ProtectedRoute>
                 }
@@ -364,7 +392,7 @@ function App() {
               <Route
                 path="/lms/reports"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <LmsReports />
                   </ProtectedRoute>
                 }
@@ -372,7 +400,7 @@ function App() {
               <Route
                 path="/lms/skill-groups"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <SkillGroups />
                   </ProtectedRoute>
                 }
@@ -380,7 +408,7 @@ function App() {
               <Route
                 path="/lms/manage-skill-tests"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <SkillTests />
                   </ProtectedRoute>
                 }
@@ -388,7 +416,7 @@ function App() {
               <Route
                 path="/lms/manage-skill-tests/new"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <SkillTestBuilder />
                   </ProtectedRoute>
                 }
@@ -396,7 +424,7 @@ function App() {
               <Route
                 path="/lms/manage-skill-tests/:testId"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
                     <SkillTestBuilder />
                   </ProtectedRoute>
                 }
@@ -487,7 +515,7 @@ function App() {
               <Route
                 path="/hrms/employees"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "hrms", roles: ["hr"] }}>
                     <HrmsEmployees />
                   </ProtectedRoute>
                 }
@@ -535,7 +563,7 @@ function App() {
               <Route
                 path="/hrms/lifecycle"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute moduleRoles={{ module: "hrms", roles: ["hr"] }}>
                     <HrmsLifecycle />
                   </ProtectedRoute>
                 }

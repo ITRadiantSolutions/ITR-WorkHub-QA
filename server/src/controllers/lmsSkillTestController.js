@@ -2,12 +2,14 @@ import crypto from "crypto";
 import SkillTest from "../models/SkillTest.js";
 import SkillTestProgress from "../models/SkillTestProgress.js";
 import SkillGroup from "../models/SkillGroup.js";
+import Skill from "../models/Skill.js";
 import { awardBadgeOnce, awardSkillOnce } from "../utils/lmsAwards.js";
 import { sampleAttemptQuestions } from "../utils/lmsQuestionSampling.js";
+import { generateMcqQuestions } from "../utils/lmsQuestionGenerator.js";
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
-const validateQuestionPool = (questionPool) => {
+export const validateQuestionPool = (questionPool) => {
   for (const q of questionPool || []) {
     if (!q.prompt?.trim()) return "Every question needs a prompt";
     if (q.type === "mcq") {
@@ -68,6 +70,50 @@ export const adminCreateSkillTest = async (req, res) => {
     passingPercentage: passingPercentage ?? 80,
     skill: skill || null,
     badge: badge || null,
+  });
+  res.status(201).json(test);
+};
+
+// Auto-generates a question pool for a skill via OpenAI and saves it as a
+// new, unpublished SkillTest — the admin reviews/edits it in the regular
+// builder (same as a manually-created test) before publishing.
+export const adminGenerateSkillTest = async (req, res) => {
+  if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
+  const { skillId } = req.body;
+  if (!skillId) return res.status(400).json({ message: "skillId is required" });
+
+  const skill = await Skill.findById(skillId);
+  if (!skill) return res.status(404).json({ message: "Skill not found" });
+
+  const count = Math.min(100, Math.max(5, Number(req.body.count) || 50));
+
+  let questionPool;
+  try {
+    questionPool = await generateMcqQuestions({
+      skillName: skill.name,
+      category: skill.category,
+      description: skill.description,
+      count,
+    });
+  } catch (error) {
+    return res.status(502).json({ message: error.message || "Question generation failed" });
+  }
+
+  if (!questionPool.length) {
+    return res.status(422).json({ message: "The AI didn't return any usable questions — try again." });
+  }
+
+  const test = await SkillTest.create({
+    title: `${skill.name} — AI Generated`,
+    description: "",
+    createdBy: req.user._id,
+    durationMinutes: 30,
+    questionPool,
+    attemptSize: Math.min(20, questionPool.length),
+    maxAttempts: 3,
+    passingPercentage: 80,
+    skill: skill._id,
+    isPublished: false,
   });
   res.status(201).json(test);
 };

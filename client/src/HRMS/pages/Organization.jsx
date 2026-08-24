@@ -109,6 +109,12 @@ const ENTITIES = {
       },
       { key: "carryForwardCap", label: "Carry-forward cap (only used for \"Fixed cap\")", type: "number" },
       { key: "requiresDocument", label: "Requires a supporting document to apply", type: "checkbox" },
+      {
+        key: "allowExcessAsLop",
+        label: "Allow requests beyond the balance (extra days become unpaid instead of being blocked)",
+        type: "checkbox",
+        defaultChecked: true,
+      },
     ],
     columns: [
       { key: "name", label: "Name" },
@@ -116,11 +122,13 @@ const ENTITIES = {
       { key: "accrualLabel", label: "Accrual" },
       { key: "defaultDaysPerYear", label: "Days/year" },
       { key: "carryForwardLabel", label: "Carry-forward" },
+      { key: "capLabel", label: "Beyond balance" },
     ],
     toRow: (t) => ({
       ...t,
       accrualLabel: t.accrualType === "yearly" ? "Yearly" : "Monthly",
       carryForwardLabel: { none: "None", half: "Half", all: "All", fixed_cap: `Up to ${t.carryForwardCap}` }[t.carryForwardMode] || "None",
+      capLabel: t.allowExcessAsLop === false ? "Blocked" : "Unpaid (LOP)",
     }),
   },
 };
@@ -130,7 +138,7 @@ const ENTITIES = {
 // string for a required enum field until the user touches the dropdown.
 const emptyForm = (fields) =>
   Object.fromEntries(fields.map((f) => {
-    if (f.type === "checkbox") return [f.key, false];
+    if (f.type === "checkbox") return [f.key, f.defaultChecked ?? false];
     if (f.type === "select") return [f.key, f.options?.[0]?.value ?? ""];
     return [f.key, ""];
   }));

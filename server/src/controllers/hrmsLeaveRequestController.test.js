@@ -147,6 +147,50 @@ describe("createLeaveRequest — working-day counting", () => {
     expect(LeaveRequest.create).not.toHaveBeenCalled();
   });
 
+  it("treats a multi-day request as full days, not half, when isHalfDay arrives as the string \"false\" (multipart/form-data)", async () => {
+    // Regression: the request goes through multer as multipart/form-data (to
+    // allow an optional document upload), so every field — including this
+    // checkbox — arrives as a string. The string "false" is truthy in plain
+    // JS, so a naive `if (isHalfDay)` treated every request as a half-day
+    // regardless of the selected date range.
+    const type = { _id: oid(), name: "Bereavement", isActive: true, defaultDaysPerYear: 3, carryForwardCap: 0 };
+    LeaveType.findById.mockResolvedValue(type);
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([]));
+    LeaveRequest.create.mockResolvedValue({ _id: oid() });
+    LeaveRequest.findById.mockReturnValue(makeQuery({}));
+
+    const req = {
+      body: {
+        leaveType: type._id.toString(), startDate: "2026-08-17", endDate: "2026-08-19",
+        isHalfDay: "false", halfDaySession: "first_half",
+      },
+      user: employeeUser(),
+    };
+    await createLeaveRequest(req, mockRes());
+
+    // Mon 17 - Wed 19 Aug 2026 = 3 working days.
+    expect(LeaveRequest.create).toHaveBeenCalledWith(expect.objectContaining({ totalDays: 3, isHalfDay: false, halfDaySession: null }));
+  });
+
+  it("still recognizes a real half-day request when isHalfDay arrives as the string \"true\"", async () => {
+    const type = { _id: oid(), name: "Paternity", isActive: true, defaultDaysPerYear: 5, carryForwardCap: 0 };
+    LeaveType.findById.mockResolvedValue(type);
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([]));
+    LeaveRequest.create.mockResolvedValue({ _id: oid() });
+    LeaveRequest.findById.mockReturnValue(makeQuery({}));
+
+    const req = {
+      body: {
+        leaveType: type._id.toString(), startDate: "2026-08-17", endDate: "2026-08-17",
+        isHalfDay: "true", halfDaySession: "second_half",
+      },
+      user: employeeUser(),
+    };
+    await createLeaveRequest(req, mockRes());
+
+    expect(LeaveRequest.create).toHaveBeenCalledWith(expect.objectContaining({ totalDays: 0.5, isHalfDay: true, halfDaySession: "second_half" }));
+  });
+
   it("400s a half-day request on a weekend", async () => {
     LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Casual", isActive: true, defaultDaysPerYear: 12, carryForwardCap: 0 });
     const req = {
@@ -177,6 +221,42 @@ describe("createLeaveRequest — loss of pay instead of blocking", () => {
     await createLeaveRequest(req, res);
 
     expect(LeaveRequest.create).toHaveBeenCalledWith(expect.objectContaining({ totalDays: 10, paidDays: 8, lopDays: 2 }));
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it("blocks a request beyond the balance for a leave type with allowExcessAsLop: false", async () => {
+    // Fixed-quota event leave (Bereavement, Election Day, Paternity) — the
+    // excess should be rejected outright, not silently split into LOP.
+    const type = { _id: oid(), name: "Bereavement", isActive: true, defaultDaysPerYear: 3, accrualType: "yearly", carryForwardCap: 0, allowExcessAsLop: false };
+    LeaveType.findById.mockResolvedValue(type);
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([])); // no prior usage
+    LeaveRequest.create.mockResolvedValue({ _id: oid() });
+
+    // Mon 17 - Fri 21 Aug 2026 = 5 working days, only 3 in the (yearly) balance.
+    const req = { body: { leaveType: type._id.toString(), startDate: "2026-08-17", endDate: "2026-08-21" }, user: employeeUser() };
+    const res = mockRes();
+
+    await createLeaveRequest(req, res);
+
+    expect(LeaveRequest.create).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("3 day(s)") }));
+  });
+
+  it("allows a request within the balance for a leave type with allowExcessAsLop: false", async () => {
+    const type = { _id: oid(), name: "Bereavement", isActive: true, defaultDaysPerYear: 3, accrualType: "yearly", carryForwardCap: 0, allowExcessAsLop: false };
+    LeaveType.findById.mockResolvedValue(type);
+    LeaveRequest.find.mockReturnValue(makeSelectQuery([]));
+    LeaveRequest.create.mockResolvedValue({ _id: oid() });
+    LeaveRequest.findById.mockReturnValue(makeQuery({}));
+
+    // Mon 17 - Tue 18 Aug 2026 = 2 working days, within the 3-day balance.
+    const req = { body: { leaveType: type._id.toString(), startDate: "2026-08-17", endDate: "2026-08-18" }, user: employeeUser() };
+    const res = mockRes();
+
+    await createLeaveRequest(req, res);
+
+    expect(LeaveRequest.create).toHaveBeenCalledWith(expect.objectContaining({ totalDays: 2, paidDays: 2, lopDays: 0 }));
     expect(res.status).toHaveBeenCalledWith(201);
   });
 

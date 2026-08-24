@@ -61,11 +61,28 @@ const canEditAccess = async (actor, targetUserId, module) => {
 // Optional ?archived=true|false scoped to ?module=timesheet|pms|account (default
 // "account") lets HR screens show just their active roster or just the
 // archived-from-this-module list, without changing the default unfiltered call.
+// Fields a non-admin caller below (tracker PM/DEVELOPER/QA, or a plain PMS
+// manager) actually needs for assignee dropdowns / team pickers — everything
+// else (PAN, DOB, approval history, manageAccessModules, isSuperAdmin, Azure
+// ids, ...) is unrelated PII/permission metadata they have no business use
+// for and shouldn't receive just because the directory call is unfiltered.
+const DIRECTORY_SAFE_FIELDS = [
+  "_id", "id", "name", "email", "role", "roles", "managerId", "shift",
+  "archived", "department", "designation", "createdAt", "updatedAt",
+];
+
+const toDirectorySafeUser = (user) => {
+  const trimmed = {};
+  for (const key of DIRECTORY_SAFE_FIELDS) trimmed[key] = user[key];
+  return trimmed;
+};
+
 export const listUsers = async (req, res) => {
-  // PMS managers need the full directory to build User Groups (UserGroups.jsx)
+  // PMS managers need the directory to build User Groups (UserGroups.jsx)
   // — isAdminOrHr() only covers PMS "hr", not "manager".
+  const isFullDirectoryAccess = req.user.isSuperAdmin || isAdminOrHr(req.user);
   const canViewAll =
-    isAdminOrHr(req.user) || ["PM", "DEVELOPER", "QA"].includes(req.user.roles.tracker) || req.user.roles.pms === "manager";
+    isFullDirectoryAccess || ["PM", "DEVELOPER", "QA"].includes(req.user.roles.tracker) || req.user.roles.pms === "manager";
   if (!canViewAll) return res.status(403).json({ message: "Insufficient permissions to view users" });
 
   const filter = {};
@@ -79,7 +96,8 @@ export const listUsers = async (req, res) => {
   // column, so add the flat `.role` (Flow_Tracker convention, see
   // utils/publicUser.js) alongside the full doc instead of swapping in
   // toPublicUser(), which would silently drop createdAt/updatedAt.
-  res.json(users.map((u) => ({ ...u.toObject(), role: u.roles.tracker })));
+  const withFlatRole = users.map((u) => ({ ...u.toObject(), role: u.roles.tracker }));
+  res.json(isFullDirectoryAccess ? withFlatRole : withFlatRole.map(toDirectorySafeUser));
 };
 
 export const getMe = async (req, res) => {
@@ -103,7 +121,15 @@ export const createUser = async (req, res) => {
   const moduleRoles = { ...moduleRoleDefaults };
   if (roles && typeof roles === "object") {
     for (const key of Object.keys(moduleRoleDefaults)) {
-      if (roles[key] && MODULE_ROLE_ENUM[key]?.includes(roles[key])) moduleRoles[key] = roles[key];
+      if (!roles[key] || !MODULE_ROLE_ENUM[key]?.includes(roles[key])) continue;
+      // Being isAdminOrHr (tracker ADMIN, or "hr" in timesheet/pms/hrms) is
+      // NOT itself authority over every OTHER module — assignRole already
+      // requires manageAccessModules for the specific module being edited
+      // (see canEditAccess); creation was skipping that check entirely,
+      // letting e.g. a timesheet HR hand out vms/lms "admin" at signup time
+      // even though they couldn't grant it a moment later via assignRole.
+      if (!req.user.isSuperAdmin && !req.user.manageAccessModules?.includes(key)) continue;
+      moduleRoles[key] = roles[key];
     }
   }
 

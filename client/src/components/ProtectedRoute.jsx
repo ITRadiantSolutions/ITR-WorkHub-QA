@@ -2,7 +2,12 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 
-export default function ProtectedRoute({ children, allowedRoles }) {
+// moduleRoles gates a per-module role (e.g. { module: "lms", roles: ["manager", "admin"] })
+// — allowedRoles only ever compared against the flat tracker role
+// (ADMIN/PM/DEVELOPER/QA/BUSINESS_USER), so it can't express "must be an
+// lms/pms/vms/hrms/timesheet manager or admin" at all. A super admin always
+// passes, mirroring how every module gate elsewhere in the app treats them.
+export default function ProtectedRoute({ children, allowedRoles, moduleRoles }) {
   const { user, token, loading } = useAuth();
 
 // Show loading while checking authentication (safer timeout)
@@ -43,6 +48,12 @@ export default function ProtectedRoute({ children, allowedRoles }) {
       default:
         return <Navigate to="/business" replace />;
     }
+  }
+
+  // Module role not allowed — send to the hub rather than a per-tracker-role
+  // dashboard, since moduleRoles pages aren't part of that flow.
+  if (moduleRoles && !user.isSuperAdmin && !moduleRoles.roles.includes(user.roles?.[moduleRoles.module])) {
+    return <Navigate to="/hub" replace />;
   }
 
   // ✅ Authorized - render children

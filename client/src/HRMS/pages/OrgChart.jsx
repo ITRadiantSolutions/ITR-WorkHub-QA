@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Network, Search, ChevronRight, Users, Home } from "lucide-react";
+import { Network, Search, ChevronRight, Users, Home, Mail, Building2, Briefcase } from "lucide-react";
 import { orgChartApi } from "../hrmsApi";
 import getInitials from "../../utils/getInitials";
 
@@ -99,6 +99,56 @@ function PersonRow({ node, active, onClick }) {
   );
 }
 
+// Fills the space below the columns with something actually useful — a
+// closer look at whoever's currently selected, instead of leaving it blank.
+function DetailPanel({ node, manager, onSelectManager }) {
+  if (!node) {
+    return (
+      <div className="mt-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center text-sm text-slate-400 italic">
+        Select someone from the columns above to see their details.
+      </div>
+    );
+  }
+
+  const fields = [
+    { icon: Briefcase, label: "Designation", value: node.designation || "—" },
+    { icon: Building2, label: "Department", value: node.department || "—" },
+    { icon: Mail, label: "Email", value: node.email || "—" },
+    { icon: Users, label: "Direct reports", value: node.children.length },
+  ];
+
+  return (
+    <div className="mt-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col sm:flex-row gap-6">
+      <div className="flex items-center gap-4 sm:w-64 shrink-0">
+        <div
+          className={`w-16 h-16 rounded-full bg-gradient-to-br ${avatarGradient(node.email || node.name)} text-white font-bold flex items-center justify-center text-xl shadow-sm shrink-0`}
+        >
+          {getInitials(node.name)}
+        </div>
+        <div className="min-w-0">
+          <p className="text-lg font-bold text-slate-900 truncate">{node.name}</p>
+          <p className="text-sm text-slate-500 truncate">{node.designation || "Employee"}</p>
+          {manager && (
+            <button onClick={onSelectManager} className="text-xs text-cyan-700 hover:underline mt-1">
+              Reports to {manager.name}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
+        {fields.map((f) => (
+          <div key={f.label} className="min-w-0">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-1">
+              <f.icon className="w-3 h-3" /> {f.label}
+            </p>
+            <p className="text-sm font-medium text-slate-700 truncate mt-0.5">{f.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function OrgChart() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +166,10 @@ export default function OrgChart() {
   const { roots, byId } = useMemo(() => buildTree(employees), [employees]);
   const columns = useMemo(() => computeColumns(roots, path, byId), [roots, path, byId]);
   const breadcrumb = path.map((id) => byId.get(id)).filter(Boolean);
+
+  const selectedNode = path.length > 0 ? byId.get(path[path.length - 1]) : null;
+  const selectedManagerId = selectedNode ? selectedNode.managerId?._id || selectedNode.managerId || null : null;
+  const selectedManager = selectedManagerId ? byId.get(selectedManagerId) : null;
 
   const selectAt = (colIdx, nodeId) => setPath((prev) => [...prev.slice(0, colIdx), nodeId]);
 
@@ -183,7 +237,10 @@ export default function OrgChart() {
           )}
           <div className="flex overflow-x-auto">
             {columns.map((col, colIdx) => (
-              <div key={colIdx} className="w-72 shrink-0 border-r border-slate-100 last:border-r-0 max-h-[65vh] overflow-y-auto divide-y divide-slate-50">
+              <div
+                key={colIdx}
+                className="w-72 shrink-0 border-r border-slate-100 last:border-r-0 max-h-[calc(100vh-280px)] overflow-y-auto divide-y divide-slate-50"
+              >
                 {col.map((node) => (
                   <PersonRow key={node._id} node={node} active={node._id === path[colIdx]} onClick={() => selectAt(colIdx, node._id)} />
                 ))}
@@ -191,6 +248,14 @@ export default function OrgChart() {
             ))}
           </div>
         </div>
+      )}
+
+      {!loading && roots.length > 0 && (
+        <DetailPanel
+          node={selectedNode}
+          manager={selectedManager}
+          onSelectManager={() => selectedManager && setPath(ancestorPath(employees, selectedManager._id))}
+        />
       )}
     </main>
   );

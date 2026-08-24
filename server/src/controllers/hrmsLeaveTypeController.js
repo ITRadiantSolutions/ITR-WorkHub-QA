@@ -1,7 +1,7 @@
 import LeaveType from "../models/LeaveType.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 
-const FIELDS = ["name", "code", "defaultDaysPerYear", "accrualType", "carryForwardMode", "carryForwardCap", "requiresDocument"];
+const FIELDS = ["name", "code", "defaultDaysPerYear", "accrualType", "carryForwardMode", "carryForwardCap", "requiresDocument", "allowExcessAsLop"];
 const CARRY_FORWARD_MODES = ["none", "half", "all", "fixed_cap"];
 
 const validAccrualType = (value) => value === undefined || ["monthly", "yearly"].includes(value);

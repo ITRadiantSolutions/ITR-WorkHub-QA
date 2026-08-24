@@ -4,6 +4,7 @@ import {
   adminListSkillTests,
   adminGetSkillTestById,
   adminCreateSkillTest,
+  adminGenerateSkillTest,
   adminUpdateSkillTest,
   adminDeleteSkillTest,
   adminAssignToGroups,
@@ -21,6 +22,7 @@ router.use(protect, requireModuleAccess("lms"));
 // Admin authoring
 router.get("/admin", adminListSkillTests);
 router.post("/admin", adminCreateSkillTest);
+router.post("/admin/generate", adminGenerateSkillTest);
 router.get("/admin/:testId", adminGetSkillTestById);
 router.put("/admin/:testId", adminUpdateSkillTest);
 router.delete("/admin/:testId", adminDeleteSkillTest);

@@ -380,6 +380,19 @@ export async function listVisitors(req, res) {
       { purpose: { $regex: escaped, $options: "i" } },
     ];
   }
+  // Receptionist/admin see everything; a plain host only sees visitors they
+  // created or are hosting — same ownership definition listInvitedVisitorsForHost
+  // already uses. Combined with the optional search $or via $and so neither
+  // clause silently overrides the other.
+  if (req.user.roles.vms === "host") {
+    const hostFilter = { $or: [{ createdById: req.user._id }, { personToMeetId: req.user._id }] };
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, hostFilter];
+      delete filter.$or;
+    } else {
+      Object.assign(filter, hostFilter);
+    }
+  }
   const visitors = await Visitor.find(filter).populate("personToMeet").sort({ createdAt: -1 }).lean({ virtuals: true });
   return res.json({ visitors: withPhotoUrls(visitors) });
 }
@@ -436,6 +449,13 @@ export async function approvalAction(req, res) {
   let approvalRole = "receptionist";
   if (action === "approve") {
     const isEscalationResolution = visitor.status === VISIT_STATUS.ESCALATED;
+    // requireVmsReceptionOrAdmin lets a receptionist call this endpoint at
+    // all, but resolving an escalation is an admin-only decision — a
+    // receptionist approving here must not be able to hand themselves a
+    // SECURITY_APPROVED outcome.
+    if (isEscalationResolution && req.user.roles.vms !== "admin") {
+      return res.status(403).json({ error: "Only an admin can resolve an escalated visitor" });
+    }
     statusUpdate = isEscalationResolution ? VISIT_STATUS.SECURITY_APPROVED : VISIT_STATUS.RECEPTION_APPROVED;
     if (isEscalationResolution) approvalRole = "admin";
   } else if (action === "escalate") {
@@ -509,6 +529,10 @@ export async function getVisitor(req, res) {
   }
   const visitor = await Visitor.findById(visitorId).populate("personToMeet").populate("createdById", "name email").lean({ virtuals: true });
   if (!visitor) return res.status(404).json({ error: "Visitor not found" });
+  if (req.user.roles.vms === "host") {
+    const isOwner = visitor.createdById?._id?.toString() === req.user._id.toString() || visitor.personToMeetId?.toString() === req.user._id.toString();
+    if (!isOwner) return res.status(403).json({ error: "Not authorized to view this visitor" });
+  }
   return res.json({ visitor: withPhotoUrl(visitor) });
 }
 
