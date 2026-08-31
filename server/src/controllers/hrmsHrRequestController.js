@@ -66,6 +66,14 @@ export const assignHrRequest = async (req, res) => {
     return res.status(409).json({ message: "Cannot reassign a resolved request" });
   }
 
+  if (req.body.assignedTo) {
+    // Without this, a typo'd or non-HR id silently "assigns" the request to
+    // someone who will never see it in their queue, with nothing surfacing
+    // the mistake.
+    const assignee = await User.findOne({ _id: req.body.assignedTo, "roles.hrms": "hr" }).select("_id");
+    if (!assignee) return res.status(400).json({ message: "assignedTo must be an existing HR user" });
+  }
+
   hrRequest.assignedTo = req.body.assignedTo || req.user._id;
   if (hrRequest.status === "open") hrRequest.status = "in_progress";
   await hrRequest.save();

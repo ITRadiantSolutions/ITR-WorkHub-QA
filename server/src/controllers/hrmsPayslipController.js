@@ -5,6 +5,7 @@ import Payslip from "../models/Payslip.js";
 import SalaryStructure from "../models/SalaryStructure.js";
 import User from "../models/User.js";
 import LeaveRequest from "../models/LeaveRequest.js";
+import Offboarding from "../models/Offboarding.js";
 import { writeAuditLog } from "../utils/activityLog.js";
 import { notifyUsers } from "../utils/notify.js";
 import { sendHrmsEmail } from "../utils/hrmsMailer.js";
@@ -28,12 +29,21 @@ const COMPANY = {
 
 const PAYMENT_MODE_LABELS = { bank_transfer: "Bank Transfer", cash: "Cash", cheque: "Cheque" };
 
-const computeTotals = (components) => {
-  const sum = (type) => components.filter((c) => c.type === type).reduce((s, c) => s + c.amount, 0);
-  const grossEarnings = sum("earning");
-  const totalContributions = sum("contribution");
-  const totalDeductions = sum("deduction");
-  return { grossEarnings, totalContributions, totalDeductions, netPay: grossEarnings - totalContributions - totalDeductions };
+// Earnings scale with actualPayableDays/totalWorkingDays — this is what
+// actually makes loss-of-pay days (and a partial first/last month for
+// someone who joined or left mid-period) reduce pay. Contributions and
+// deductions stay at their full SalaryStructure amount: there's no PF/tax
+// formula in this system to reprorate them by, and unlike earnings they
+// aren't simply "what you get for showing up".
+const computeTotals = (components, actualPayableDays, totalWorkingDays) => {
+  const fraction = totalWorkingDays > 0 ? Math.min(1, actualPayableDays / totalWorkingDays) : 0;
+  const round2 = (n) => Math.round(n * 100) / 100;
+  const sum = (type, prorate) =>
+    round2(components.filter((c) => c.type === type).reduce((s, c) => s + (prorate ? c.amount * fraction : c.amount), 0));
+  const grossEarnings = sum("earning", true);
+  const totalContributions = sum("contribution", false);
+  const totalDeductions = sum("deduction", false);
+  return { grossEarnings, totalContributions, totalDeductions, netPay: round2(grossEarnings - totalContributions - totalDeductions) };
 };
 
 // LOP is attributed to the month a leave request started in — a simplification
@@ -50,14 +60,37 @@ const computeLopDays = async (employeeId, month, year) => {
   return requests.reduce((sum, r) => sum + (r.lopDays || 0), 0);
 };
 
-const populateEmployeeForPayslip = (id) => User.findById(id).select("name email employeeId department designation dateOfBirth panNumber locationId").populate("locationId", "name");
+const populateEmployeeForPayslip = (id) =>
+  User.findById(id).select("name email employeeId department designation dateOfBirth panNumber locationId joiningDate").populate("locationId", "name");
+
+const daysInclusive = (start, end) => Math.round((end - start) / 86400000) + 1;
+
+// The window within the pay cycle the employee was actually employed for —
+// clipped to joiningDate at the start and an offboarding lastWorkingDate at
+// the end, whichever falls inside the month. Returns 0 if the employee
+// wasn't employed at all during this period (payslip generated for the
+// wrong month, or well before joining/after leaving).
+const employedDaysInMonth = (monthStart, monthEnd, joiningDate, lastWorkingDate) => {
+  const effectiveStart = joiningDate && joiningDate > monthStart ? joiningDate : monthStart;
+  const effectiveEnd = lastWorkingDate && lastWorkingDate < monthEnd ? lastWorkingDate : monthEnd;
+  if (effectiveStart > effectiveEnd) return 0;
+  return daysInclusive(effectiveStart, effectiveEnd);
+};
 
 // Builds the snapshot fields stored on a Payslip at generation time — see
 // the model comment on why these are copied rather than referenced live.
 const buildSnapshot = async (employee, structure, month, year) => {
-  const totalWorkingDays = new Date(year, month, 0).getDate(); // calendar days in the pay cycle
-  const lossOfPayDays = await computeLopDays(employee._id, month, year);
-  const actualPayableDays = Math.max(0, totalWorkingDays - lossOfPayDays);
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0); // last calendar day of the month
+  const totalWorkingDays = monthEnd.getDate(); // calendar days in the pay cycle
+
+  const [lossOfPayDays, offboarding] = await Promise.all([
+    computeLopDays(employee._id, month, year),
+    Offboarding.findOne({ employee: employee._id }).select("lastWorkingDate"),
+  ]);
+
+  const employedDays = employedDaysInMonth(monthStart, monthEnd, employee.joiningDate, offboarding?.lastWorkingDate);
+  const actualPayableDays = Math.max(0, employedDays - lossOfPayDays);
 
   return {
     employeeNumber: employee.employeeId || "",
@@ -118,8 +151,9 @@ export const generatePayslip = async (req, res) => {
   if (!structure) return res.status(404).json({ message: "This employee has no salary structure set up yet" });
   if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-  const { grossEarnings, totalContributions, totalDeductions, netPay } = computeTotals(structure.components);
   const snapshot = await buildSnapshot(employee, structure, m, y);
+  const { grossEarnings, totalContributions, totalDeductions, netPay } =
+    computeTotals(structure.components, snapshot.actualPayableDays, snapshot.totalWorkingDays);
 
   let payslip;
   try {
@@ -162,7 +196,7 @@ export const generateBulkPayslips = async (req, res) => {
 
   const structures = await SalaryStructure.find({}).populate({
     path: "employee",
-    select: "name email employmentStatus archived employeeId department designation dateOfBirth panNumber locationId",
+    select: "name email employmentStatus archived employeeId department designation dateOfBirth panNumber locationId joiningDate",
     populate: { path: "locationId", select: "name" },
   });
 
@@ -174,8 +208,9 @@ export const generateBulkPayslips = async (req, res) => {
       skipped += 1;
       continue;
     }
-    const { grossEarnings, totalContributions, totalDeductions, netPay } = computeTotals(structure.components);
     const snapshot = await buildSnapshot(employee, structure, m, y);
+    const { grossEarnings, totalContributions, totalDeductions, netPay } =
+      computeTotals(structure.components, snapshot.actualPayableDays, snapshot.totalWorkingDays);
     try {
       const payslip = await Payslip.create({
         employee: employee._id, month: m, year: y, components: structure.components,

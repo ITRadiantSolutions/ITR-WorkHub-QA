@@ -67,7 +67,8 @@ function OnboardingCard({ record, onToggleItem }) {
 function InitiateOffboardingModal({ employees, onClose, onSubmit, saving }) {
   const [form, setForm] = useState({ employeeId: employees[0]?._id || "", resignationDate: "", lastWorkingDate: "", reason: "" });
   const set = (f) => (e) => setForm((p) => ({ ...p, [f]: e.target.value }));
-  const valid = form.employeeId && form.resignationDate && form.lastWorkingDate;
+  const dateOrderInvalid = form.resignationDate && form.lastWorkingDate && form.lastWorkingDate < form.resignationDate;
+  const valid = form.employeeId && form.resignationDate && form.lastWorkingDate && !dateOrderInvalid;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
@@ -89,6 +90,7 @@ function InitiateOffboardingModal({ employees, onClose, onSubmit, saving }) {
             <input type="date" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.lastWorkingDate} onChange={set("lastWorkingDate")} />
           </div>
         </div>
+        {dateOrderInvalid && <p className="text-xs text-red-600 font-medium">Last working date can't be before the resignation date.</p>}
         <textarea placeholder="Reason (optional)" rows={2} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={form.reason} onChange={set("reason")} />
         <div className="flex justify-end gap-2 pt-1">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold">Cancel</button>

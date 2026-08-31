@@ -5,7 +5,7 @@ vi.mock("../models/AssetAssignment.js", () => ({
   default: { create: vi.fn(), find: vi.fn(), findById: vi.fn() },
 }));
 vi.mock("../models/Asset.js", () => ({
-  default: { findById: vi.fn() },
+  default: { findById: vi.fn(), findOneAndUpdate: vi.fn() },
 }));
 vi.mock("../models/User.js", () => ({ default: { findById: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
@@ -55,29 +55,21 @@ describe("assignAsset", () => {
     expect(AssetAssignment.create).not.toHaveBeenCalled();
   });
 
-  it("404s when the asset doesn't exist", async () => {
-    Asset.findById.mockResolvedValue(null);
+  it("404s an unknown employee", async () => {
+    User.findById.mockReturnValue(makeSelectQuery(null));
     const req = { body: { assetId: oid().toString(), employeeId: oid().toString() }, user: hrUser() };
     const res = mockRes();
 
     await assignAsset(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
+    expect(Asset.findOneAndUpdate).not.toHaveBeenCalled();
+    expect(AssetAssignment.create).not.toHaveBeenCalled();
   });
 
-  it("409s when the asset isn't available", async () => {
-    Asset.findById.mockResolvedValue({ _id: oid(), status: "assigned" });
-    const req = { body: { assetId: oid().toString(), employeeId: oid().toString() }, user: hrUser() };
-    const res = mockRes();
-
-    await assignAsset(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-  });
-
-  it("404s an unknown employee", async () => {
-    Asset.findById.mockResolvedValue({ _id: oid(), status: "available" });
-    User.findById.mockReturnValue(makeSelectQuery(null));
+  it("404s when the asset doesn't exist", async () => {
+    Asset.findOneAndUpdate.mockResolvedValue(null);
+    Asset.findById.mockReturnValue(makeSelectQuery(null));
     const req = { body: { assetId: oid().toString(), employeeId: oid().toString() }, user: hrUser() };
     const res = mockRes();
 
@@ -87,9 +79,29 @@ describe("assignAsset", () => {
     expect(AssetAssignment.create).not.toHaveBeenCalled();
   });
 
+  it("409s when the asset isn't available (atomically — the conditional update itself found no match)", async () => {
+    Asset.findOneAndUpdate.mockResolvedValue(null);
+    Asset.findById.mockReturnValue(makeSelectQuery({ status: "assigned" }));
+    const req = { body: { assetId: oid().toString(), employeeId: oid().toString() }, user: hrUser() };
+    const res = mockRes();
+
+    await assignAsset(req, res);
+
+    // The condition (_id + status:"available") is baked into the update
+    // itself, not a separate read-then-write — this is what closes the race
+    // where two near-simultaneous assignments could both see "available".
+    expect(Asset.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: expect.any(String), status: "available" },
+      { $set: { status: "assigned" } },
+      { new: true },
+    );
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(AssetAssignment.create).not.toHaveBeenCalled();
+  });
+
   it("assigns an available asset, notifies, and emails the employee", async () => {
-    const asset = { _id: oid(), status: "available", name: "Dell XPS", assetTag: "A-1", save: vi.fn().mockResolvedValue(undefined) };
-    Asset.findById.mockResolvedValue(asset);
+    const asset = { _id: oid(), status: "assigned", name: "Dell XPS", assetTag: "A-1" };
+    Asset.findOneAndUpdate.mockResolvedValue(asset);
     AssetAssignment.create.mockResolvedValue({ _id: oid() });
     AssetAssignment.findById.mockReturnValue(makeQuery({}));
 
@@ -99,7 +111,6 @@ describe("assignAsset", () => {
 
     await assignAsset(req, res);
 
-    expect(asset.status).toBe("assigned");
     expect(notifyUsers).toHaveBeenCalledWith([employeeId.toString()], expect.objectContaining({ type: "assetAssigned" }));
     expect(sendHrmsEmail).toHaveBeenCalledWith("eve@example.com", expect.any(String), expect.any(String), expect.any(String));
     expect(res.status).toHaveBeenCalledWith(201);

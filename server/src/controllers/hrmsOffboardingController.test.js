@@ -5,7 +5,7 @@ vi.mock("../models/Offboarding.js", () => ({
   default: { create: vi.fn(), find: vi.fn(), findById: vi.fn(), findOne: vi.fn() },
 }));
 vi.mock("../models/AssetAssignment.js", () => ({
-  default: { countDocuments: vi.fn().mockResolvedValue(0) },
+  default: { countDocuments: vi.fn().mockResolvedValue(0), aggregate: vi.fn().mockResolvedValue([]) },
 }));
 vi.mock("../models/User.js", () => ({ default: { findById: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
@@ -50,6 +50,7 @@ const makeSelectQuery = (result) => ({ select: vi.fn().mockResolvedValue(result)
 beforeEach(() => {
   vi.clearAllMocks();
   AssetAssignment.countDocuments.mockResolvedValue(0);
+  AssetAssignment.aggregate.mockResolvedValue([]);
   User.findById.mockReturnValue(makeSelectQuery({ name: "Eve Employee", email: "eve@example.com" }));
 });
 
@@ -73,6 +74,38 @@ describe("initiateOffboarding", () => {
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(Offboarding.create).not.toHaveBeenCalled();
+  });
+
+  it("400s when lastWorkingDate is before resignationDate", async () => {
+    const req = {
+      body: { employeeId: oid().toString(), resignationDate: "2026-09-01", lastWorkingDate: "2026-08-01" },
+      user: hrUser(),
+    };
+    const res = mockRes();
+
+    await initiateOffboarding(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(Offboarding.create).not.toHaveBeenCalled();
+    expect(User.findById).not.toHaveBeenCalled();
+  });
+
+  it("allows lastWorkingDate equal to resignationDate", async () => {
+    const employeeId = oid();
+    User.findById.mockReturnValue(makeSelectQuery({ name: "Eve", email: "eve@example.com" }));
+    Offboarding.create.mockResolvedValue({ _id: oid() });
+    Offboarding.findById.mockReturnValue(makeQuery(makeDoc({ employee: { _id: employeeId } })));
+
+    const req = {
+      body: { employeeId: employeeId.toString(), resignationDate: "2026-08-01", lastWorkingDate: "2026-08-01" },
+      user: hrUser(),
+    };
+    const res = mockRes();
+
+    await initiateOffboarding(req, res);
+
+    expect(Offboarding.create).toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(201);
   });
 
   it("409s when offboarding already exists for this employee", async () => {
@@ -106,16 +139,37 @@ describe("initiateOffboarding", () => {
 });
 
 describe("listOffboarding", () => {
-  it("filters by status and attaches pendingAssetReturns", async () => {
+  it("filters by status and attaches pendingAssetReturns via a single aggregate query", async () => {
     const employeeId = oid();
     Offboarding.find.mockReturnValue(makeQuery([makeDoc({ employee: { _id: employeeId } })]));
-    AssetAssignment.countDocuments.mockResolvedValue(2);
+    AssetAssignment.aggregate.mockResolvedValue([{ _id: employeeId, count: 2 }]);
 
     const res = mockRes();
     await listOffboarding({ query: { status: "notice_period" }, user: hrUser() }, res);
 
     expect(Offboarding.find).toHaveBeenCalledWith({ status: "notice_period" });
+    expect(AssetAssignment.aggregate).toHaveBeenCalledTimes(1);
+    expect(AssetAssignment.countDocuments).not.toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ pendingAssetReturns: 2 })]);
+  });
+
+  it("defaults pendingAssetReturns to 0 for an employee with no matching aggregate group", async () => {
+    Offboarding.find.mockReturnValue(makeQuery([makeDoc({ employee: { _id: oid() } })]));
+    AssetAssignment.aggregate.mockResolvedValue([]);
+
+    const res = mockRes();
+    await listOffboarding({ query: {}, user: hrUser() }, res);
+
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({ pendingAssetReturns: 0 })]);
+  });
+
+  it("returns an empty list without querying assets when there are no offboarding records", async () => {
+    Offboarding.find.mockReturnValue(makeQuery([]));
+
+    const res = mockRes();
+    await listOffboarding({ query: {}, user: hrUser() }, res);
+
+    expect(res.json).toHaveBeenCalledWith([]);
   });
 });
 

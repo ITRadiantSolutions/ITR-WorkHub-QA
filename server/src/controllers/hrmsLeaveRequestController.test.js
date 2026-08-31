@@ -10,6 +10,9 @@ vi.mock("../models/LeaveType.js", () => ({
 vi.mock("../models/LeaveGrant.js", () => ({
   default: { create: vi.fn(), find: vi.fn() },
 }));
+vi.mock("../models/LeaveRequestLock.js", () => ({
+  default: { create: vi.fn(), deleteOne: vi.fn() },
+}));
 vi.mock("../models/User.js", () => ({ default: { find: vi.fn(), findById: vi.fn() } }));
 vi.mock("../models/CompanyHoliday.js", () => ({
   default: { find: vi.fn(), findOne: vi.fn() },
@@ -22,6 +25,7 @@ vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
 import LeaveRequest from "../models/LeaveRequest.js";
 import LeaveType from "../models/LeaveType.js";
 import LeaveGrant from "../models/LeaveGrant.js";
+import LeaveRequestLock from "../models/LeaveRequestLock.js";
 import User from "../models/User.js";
 import CompanyHoliday from "../models/CompanyHoliday.js";
 import { uploadAttachment } from "../config/blobStorage.js";
@@ -79,6 +83,8 @@ beforeEach(() => {
   User.find.mockReturnValue({ select: vi.fn().mockResolvedValue([]) });
   LeaveRequest.findOne.mockReturnValue(makeSelectQuery(null)); // no overlapping request by default
   LeaveGrant.find.mockReturnValue(makeQuery([])); // no manual grants by default — supports both .select() and .sort()
+  LeaveRequestLock.create.mockResolvedValue({});
+  LeaveRequestLock.deleteOne.mockResolvedValue({});
 });
 
 afterEach(() => {
@@ -202,6 +208,52 @@ describe("createLeaveRequest — working-day counting", () => {
     await createLeaveRequest(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+});
+
+describe("createLeaveRequest — concurrency lock", () => {
+  it("acquires and releases the per-employee/leaveType lock around a successful submission", async () => {
+    const type = { _id: oid(), name: "Casual", isActive: true, defaultDaysPerYear: 12, carryForwardCap: 0 };
+    LeaveType.findById.mockResolvedValue(type);
+    LeaveRequest.create.mockResolvedValue({ _id: oid() });
+    LeaveRequest.findById.mockReturnValue(makeQuery({}));
+    const employee = employeeUser();
+
+    const req = { body: { leaveType: type._id.toString(), startDate: "2026-08-17", endDate: "2026-08-17" }, user: employee };
+    await createLeaveRequest(req, mockRes());
+
+    expect(LeaveRequestLock.create).toHaveBeenCalledWith({ employee: employee._id, leaveType: type._id.toString() });
+    expect(LeaveRequestLock.deleteOne).toHaveBeenCalledWith({ employee: employee._id, leaveType: type._id.toString() });
+  });
+
+  it("409s immediately when another submission for the same employee/leaveType is already in flight", async () => {
+    LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Casual", isActive: true, defaultDaysPerYear: 12, carryForwardCap: 0 });
+    const duplicateKeyError = Object.assign(new Error("duplicate"), { code: 11000 });
+    LeaveRequestLock.create.mockRejectedValue(duplicateKeyError);
+
+    const req = { body: { leaveType: oid().toString(), startDate: "2026-08-17", endDate: "2026-08-17" }, user: employeeUser() };
+    const res = mockRes();
+    await createLeaveRequest(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(LeaveRequest.create).not.toHaveBeenCalled();
+    // Nothing was acquired on this path, so there's nothing to release.
+    expect(LeaveRequestLock.deleteOne).not.toHaveBeenCalled();
+  });
+
+  it("still releases the lock when a validation error is hit after it was acquired", async () => {
+    LeaveType.findById.mockResolvedValue({ _id: oid(), name: "Casual", isActive: true, defaultDaysPerYear: 12, carryForwardCap: 0 });
+    const employee = employeeUser();
+    // 22-23 Aug 2026 is a Sat-Sun — no working days, a validation 400 thrown
+    // from inside the locked section.
+    const req = { body: { leaveType: oid().toString(), startDate: "2026-08-22", endDate: "2026-08-23" }, user: employee };
+    const res = mockRes();
+
+    await createLeaveRequest(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(LeaveRequestLock.create).toHaveBeenCalled();
+    expect(LeaveRequestLock.deleteOne).toHaveBeenCalled();
   });
 });
 

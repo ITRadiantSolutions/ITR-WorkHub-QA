@@ -9,6 +9,7 @@ vi.mock("../models/SalaryStructure.js", () => ({
 }));
 vi.mock("../models/User.js", () => ({ default: { findById: vi.fn() } }));
 vi.mock("../models/LeaveRequest.js", () => ({ default: { find: vi.fn() } }));
+vi.mock("../models/Offboarding.js", () => ({ default: { findOne: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
 vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
@@ -46,6 +47,7 @@ import Payslip from "../models/Payslip.js";
 import SalaryStructure from "../models/SalaryStructure.js";
 import User from "../models/User.js";
 import LeaveRequest from "../models/LeaveRequest.js";
+import Offboarding from "../models/Offboarding.js";
 import { notifyUsers } from "../utils/notify.js";
 import { sendHrmsEmail } from "../utils/hrmsMailer.js";
 import {
@@ -99,6 +101,7 @@ const makeUserQuery = (result) => {
 beforeEach(() => {
   vi.clearAllMocks();
   LeaveRequest.find.mockReturnValue({ select: vi.fn().mockResolvedValue([]) });
+  Offboarding.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue(null) });
 });
 
 describe("generatePayslip", () => {
@@ -165,7 +168,7 @@ describe("generatePayslip", () => {
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
-  it("attributes a month's loss-of-pay days from approved leave requests starting that month", async () => {
+  it("attributes a month's loss-of-pay days from approved leave requests starting that month, and prorates earnings by it", async () => {
     const employeeId = oid();
     SalaryStructure.findOne.mockResolvedValue({ components: [{ name: "Basic", type: "earning", amount: 30000 }] });
     User.findById.mockReturnValue(makeUserQuery({ _id: employeeId, name: "Eve", email: "eve@example.com" }));
@@ -176,8 +179,84 @@ describe("generatePayslip", () => {
     await generatePayslip(req, mockRes());
     await flushMicrotasks();
 
+    // 31 calendar days - 3.5 LOP = 27.5 payable; earnings scale by 27.5/31.
     expect(Payslip.create).toHaveBeenCalledWith(
-      expect.objectContaining({ lossOfPayDays: 3.5, totalWorkingDays: 31, actualPayableDays: 27.5, daysPayable: 27.5 }),
+      expect.objectContaining({
+        lossOfPayDays: 3.5, totalWorkingDays: 31, actualPayableDays: 27.5, daysPayable: 27.5,
+        grossEarnings: 26612.9, netPay: 26612.9,
+      }),
+    );
+  });
+
+  it("prorates earnings for an employee who joined partway through the month, not just displays it", async () => {
+    const employeeId = oid();
+    // 31000/31 = a clean 1000/day, so the expected prorated amount is exact.
+    SalaryStructure.findOne.mockResolvedValue({ components: [{ name: "Basic", type: "earning", amount: 31000 }] });
+    User.findById.mockReturnValue(makeUserQuery({ _id: employeeId, name: "Eve", email: "eve@example.com", joiningDate: new Date("2026-08-15") }));
+    Payslip.create.mockResolvedValue(fullPayslip());
+
+    const req = { body: { employeeId: employeeId.toString(), month: 8, year: 2026 }, user: hrUser() };
+    await generatePayslip(req, mockRes());
+    await flushMicrotasks();
+
+    // Aug 15-31 inclusive = 17 employed days out of 31.
+    expect(Payslip.create).toHaveBeenCalledWith(
+      expect.objectContaining({ totalWorkingDays: 31, actualPayableDays: 17, daysPayable: 17, grossEarnings: 17000, netPay: 17000 }),
+    );
+  });
+
+  it("prorates earnings for an employee who left partway through the month, per their offboarding record", async () => {
+    const employeeId = oid();
+    SalaryStructure.findOne.mockResolvedValue({ components: [{ name: "Basic", type: "earning", amount: 31000 }] });
+    User.findById.mockReturnValue(makeUserQuery({ _id: employeeId, name: "Eve", email: "eve@example.com" }));
+    Offboarding.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue({ lastWorkingDate: new Date("2026-08-20") }) });
+    Payslip.create.mockResolvedValue(fullPayslip());
+
+    const req = { body: { employeeId: employeeId.toString(), month: 8, year: 2026 }, user: hrUser() };
+    await generatePayslip(req, mockRes());
+    await flushMicrotasks();
+
+    // Aug 1-20 inclusive = 20 employed days out of 31.
+    expect(Payslip.create).toHaveBeenCalledWith(
+      expect.objectContaining({ totalWorkingDays: 31, actualPayableDays: 20, daysPayable: 20, grossEarnings: 20000, netPay: 20000 }),
+    );
+  });
+
+  it("pays zero earnings when the pay period is entirely outside the employee's actual employment window", async () => {
+    const employeeId = oid();
+    SalaryStructure.findOne.mockResolvedValue({ components: [{ name: "Basic", type: "earning", amount: 31000 }] });
+    // Left well before this payslip's month even started.
+    User.findById.mockReturnValue(makeUserQuery({ _id: employeeId, name: "Eve", email: "eve@example.com" }));
+    Offboarding.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue({ lastWorkingDate: new Date("2026-07-01") }) });
+    Payslip.create.mockResolvedValue(fullPayslip());
+
+    const req = { body: { employeeId: employeeId.toString(), month: 8, year: 2026 }, user: hrUser() };
+    await generatePayslip(req, mockRes());
+    await flushMicrotasks();
+
+    expect(Payslip.create).toHaveBeenCalledWith(
+      expect.objectContaining({ actualPayableDays: 0, daysPayable: 0, grossEarnings: 0, netPay: 0 }),
+    );
+  });
+
+  it("does not prorate contributions or deductions — only earnings scale with payable days", async () => {
+    const employeeId = oid();
+    SalaryStructure.findOne.mockResolvedValue({
+      components: [
+        { name: "Basic", type: "earning", amount: 31000 },
+        { name: "PF Employer", type: "contribution", amount: 1800 },
+        { name: "Professional Tax", type: "deduction", amount: 200 },
+      ],
+    });
+    User.findById.mockReturnValue(makeUserQuery({ _id: employeeId, name: "Eve", email: "eve@example.com", joiningDate: new Date("2026-08-15") }));
+    Payslip.create.mockResolvedValue(fullPayslip());
+
+    const req = { body: { employeeId: employeeId.toString(), month: 8, year: 2026 }, user: hrUser() };
+    await generatePayslip(req, mockRes());
+    await flushMicrotasks();
+
+    expect(Payslip.create).toHaveBeenCalledWith(
+      expect.objectContaining({ grossEarnings: 17000, totalContributions: 1800, totalDeductions: 200, netPay: 15000 }),
     );
   });
 

@@ -1,6 +1,7 @@
 import LeaveRequest from "../models/LeaveRequest.js";
 import LeaveType from "../models/LeaveType.js";
 import LeaveGrant from "../models/LeaveGrant.js";
+import LeaveRequestLock from "../models/LeaveRequestLock.js";
 import User from "../models/User.js";
 import CompanyHoliday from "../models/CompanyHoliday.js";
 import { uploadAttachment, createReadUrl } from "../config/blobStorage.js";
@@ -192,56 +193,78 @@ const submitLeaveRequest = async (req, res, { employee, allowOverlap }) => {
   const end = startOfDay(endDate);
   if (start > end) return res.status(400).json({ message: "startDate cannot be after endDate" });
 
-  if (!allowOverlap && (await hasOverlappingRequest(employee._id, start, end))) {
-    return res.status(409).json({ message: "This overlaps an existing leave request for one or more of these dates" });
+  // Reading the balance and then creating the request are two separate
+  // steps with no shared document between them, so two near-simultaneous
+  // submissions (a double-click, two open tabs) can both read the same
+  // "balance remaining" before either write lands and both get created —
+  // see LeaveRequestLock.js. This serializes that window for this
+  // employee+leaveType; every path out of the try below (including the
+  // early-return validation errors) releases it via finally.
+  try {
+    await LeaveRequestLock.create({ employee: employee._id, leaveType });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: "Another request for this leave type is already being processed — please try again in a moment." });
+    }
+    throw err;
   }
 
+  let leaveRequest;
   let totalDays;
-  if (isHalfDay) {
-    if (start.getTime() !== end.getTime()) {
-      return res.status(400).json({ message: "A half-day leave must have the same start and end date" });
+  let lopDays;
+  try {
+    if (!allowOverlap && (await hasOverlappingRequest(employee._id, start, end))) {
+      return res.status(409).json({ message: "This overlaps an existing leave request for one or more of these dates" });
     }
-    if (!["first_half", "second_half"].includes(halfDaySession)) {
-      return res.status(400).json({ message: "halfDaySession must be 'first_half' or 'second_half'" });
-    }
-    if (await isNonWorkingDay(start)) {
-      return res.status(400).json({ message: "That date is a weekend or company holiday" });
-    }
-    totalDays = 0.5;
-  } else {
-    totalDays = await countWorkingDays(start, end);
-    if (totalDays === 0) {
-      return res.status(400).json({ message: "That date range has no working days (weekends/holidays only)" });
-    }
-  }
 
-  const balance = await balanceForType(employee._id, employee.joiningDate, type, start);
-  // Fixed-quota event leave (Bereavement, Election Day, Paternity, ...) isn't
-  // meant to be "borrowed" past its balance the way accrual-based leave is —
-  // block outright instead of splitting the excess into loss-of-pay. HR's
-  // on-behalf path still goes through this (they can grant more balance
-  // first via grantLeave, or use a leave type that allows it).
-  if (type.allowExcessAsLop === false && totalDays > balance.remaining) {
-    return res.status(400).json({
-      message: `Only ${balance.remaining} day(s) of ${type.name} remaining this year — this leave type doesn't allow going beyond the balance.`,
+    if (isHalfDay) {
+      if (start.getTime() !== end.getTime()) {
+        return res.status(400).json({ message: "A half-day leave must have the same start and end date" });
+      }
+      if (!["first_half", "second_half"].includes(halfDaySession)) {
+        return res.status(400).json({ message: "halfDaySession must be 'first_half' or 'second_half'" });
+      }
+      if (await isNonWorkingDay(start)) {
+        return res.status(400).json({ message: "That date is a weekend or company holiday" });
+      }
+      totalDays = 0.5;
+    } else {
+      totalDays = await countWorkingDays(start, end);
+      if (totalDays === 0) {
+        return res.status(400).json({ message: "That date range has no working days (weekends/holidays only)" });
+      }
+    }
+
+    const balance = await balanceForType(employee._id, employee.joiningDate, type, start);
+    // Fixed-quota event leave (Bereavement, Election Day, Paternity, ...) isn't
+    // meant to be "borrowed" past its balance the way accrual-based leave is —
+    // block outright instead of splitting the excess into loss-of-pay. HR's
+    // on-behalf path still goes through this (they can grant more balance
+    // first via grantLeave, or use a leave type that allows it).
+    if (type.allowExcessAsLop === false && totalDays > balance.remaining) {
+      return res.status(400).json({
+        message: `Only ${balance.remaining} day(s) of ${type.name} remaining this year — this leave type doesn't allow going beyond the balance.`,
+      });
+    }
+    const paidDays = Math.max(0, Math.min(totalDays, balance.remaining));
+    lopDays = totalDays - paidDays;
+
+    leaveRequest = await LeaveRequest.create({
+      employee: employee._id,
+      leaveType,
+      startDate: start,
+      endDate: end,
+      isHalfDay,
+      halfDaySession: isHalfDay ? halfDaySession : null,
+      totalDays,
+      paidDays,
+      lopDays,
+      reason: reason?.trim() || "",
+      appliedBy: req.user._id,
     });
+  } finally {
+    await LeaveRequestLock.deleteOne({ employee: employee._id, leaveType });
   }
-  const paidDays = Math.max(0, Math.min(totalDays, balance.remaining));
-  const lopDays = totalDays - paidDays;
-
-  const leaveRequest = await LeaveRequest.create({
-    employee: employee._id,
-    leaveType,
-    startDate: start,
-    endDate: end,
-    isHalfDay,
-    halfDaySession: isHalfDay ? halfDaySession : null,
-    totalDays,
-    paidDays,
-    lopDays,
-    reason: reason?.trim() || "",
-    appliedBy: req.user._id,
-  });
 
   if (req.file) {
     const uploaded = await uploadAttachment({

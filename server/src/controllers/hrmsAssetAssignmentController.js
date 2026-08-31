@@ -12,16 +12,26 @@ export const assignAsset = async (req, res) => {
   const { assetId, employeeId } = req.body;
   if (!assetId || !employeeId) return res.status(400).json({ message: "assetId and employeeId are required" });
 
-  const asset = await Asset.findById(assetId);
-  if (!asset) return res.status(404).json({ message: "Asset not found" });
-  if (asset.status !== "available") return res.status(409).json({ message: `Asset is currently '${asset.status}', not available` });
-
   const employee = await User.findById(employeeId).select("name email");
   if (!employee) return res.status(404).json({ message: "Employee not found" });
 
+  // Checking asset.status and then writing "assigned" as two separate steps
+  // let two near-simultaneous assignments (two HR admins on the same asset
+  // queue, or a double-click) both read "available" before either write
+  // landed, creating two active assignments for one physical asset. The
+  // condition and the write need to be the same atomic operation.
+  const asset = await Asset.findOneAndUpdate(
+    { _id: assetId, status: "available" },
+    { $set: { status: "assigned" } },
+    { new: true },
+  );
+  if (!asset) {
+    const existing = await Asset.findById(assetId).select("status");
+    if (!existing) return res.status(404).json({ message: "Asset not found" });
+    return res.status(409).json({ message: `Asset is currently '${existing.status}', not available` });
+  }
+
   const assignment = await AssetAssignment.create({ asset: assetId, employee: employeeId, assignedBy: req.user._id });
-  asset.status = "assigned";
-  await asset.save();
 
   writeAuditLog({
     type: "database", event: "hrms.asset.assigned", action: "hrms.asset.assigned",

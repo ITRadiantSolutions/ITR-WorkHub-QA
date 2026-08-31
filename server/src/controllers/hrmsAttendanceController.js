@@ -63,7 +63,12 @@ export function computeDayFields(punches, { isHoliday, isOnLeave, isWeekendDay }
   return { firstIn, lastOut, workedSeconds, punchCount, status, isLate };
 }
 
-async function recomputeDay(employeeId, dateStr) {
+// Exported for reuse by the nightly attendance-backfill job (see
+// server/src/jobs/attendanceBackfill.js) — this is the only place that knows
+// how to turn punches + holiday + leave into a day's status, and the job
+// needs to run it for employees who generated zero punches, not just the
+// ones who did.
+export async function recomputeDay(employeeId, dateStr) {
   const dayStart = new Date(`${dateStr}T00:00:00`);
   const dayEnd = new Date(`${dateStr}T23:59:59.999`);
 

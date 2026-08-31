@@ -5,7 +5,7 @@ vi.mock("../models/HrRequest.js", () => ({
   default: { create: vi.fn(), find: vi.fn(), findById: vi.fn() },
   HR_REQUEST_TYPES: ["salary_certificate", "experience_letter", "document_request", "profile_change", "bank_change", "query"],
 }));
-vi.mock("../models/User.js", () => ({ default: { find: vi.fn() } }));
+vi.mock("../models/User.js", () => ({ default: { find: vi.fn(), findOne: vi.fn() } }));
 vi.mock("../utils/activityLog.js", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("../utils/notify.js", () => ({ notifyUsers: vi.fn() }));
 vi.mock("../utils/hrmsMailer.js", () => ({ sendHrmsEmail: vi.fn() }));
@@ -39,6 +39,7 @@ const hrUser = () => ({ _id: oid(), name: "Helen HR", roles: { hrms: "hr" } });
 beforeEach(() => {
   vi.clearAllMocks();
   User.find.mockReturnValue({ select: vi.fn().mockResolvedValue([]) });
+  User.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue({ _id: oid() }) });
 });
 
 describe("createHrRequest", () => {
@@ -134,8 +135,34 @@ describe("assignHrRequest", () => {
     const req = { params: { id: doc._id.toString() }, body: { assignedTo: assigneeId }, user: hr };
     await assignHrRequest(req, mockRes());
 
+    expect(User.findOne).toHaveBeenCalledWith({ _id: assigneeId, "roles.hrms": "hr" });
     expect(doc.assignedTo).toBe(assigneeId);
     expect(doc.status).toBe("in_progress");
+  });
+
+  it("400s when assignedTo isn't an existing HR user", async () => {
+    const doc = { _id: oid(), status: "open", assignedTo: null, save: vi.fn().mockResolvedValue(undefined) };
+    HrRequest.findById.mockResolvedValueOnce(doc);
+    User.findOne.mockReturnValue({ select: vi.fn().mockResolvedValue(null) });
+
+    const req = { params: { id: doc._id.toString() }, body: { assignedTo: oid() }, user: hrUser() };
+    const res = mockRes();
+    await assignHrRequest(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(doc.save).not.toHaveBeenCalled();
+  });
+
+  it("skips the assignee check when self-assigning (assignedTo omitted)", async () => {
+    const doc = { _id: oid(), status: "open", assignedTo: null, save: vi.fn().mockResolvedValue(undefined) };
+    HrRequest.findById.mockResolvedValueOnce(doc).mockReturnValueOnce(makeQuery({ ...doc, status: "in_progress" }));
+    const hr = hrUser();
+
+    const req = { params: { id: doc._id.toString() }, body: {}, user: hr };
+    await assignHrRequest(req, mockRes());
+
+    expect(User.findOne).not.toHaveBeenCalled();
+    expect(doc.assignedTo).toBe(hr._id);
   });
 });
 

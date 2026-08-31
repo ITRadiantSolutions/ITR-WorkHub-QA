@@ -12,10 +12,34 @@ const withPendingAssets = async (offboarding) => {
   return { ...offboarding.toObject(), pendingAssetReturns };
 };
 
+// One aggregate query for the whole list instead of a countDocuments per
+// record — listOffboarding can return dozens of records at once (e.g. a
+// batch during a layoff or year-end churn), and a per-record round-trip
+// doesn't scale the way a single $group does.
+const withPendingAssetsForMany = async (records) => {
+  const employeeIds = records.map((r) => r.employee._id || r.employee);
+  const counts = await AssetAssignment.aggregate([
+    { $match: { employee: { $in: employeeIds }, status: "active" } },
+    { $group: { _id: "$employee", count: { $sum: 1 } } },
+  ]);
+  const countByEmployee = new Map(counts.map((c) => [c._id.toString(), c.count]));
+  return records.map((r) => ({
+    ...r.toObject(),
+    pendingAssetReturns: countByEmployee.get((r.employee._id || r.employee).toString()) || 0,
+  }));
+};
+
 export const initiateOffboarding = async (req, res) => {
   const { employeeId, resignationDate, lastWorkingDate, reason } = req.body;
   if (!employeeId || !resignationDate || !lastWorkingDate) {
     return res.status(400).json({ message: "employeeId, resignationDate and lastWorkingDate are required" });
+  }
+  // A swapped date-picker click (or typo) otherwise silently creates a
+  // resignation record whose last working date is before the resignation
+  // itself, with nothing downstream (final settlement, notifications) ever
+  // catching the inconsistency.
+  if (new Date(lastWorkingDate) < new Date(resignationDate)) {
+    return res.status(400).json({ message: "lastWorkingDate cannot be before resignationDate" });
   }
 
   const employee = await User.findById(employeeId).select("name email");
@@ -58,7 +82,7 @@ export const listOffboarding = async (req, res) => {
   const filter = {};
   if (req.query.status?.trim()) filter.status = req.query.status.trim();
   const records = await populateOffboarding(Offboarding.find(filter)).sort({ createdAt: -1 });
-  res.json(await Promise.all(records.map(withPendingAssets)));
+  res.json(await withPendingAssetsForMany(records));
 };
 
 export const getMyOffboarding = async (req, res) => {
