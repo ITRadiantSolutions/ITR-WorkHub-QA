@@ -22,7 +22,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.x'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: |
             client/package-lock.json
@@ -34,9 +34,9 @@ jobs:
           path: |
             client/node_modules
             server/node_modules
-          key: nm-${{ runner.os }}-node22-${{ hashFiles('client/package-lock.json', 'server/package-lock.json') }}
+          key: nm-${{ runner.os }}-node24-${{ hashFiles('client/package-lock.json', 'server/package-lock.json') }}
           restore-keys: |
-            nm-${{ runner.os }}-node22-
+            nm-${{ runner.os }}-node24-
 
       - name: Build frontend
         working-directory: client
