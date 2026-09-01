@@ -33,12 +33,12 @@ jobs:
         env:
           VITE_API_URL: https://itrone-hycpage7deagfzdg.southindia-01.azurewebsites.net
         run: |
-          npm ci --no-audit --no-fund
+          npm install --no-audit --no-fund
           npm run build
 
       - name: Install backend (production deps only)
         working-directory: server
-        run: npm ci --omit=dev --no-audit --no-fund
+        run: npm install --omit=dev --no-audit --no-fund
 
       - name: Stage deployment package
         run: |
