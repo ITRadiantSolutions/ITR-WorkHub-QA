@@ -1,8 +1,5 @@
 import { API } from "../services/api.js";
 
-// Thin wrappers around server/src/routes/lms/*.routes.js — kept in one file
-// so every LMS page imports from the same place, mirroring how the rest of
-// the app centralizes fetch calls in services/api.js.
 
 export const coursesApi = {
   published: () => API.get("/lms/courses/published"),
@@ -106,8 +103,6 @@ export const skillTestsApi = {
   byIdAdmin: (testId) => API.get(`/lms/skill-tests/admin/${testId}`),
   create: (data) => API.post("/lms/skill-tests/admin", data),
   generate: (skillId, count) => API.post("/lms/skill-tests/admin/generate", { skillId, count }),
-  // Stateless — returns { questions, errors, counts }; the builder merges the
-  // parsed questions into its in-memory pool before saving.
   parseQuestions: (formData) => API.post("/lms/skill-tests/admin/parse-questions", formData),
   update: (testId, data) => API.put(`/lms/skill-tests/admin/${testId}`, data),
   remove: (testId) => API.delete(`/lms/skill-tests/admin/${testId}`),

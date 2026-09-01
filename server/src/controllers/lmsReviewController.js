@@ -1,7 +1,6 @@
 import CourseReview from "../models/CourseReview.js";
 import Course from "../models/Course.js";
 
-// Ported from the standalone LMS project's reviewController.js.
 
 export const addReview = async (req, res) => {
   const { rating, comment, courseId } = req.body;

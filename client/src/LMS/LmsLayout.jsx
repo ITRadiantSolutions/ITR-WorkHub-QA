@@ -6,8 +6,6 @@ import getInitials from "../utils/getInitials";
 import Icons from "../components/Icons";
 import ProfileModal from "../components/ProfileModal";
 
-// Same shell as VmsLayout.jsx/TimesheetLayout.jsx (sidebar, back-to-hub,
-// profile/theme/logout) — amber/orange accent, matching the Hub tile.
 const EMPLOYEE_TABS = [
   { to: "/lms/courses", label: "Courses", icon: "Book" },
   { to: "/lms/my-learning", label: "My Learning", icon: "Award" },

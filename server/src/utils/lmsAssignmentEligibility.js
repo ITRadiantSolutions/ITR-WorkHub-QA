@@ -1,5 +1,3 @@
-// Ported as-is from the standalone LMS project's utils/assignmentEligibility.js.
-// Pure functions — no model/auth dependencies to adapt.
 
 export const getEmployeeProfileCompletionPercent = (profile) => {
   if (!profile) return 0;
@@ -27,7 +25,6 @@ export const getEmployeeAssignmentEligibility = ({ profile, report }) => {
     profileCompletionPercent,
     profileCompletionLabel: hasCompletedProfile ? `${profileCompletionPercent}% complete` : "Employee profile is not complete",
     reportStatusLabel: hasGeneratedReport ? "Report ready" : "Report pending",
-    // Employees become assignable once their profile reaches 50% completion.
     canAssign: hasCompletedProfile,
   };
 };

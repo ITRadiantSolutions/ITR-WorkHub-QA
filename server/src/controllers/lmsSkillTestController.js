@@ -9,8 +9,14 @@ import { awardBadgeOnce, awardSkillOnce } from "../utils/lmsAwards.js";
 import { sampleAttemptQuestions, sampleSectionedAttemptQuestions } from "../utils/lmsQuestionSampling.js";
 import { resolveGrade } from "../utils/lmsGrading.js";
 import { generateMcqQuestions } from "../utils/lmsQuestionGenerator.js";
+import { emailTestPaper } from "../utils/lmsTestPaper.js";
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
+
+const OPEN_DELAY_MS = (Number(process.env.LMS_TEST_OPEN_DELAY_MINUTES) || 60) * 60_000;
+const openDelayFromNow = () => new Date(Date.now() + OPEN_DELAY_MS);
+const isLocked = (test) => Boolean(test.availableAt) && Date.now() < new Date(test.availableAt).getTime();
+const contentChanged = (body) => ["questionPool", "sections", "gradeBands", "passingPercentage"].some((k) => body[k] !== undefined);
 
 export const validateQuestionPool = (questionPool) => {
   for (const q of questionPool || []) {
@@ -29,8 +35,6 @@ export const validateQuestionPool = (questionPool) => {
   return null;
 };
 
-// Returns { error } or { attemptSize } — the derived per-attempt size is the
-// sum of the section counts, and each count must be satisfiable from the pool.
 export const validateSections = (sections, questionPool) => {
   if (!Array.isArray(sections) || !sections.length) return { error: "sections must be a non-empty array" };
   const seen = new Set();
@@ -62,24 +66,8 @@ export const validateGradeBands = (gradeBands) => {
   return null;
 };
 
-// ── Question import (JSON / CSV / XLSX / plain text) ────────────────────────
-//
-// Stateless: parses an uploaded file into testQuestionSchema-shaped objects
-// and hands them back for the builder to merge — it never touches the DB, so
-// it works before a test has been saved. Accepted shapes:
-//   JSON  — an array of { section, type, prompt, options:[...], correctOptionIndex,
-//           acceptableAnswers:[...], explanation }
-//   CSV / XLSX (tabular) — columns: section, type, prompt, optionA..optionD,
-//           correct (A-D or 1-4), acceptableAnswers ("|"-separated), explanation
-//   CSV / TXT (prose) — a flattened MCQ study guide: numbered "1. …" prompts,
-//           "A. / B. / …" options, "Answer: X", "Explanation: …". Used when the
-//           tabular parse finds no usable columns.
 const LETTER_TO_INDEX = { a: 0, b: 1, c: 2, d: 3, e: 4, f: 5 };
 
-// Lead-ins the study guide prepends to reworded duplicates of an earlier
-// question. Stripping them makes those rows collapse against the originals
-// under the builder's prompt-dedupe, so a 400-line guide imports as its ~100
-// unique questions.
 const REWORD_PREFIXES = [
   "In a production project, which statement about this concept is correct?",
   "Which statement best explains the practical importance of this concept?",
@@ -101,15 +89,11 @@ const stripRewordPrefix = (text) => {
 const NOISE_RE = /(Learning MCQ Guide|LEARNING QUESTIONS|^Page \d+$|^\d+ Questions|Quick Learning Score Guide|^Use the score|^Purpose:|^Recommended approach:)/i;
 const SECTION_HEADER_RE = /^(Fundamentals|Modules and Core APIs|Async Programming|Express and APIs|Security and Production|Hooks and State|Rendering and Performance|Forms,? Routing and Data|Advanced React)$/i;
 
-// Walks flattened study-guide lines and emits { prompt, options, correctLetter,
-// explanation, section } blocks. Lines that aren't a number/option/Answer/
-// Explanation marker continue whatever field is currently open (prompts and
-// explanations wrap across lines in the source PDF).
 export const parseQuestionBlocks = (lines) => {
   const blocks = [];
   let cur = null;
   let section = "";
-  let field = null; // "prompt" | "explanation"
+  let field = null;
 
   const flush = () => {
     if (cur && cur.prompt && cur.options.length >= 2 && cur.correctLetter) blocks.push(cur);
@@ -152,7 +136,6 @@ export const parseQuestionBlocks = (lines) => {
       field = "explanation";
       continue;
     }
-    // Continuation of the currently open field.
     if (field === "prompt") cur.prompt = stripRewordPrefix(`${cur.prompt} ${line}`);
     else if (field === "explanation") cur.explanation = `${cur.explanation} ${line}`.trim();
   }
@@ -204,8 +187,6 @@ const normalizeImportedQuestion = (raw, rowLabel) => {
   };
 };
 
-// Fallback for a flattened study-guide file — build questions from
-// parseQuestionBlocks() output instead of tabular columns.
 export const parseProseQuestions = (lines) => {
   const questions = [];
   const errors = [];
@@ -236,8 +217,8 @@ export const adminParseQuestions = async (req, res) => {
   const isJson = name.endsWith(".json") || req.file.mimetype === "application/json";
   const isText = name.endsWith(".txt") || req.file.mimetype === "text/plain";
 
-  let rows; // tabular rows (JSON objects or sheet rows); null when text-only
-  let lines; // flattened lines for the prose fallback
+  let rows;
+  let lines;
   try {
     if (isJson) {
       const parsed = JSON.parse(req.file.buffer.toString("utf-8"));
@@ -269,7 +250,6 @@ export const adminParseQuestions = async (req, res) => {
     });
   }
 
-  // No usable columns (e.g. a flattened PDF export) — retry as prose.
   if (!questions.length && lines?.length) {
     const prose = parseProseQuestions(lines);
     questions = prose.questions;
@@ -283,7 +263,6 @@ export const adminParseQuestions = async (req, res) => {
   res.json({ questions, errors, counts: { parsed: questions.length, skipped: errors.length } });
 };
 
-// ── Admin authoring ─────────────────────────────────────────────────────────
 
 export const adminListSkillTests = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
@@ -312,8 +291,6 @@ export const adminCreateSkillTest = async (req, res) => {
   const poolError = validateQuestionPool(questionPool);
   if (poolError) return res.status(400).json({ message: poolError });
 
-  // Sectioned test => attemptSize is derived from the per-section quotas;
-  // otherwise it's a flat count bounded by the pool.
   let size;
   const useSections = Array.isArray(sections) && sections.length > 0;
   if (useSections) {
@@ -344,12 +321,10 @@ export const adminCreateSkillTest = async (req, res) => {
     skill: skill || null,
     badge: badge || null,
   });
+  emailTestPaper(test, { trigger: "created" });
   res.status(201).json(test);
 };
 
-// Auto-generates a question pool for a skill via Claude and saves it as a
-// new, unpublished SkillTest — the admin reviews/edits it in the regular
-// builder (same as a manually-created test) before publishing.
 export const adminGenerateSkillTest = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
   const { skillId } = req.body;
@@ -434,7 +409,10 @@ export const adminUpdateSkillTest = async (req, res) => {
   if (badge !== undefined) test.badge = badge || null;
   if (isPublished !== undefined) test.isPublished = Boolean(isPublished);
 
+  if (test.skillGroups.length && contentChanged(req.body)) test.availableAt = openDelayFromNow();
+
   await test.save();
+  emailTestPaper(test, { trigger: "updated" });
   res.json(test);
 };
 
@@ -451,12 +429,15 @@ export const adminAssignToGroups = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
   const { skillGroupIds } = req.body;
   if (!Array.isArray(skillGroupIds) || !skillGroupIds.length) return res.status(400).json({ message: "skillGroupIds must be a non-empty array" });
+  const existing = await SkillTest.findById(req.params.testId).select("availableAt");
+  if (!existing) return res.status(404).json({ message: "Test not found" });
+
+  const set = existing.availableAt ? {} : { availableAt: openDelayFromNow() };
   const test = await SkillTest.findByIdAndUpdate(
     req.params.testId,
-    { $addToSet: { skillGroups: { $each: skillGroupIds } } },
+    { $addToSet: { skillGroups: { $each: skillGroupIds } }, $set: set },
     { new: true },
   ).populate("skillGroups", "name");
-  if (!test) return res.status(404).json({ message: "Test not found" });
   res.json(test);
 };
 
@@ -471,14 +452,11 @@ export const adminUnassignGroup = async (req, res) => {
   res.json(test);
 };
 
-// Per-test results for managers/admins: every eligible employee (members of
-// the test's skill groups) with their attempt status, best score, grade and
-// section split — including those who have not started (no progress doc).
 export const adminGetTestResults = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });
 
   const test = await SkillTest.findById(req.params.testId)
-    .select("title skillGroups maxAttempts passingPercentage sections gradeBands isPublished")
+    .select("title skillGroups maxAttempts passingPercentage sections gradeBands isPublished availableAt")
     .populate("skillGroups", "name");
   if (!test) return res.status(404).json({ message: "Test not found" });
 
@@ -528,6 +506,8 @@ export const adminGetTestResults = async (req, res) => {
       sections: test.sections,
       gradeBands: test.gradeBands,
       groups: test.skillGroups.map((g) => g.name),
+      availableAt: test.availableAt,
+      locked: isLocked(test),
     },
     summary: {
       eligible: rows.length,
@@ -543,19 +523,13 @@ export const adminGetTestResults = async (req, res) => {
   });
 };
 
-// ── Employee-facing ──────────────────────────────────────────────────────────
 
-// Never includes correctOptionIndex/acceptableAnswers — this is the only
-// path employees reach the question pool through.
 const sanitizeQuestion = (q) => {
   const base = { _id: q._id, type: q.type, prompt: q.prompt };
   if (q.type === "mcq") base.options = q.options.map((o) => ({ text: o.text }));
   return base;
 };
 
-// Post-submission only: joins a stored attempt's per-question outcomes back
-// against the pool so the learner sees their answer, the right answer and the
-// explanation. Safe to expose the correct answer here — the attempt is over.
 export const buildAttemptReview = (test, answerResults = []) =>
   answerResults
     .map((a) => {
@@ -584,7 +558,7 @@ export const employeeListAvailableTests = async (req, res) => {
   const employeeId = req.user._id;
   const groupIds = (await SkillGroup.find({ members: employeeId }).select("_id")).map((g) => g._id);
   const tests = await SkillTest.find({ isPublished: true, skillGroups: { $in: groupIds } })
-    .select("title description durationMinutes attemptSize sections maxAttempts passingPercentage skill badge")
+    .select("title description durationMinutes attemptSize sections maxAttempts passingPercentage skill badge availableAt")
     .populate("skill", "name")
     .populate("badge", "name imageUrl");
 
@@ -595,11 +569,13 @@ export const employeeListAvailableTests = async (req, res) => {
     tests.map((t) => {
       const p = progressByTest.get(String(t._id));
       const lastAttempt = p?.attemptsHistory?.[p.attemptsHistory.length - 1];
+      const locked = isLocked(t);
       return {
         ...t.toObject(),
         status: p?.status || "not_started",
         attemptCount: p?.attemptCount || 0,
-        canAttempt: p?.status !== "passed" && (p?.attemptCount || 0) < t.maxAttempts,
+        locked,
+        canAttempt: !locked && p?.status !== "passed" && (p?.attemptCount || 0) < t.maxAttempts,
         lastScore: lastAttempt?.score ?? null,
         lastGrade: lastAttempt?.grade || null,
       };
@@ -621,8 +597,6 @@ export const employeeStartAttempt = async (req, res) => {
     return res.status(409).json({ message: `Maximum attempts (${test.maxAttempts}) reached for this test.` });
   }
 
-  // Resume an in-progress attempt with the SAME questions — a page refresh
-  // must not silently swap the paper mid-attempt.
   if (progress.status === "in_progress" && progress.currentAttempt?.questionIds?.length) {
     const ordered = progress.currentAttempt.questionIds
       .map((id) => test.questionPool.find((q) => String(q._id) === String(id)))
@@ -636,7 +610,13 @@ export const employeeStartAttempt = async (req, res) => {
     });
   }
 
-  // Atomically reserve the next attempt slot.
+  if (isLocked(test)) {
+    return res.status(409).json({
+      message: `This test opens at ${new Date(test.availableAt).toLocaleString()}.`,
+      availableAt: test.availableAt,
+    });
+  }
+
   const reserved = await SkillTestProgress.findOneAndUpdate(
     { _id: progress._id, status: { $ne: "passed" }, attemptCount: { $lt: test.maxAttempts } },
     { $inc: { attemptCount: 1 }, $set: { status: "in_progress" } },
@@ -663,7 +643,7 @@ export const employeeStartAttempt = async (req, res) => {
 
 export const employeeSubmitAttempt = async (req, res) => {
   const employeeId = req.user._id;
-  const { answers } = req.body; // { [questionId]: answerValue }
+  const { answers } = req.body;
 
   const test = await SkillTest.findById(req.params.testId);
   if (!test) return res.status(404).json({ message: "Test not found" });
@@ -673,8 +653,6 @@ export const employeeSubmitAttempt = async (req, res) => {
     return res.status(409).json({ message: "No attempt in progress. Start the test first." });
   }
 
-  // Duplicate-submit short-circuit (double-click, network retry) — mirrors
-  // CourseProgress's quizLastSubmission idempotency check.
   const answersHash = crypto.createHash("sha1").update(JSON.stringify(answers || {})).digest("hex");
   const attemptNo = progress.currentAttempt.attemptNo;
   if (progress.lastSubmission?.attemptNo === attemptNo && progress.lastSubmission?.answersHash === answersHash) {
@@ -696,14 +674,12 @@ export const employeeSubmitAttempt = async (req, res) => {
     });
   }
 
-  // Grade only the question ids the server itself served for this attempt —
-  // never a client-supplied list.
   const questionIds = progress.currentAttempt.questionIds;
   const questions = questionIds.map((id) => test.questionPool.find((q) => String(q._id) === String(id))).filter(Boolean);
 
   let correct = 0;
-  const bySection = new Map(); // section name -> { correct, total }
-  const answerResults = []; // { question, given, correct } — stored for the review screen
+  const bySection = new Map();
+  const answerResults = [];
   for (const q of questions) {
     const given = answers?.[String(q._id)];
     let isCorrect = false;
@@ -727,8 +703,6 @@ export const employeeSubmitAttempt = async (req, res) => {
   const score = total > 0 ? Math.round((correct / total) * 100) : 0;
   const passed = score >= test.passingPercentage;
   const grade = resolveGrade(score, test.gradeBands);
-  // Ordered by the test's own section list so the UI reads left-to-right the
-  // same way it was authored.
   const sectionBreakdown = (test.sections || [])
     .map((s) => ({ name: s.name, ...(bySection.get(s.name) || { correct: 0, total: 0 }) }))
     .filter((s) => s.total > 0);
@@ -803,8 +777,6 @@ export const employeeGetProgress = async (req, res) => {
   res.json(progress || { status: "not_started", attemptCount: 0, attemptsHistory: [] });
 };
 
-// The learner revisiting their most recent completed attempt: same
-// right/wrong + explanation breakdown they saw right after submitting.
 export const employeeGetLastReview = async (req, res) => {
   const test = await SkillTest.findById(req.params.testId).select("title questionPool passingPercentage");
   if (!test) return res.status(404).json({ message: "Test not found" });

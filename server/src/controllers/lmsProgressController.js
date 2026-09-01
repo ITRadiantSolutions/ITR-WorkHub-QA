@@ -8,14 +8,7 @@ import { awardBadgeOnce, awardSkillOnce } from "../utils/lmsAwards.js";
 import { getManagerOrAdminRecipientIds } from "../utils/lmsTeamScope.js";
 import { sampleAttemptQuestions } from "../utils/lmsQuestionSampling.js";
 
-// Ported from the standalone LMS project's courseProgressController.js.
-// req.userId/req.role (raw JWT claims) become req.user._id/req.user.roles.lms
-// (the full User doc protect() attaches). Logic is otherwise unchanged.
 
-// Reattempts are capped at 3 within a rolling 30-day window (not a lifetime
-// total) so an employee who fails gets a fresh set of attempts a month later.
-// A failed attempt that still has retakes left in the window must be retaken
-// within 14 days.
 const ATTEMPT_ROLLING_WINDOW_DAYS = 30;
 const MONTHLY_ATTEMPT_LIMIT = 3;
 const RETAKE_DEADLINE_DAYS = 14;
@@ -27,9 +20,6 @@ const countRecentAttempts = (history = [], days = ATTEMPT_ROLLING_WINDOW_DAYS) =
 
 const addDays = (date, days) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 
-// The manager who assigns a course can set a per-employee minimum passing %
-// (CourseAssignment.passingPercentageByEmployee) that overrides the
-// assessment's own default passingPercentage for that employee only.
 const getRequiredPassingPercentage = async ({ courseId, employeeId, assessment }) => {
   const assignment = await CourseAssignment.findOne({ course: courseId, assignedTo: employeeId }).select("passingPercentageByEmployee");
   const override = assignment?.passingPercentageByEmployee?.get(String(employeeId));
@@ -42,8 +32,6 @@ const getOrCreateProgress = async (courseId, employeeId) => {
   return progress;
 };
 
-// Never includes correctOptionIndex — this is the only path employees reach
-// the question pool through (mirrors lmsSkillTestController's sanitizeQuestion).
 const sanitizeQuestion = (q) => ({
   _id: q._id,
   type: q.type,
@@ -51,16 +39,6 @@ const sanitizeQuestion = (q) => ({
   options: (q.options || []).map((o) => ({ text: o.text })),
 });
 
-// Resolves the exact ordered subset of assessment.questions this employee's
-// CURRENT attempt is being served, sampling fresh (or resuming an in-flight
-// sample) when assessment.sampleSize is set — e.g. a 100-question bank with
-// sampleSize 10 gives each employee a different random 10 (see
-// sampleAttemptQuestions). Without sampleSize, every question is used, in
-// its natural order, exactly as before this feature existed. The same order
-// is used at both "start" (render) and "submit" (grading) time via
-// progress[quiz|finalAssignment]CurrentAttempt.questionIds, so scoring is
-// always against exactly what the employee was shown. Mutates `progress` in
-// place; the caller is responsible for saving it.
 const resolveAttemptQuestions = ({ assessment, progress, field }) => {
   const key = field === "quiz" ? "quizCurrentAttempt" : "finalAssignmentCurrentAttempt";
   const sampleSize = assessment.sampleSize;
@@ -81,11 +59,6 @@ const resolveAttemptQuestions = ({ assessment, progress, field }) => {
   return sampledIds.map((id) => assessment.questions.find((q) => String(q._id) === String(id))).filter(Boolean);
 };
 
-// Closes the "employee fails, someone should assign them a course" loop: the
-// LMS has no automated recommendation engine, so instead of silently leaving
-// a maxed-out failure sitting in CourseProgress, the employee's manager (or,
-// absent one, every LMS admin) gets notified so a human can assign remedial
-// coursework. Fires once, on the attempt that exhausts the allowance.
 const notifyManagerOfExhaustedAttempts = async ({ employeeId, courseId, assessmentType, title, score, maxAttempts }) => {
   const employee = await User.findById(employeeId).select("name managerId");
   if (!employee) return;
@@ -239,11 +212,6 @@ export const employeeMarkMaterialComplete = async (req, res) => {
   res.json({ message: "Material marked complete", completedMaterialsKeys: progress.completedMaterials });
 };
 
-// Fetches (sampling fresh, or resuming the in-flight sample) the question
-// set an employee should be shown for this attempt — the entry point
-// AssessmentPlayer calls before rendering, so a page refresh mid-attempt
-// doesn't silently swap the paper. Doesn't consume an attempt; only
-// submitting does (see employeeSubmitQuiz/employeeSubmitFinalAssignment).
 export const employeeStartQuiz = async (req, res) => {
   const { courseId, assessmentId } = req.params;
   const employeeId = req.user._id;
@@ -308,9 +276,6 @@ export const employeeSubmitQuiz = async (req, res) => {
     });
   }
 
-  // A resubmission of the same answers for the attempt we already scored
-  // (double-click, client-side retry after a slow response) is idempotent:
-  // return the cached outcome instead of re-scoring and burning an attempt.
   const isDuplicateRetry =
     String(progress.quizLastSubmission?.assessmentId || "") === String(assessmentId) &&
     progress.quizLastSubmission?.attemptNo === progress.quizAttempt &&
@@ -337,13 +302,6 @@ export const employeeSubmitQuiz = async (req, res) => {
     });
   }
 
-  // Atomically reserve the next attempt slot so two concurrent submissions
-  // (e.g. a network retry racing the original request) can't both read the
-  // same quizAttempt and both submit for it. The monthly-window cap itself
-  // was already checked above (it can't be expressed as a simple atomic
-  // comparison since it depends on filtering attempt-history timestamps);
-  // the tiny remaining race between two truly simultaneous submissions is an
-  // accepted trade-off, same as elsewhere in this codebase.
   const reservedProgress = await CourseProgress.findOneAndUpdate(
     { _id: progress._id, quizStatus: { $ne: "passed" } },
     { $inc: { quizAttempt: 1 } },
@@ -353,9 +311,6 @@ export const employeeSubmitQuiz = async (req, res) => {
     return res.status(409).json({ message: "You have already passed this quiz." });
   }
 
-  // Grade against exactly the subset this attempt was served (the full pool
-  // when the assessment has no sampleSize, or the sampled subset resolved by
-  // the earlier /start call — see resolveAttemptQuestions).
   const gradedQuestions = resolveAttemptQuestions({ assessment, progress: reservedProgress, field: "quiz" });
 
   let correct = 0;
@@ -477,9 +432,6 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
     });
   }
 
-  // A resubmission of the same answers for the attempt we already scored
-  // (double-click, client-side retry) is idempotent: return the cached
-  // outcome instead of re-scoring and burning an attempt.
   const isDuplicateRetry =
     String(progress.finalAssignmentLastSubmission?.assessmentId || "") === String(assessmentId) &&
     progress.finalAssignmentLastSubmission?.attemptNo === progress.finalAssignmentAttempt &&
@@ -507,9 +459,6 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
     });
   }
 
-  // Atomically reserve the next attempt slot — see employeeSubmitQuiz for why
-  // the monthly-window cap is checked above rather than folded into this
-  // query's filter.
   const reservedProgress = await CourseProgress.findOneAndUpdate(
     {
       _id: progress._id,
@@ -522,8 +471,6 @@ export const employeeSubmitFinalAssignment = async (req, res) => {
     return res.status(409).json({ message: "You already passed this assignment." });
   }
 
-  // Grade against exactly the subset this attempt was served — see
-  // employeeSubmitQuiz for why.
   const gradedQuestions = resolveAttemptQuestions({ assessment, progress: reservedProgress, field: "finalAssignment" });
 
   let score = 0;

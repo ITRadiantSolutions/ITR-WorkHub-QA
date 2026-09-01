@@ -3,10 +3,6 @@ import Skill from "../models/Skill.js";
 import SkillCategory from "../models/SkillCategory.js";
 import Course from "../models/Course.js";
 
-// Ported from the standalone LMS project's skillController.js. Bulk import
-// uses multer memoryStorage (see routes/lms/skill.routes.js) instead of the
-// source's disk storage, so the workbook is parsed straight from the
-// buffer — no temp file to clean up afterward.
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 

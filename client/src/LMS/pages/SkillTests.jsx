@@ -68,6 +68,9 @@ export default function SkillTests() {
               {test.badge ? ` · badge: ${test.badge.name}` : ""}
               {test.skill ? ` · skill: ${test.skill.name}` : ""}
             </p>
+            {test.availableAt && new Date(test.availableAt) > new Date() && (
+              <p className="text-[11px] font-semibold text-amber-600">🔒 Opens {new Date(test.availableAt).toLocaleString()}</p>
+            )}
             <div className="flex items-center gap-2 mt-3">
               <button
                 onClick={() => navigate(`/lms/manage-skill-tests/${test._id}`)}

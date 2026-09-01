@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-// Renamed from the source project's `Review` model — disambiguates from any
-// other review-type model elsewhere in the unified platform.
 const courseReviewSchema = new mongoose.Schema(
   {
     course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },

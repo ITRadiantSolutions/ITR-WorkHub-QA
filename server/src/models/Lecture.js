@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-// `materials[].fileUrl` stores a blob name (see Course.js's comment on
-// thumbnail — same signed-URL-on-read pattern).
 const materialSchema = new mongoose.Schema(
   {
     type: { type: String, enum: ["pdf", "video", "videoLink"], required: true },

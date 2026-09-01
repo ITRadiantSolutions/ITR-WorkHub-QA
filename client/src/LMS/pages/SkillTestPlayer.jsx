@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { skillTestsApi } from "../lmsApi.js";
@@ -14,7 +14,7 @@ export default function SkillTestPlayer() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
-  const startAttempt = () => {
+  const startAttempt = useCallback(() => {
     setLoading(true);
     setResult(null);
     setAnswers({});
@@ -26,12 +26,11 @@ export default function SkillTestPlayer() {
         navigate("/lms/skill-tests");
       })
       .finally(() => setLoading(false));
-  };
+  }, [testId, navigate]);
 
   useEffect(() => {
     startAttempt();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [testId]);
+  }, [startAttempt]);
 
   const submit = async () => {
     setSubmitting(true);

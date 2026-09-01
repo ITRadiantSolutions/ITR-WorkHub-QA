@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { sampleSectionedAttemptQuestions } from "./lmsQuestionSampling.js";
 
-// Minimal pool: 40 Node.js + 40 React.js questions, ids "n0".."n39" / "r0".."r39".
 const makePool = () => [
   ...Array.from({ length: 40 }, (_, i) => ({ _id: `n${i}`, section: "Node.js" })),
   ...Array.from({ length: 40 }, (_, i) => ({ _id: `r${i}`, section: "React.js" })),

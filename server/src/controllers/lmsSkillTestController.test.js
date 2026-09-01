@@ -2,10 +2,6 @@ import { describe, it, expect } from "vitest";
 import xlsx from "xlsx";
 import { parseProseQuestions, parseQuestionBlocks, validateSections, validateGradeBands, buildAttemptReview } from "./lmsSkillTestController.js";
 
-// A faithful slice of the flattened "Converted_Data_*.csv" the study-guide PDF
-// produces: leading metadata, page-header noise, section switches, plain
-// questions, and reworded-duplicate questions whose prompt + explanation wrap
-// onto extra rows.
 const FLATTENED_CSV = `,Node.js + React.js Learning-Purpose MCQ Guide,,
 ,400 Questions,,
 Node.js + React.js Learning MCQ Guide, ,Page 1,
@@ -75,9 +71,9 @@ describe("parseProseQuestions (flattened study-guide CSV)", () => {
       "What is Node.js?",
       "Which JavaScript engine does Node.js use?",
       "What is the event loop?",
-      "Which JavaScript engine does Node.js use?", // Q52, prefix stripped + wrapped line joined
+      "Which JavaScript engine does Node.js use?",
       "What is React?",
-      "Is JSX mandatory to use React?", // Q253, prefix stripped
+      "Is JSX mandatory to use React?",
     ]);
   });
 

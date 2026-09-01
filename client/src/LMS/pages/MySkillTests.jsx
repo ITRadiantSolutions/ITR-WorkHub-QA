@@ -12,6 +12,14 @@ const STATUS_STYLE = {
 };
 const STATUS_LABEL = { passed: "Passed", failed: "Failed", in_progress: "In progress", not_started: "Not started" };
 
+const opensInLabel = (availableAt) => {
+  const mins = Math.ceil((new Date(availableAt).getTime() - Date.now()) / 60000);
+  if (mins <= 0) return "Opening now";
+  if (mins < 60) return `Opens in ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  return `Opens in ${hrs}h ${mins % 60}m`;
+};
+
 export default function MySkillTests() {
   const navigate = useNavigate();
   const [tests, setTests] = useState([]);
@@ -59,12 +67,25 @@ export default function MySkillTests() {
                 Last: {test.lastScore}% · {test.lastGrade}
               </p>
             )}
+            {test.locked && test.status !== "in_progress" && (
+              <p className="text-[11px] font-semibold text-amber-600">
+                🔒 {opensInLabel(test.availableAt)} · {new Date(test.availableAt).toLocaleString()}
+              </p>
+            )}
             <button
-              disabled={!test.canAttempt}
+              disabled={!test.canAttempt && test.status !== "in_progress"}
               onClick={() => navigate(`/lms/skill-tests/${test._id}/take`)}
               className="w-full text-xs font-semibold rounded-lg py-1.5 bg-amber-600 hover:bg-amber-700 text-white disabled:bg-slate-200 disabled:text-slate-400"
             >
-              {test.status === "passed" ? "Passed" : test.status === "in_progress" ? "Resume" : test.canAttempt ? "Start" : "No attempts left"}
+              {test.status === "passed"
+                ? "Passed"
+                : test.status === "in_progress"
+                  ? "Resume"
+                  : test.locked
+                    ? "Locked"
+                    : test.canAttempt
+                      ? "Start"
+                      : "No attempts left"}
             </button>
             {(test.status === "passed" || test.status === "failed") && (
               <button

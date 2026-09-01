@@ -1,7 +1,3 @@
-// Post-submission answer review — shared by the player's result screen and
-// the standalone /lms/skill-tests/:testId/review page. `review` is the array
-// the server returns: one entry per served question with the learner's answer,
-// the correct answer and the explanation.
 
 export default function SkillTestReviewList({ review = [] }) {
   if (!review.length) return null;

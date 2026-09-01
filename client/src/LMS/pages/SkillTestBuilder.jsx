@@ -7,7 +7,6 @@ import Icons from "../../components/Icons.jsx";
 const EMPTY_MCQ_QUESTION = () => ({ type: "mcq", prompt: "", section: "", explanation: "", options: [{ text: "" }, { text: "" }], correctOptionIndex: 0, acceptableAnswers: [] });
 const EMPTY_FILL_BLANK_QUESTION = () => ({ type: "fill_blank", prompt: "", section: "", explanation: "", options: [], acceptableAnswers: [""] });
 
-// Mirrors DEFAULT_GRADE_BANDS in server/src/models/SkillTest.js.
 const DEFAULT_GRADE_BANDS = [
   { label: "Expert", minPercent: 90 },
   { label: "Proficient", minPercent: 75 },
@@ -190,14 +189,18 @@ export default function SkillTestBuilder() {
         saved = data;
       }
 
-      // Reconcile skill-group assignment against whatever the server already has.
       const currentGroupIds = new Set((saved.skillGroups || []).map((g) => (typeof g === "string" ? g : g._id)));
       const toAdd = form.skillGroups.filter((id) => !currentGroupIds.has(id));
       const toRemove = [...currentGroupIds].filter((id) => !form.skillGroups.includes(id));
-      if (toAdd.length) await skillTestsApi.assignGroups(saved._id, toAdd);
-      for (const groupId of toRemove) await skillTestsApi.unassignGroup(saved._id, groupId);
+      let assigned = saved;
+      if (toAdd.length) assigned = (await skillTestsApi.assignGroups(saved._id, toAdd)).data;
+      for (const groupId of toRemove) assigned = (await skillTestsApi.unassignGroup(saved._id, groupId)).data;
 
-      toast.success("Test saved");
+      toast.success("Test saved — question paper emailed");
+      const availableAt = assigned?.availableAt || saved?.availableAt;
+      if (availableAt && new Date(availableAt) > new Date()) {
+        toast(`Opens for employees at ${new Date(availableAt).toLocaleString()}`, { icon: "🔒" });
+      }
       if (isNew) navigate(`/lms/manage-skill-tests/${saved._id}`, { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to save test");

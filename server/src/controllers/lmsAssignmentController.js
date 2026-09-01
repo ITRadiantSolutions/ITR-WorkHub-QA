@@ -6,12 +6,6 @@ import LmsLearningReport from "../models/LmsLearningReport.js";
 import { getEmployeeAssignmentEligibility } from "../utils/lmsAssignmentEligibility.js";
 import { assertCanManageUser, getManagedEmployeeFilter, getManagedEmployeeIds } from "../utils/lmsTeamScope.js";
 
-// Ported from the standalone LMS project's adminAssignmentController.js.
-// The source denormalized enrollment onto both Course.enrolledStudents AND a
-// User.enrolledCourses array that could drift out of sync; ItrOne's User
-// model has no such field, so Course.enrolledStudents + CourseAssignment
-// docs are the only source of truth here — one less place for the two to
-// disagree.
 
 const normalizeObjectIdArray = (ids) => {
   if (!Array.isArray(ids)) return [];
@@ -90,8 +84,6 @@ export const adminAssignCourseToEmployees = async (req, res) => {
   let validEmployeeIds = employees.map((employee) => employee._id);
   if (validEmployeeIds.length === 0) return res.status(400).json({ message: "No valid employees found" });
 
-  // Career-development gate: an employee's profile (resume + skills, at minimum)
-  // must be >=50% complete before a course can be assigned to them.
   const [profiles, reports] = await Promise.all([
     EmployeeProfile.find({ employee: { $in: validEmployeeIds } }).select("employee resume description experiences skills"),
     LmsLearningReport.find({ employeeId: { $in: validEmployeeIds } }).select("employeeId generatedAt"),

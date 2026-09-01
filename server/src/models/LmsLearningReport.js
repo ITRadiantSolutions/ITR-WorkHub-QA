@@ -1,9 +1,5 @@
 import mongoose from "mongoose";
 
-// Renamed from the source project's `EmpReports` model. Denormalized
-// per-employee learning snapshot — a materialized-view/cache pattern
-// regenerated from Course/CourseProgress/CourseAssessment rather than the
-// live source of truth.
 
 const materialReportSchema = new mongoose.Schema(
   {

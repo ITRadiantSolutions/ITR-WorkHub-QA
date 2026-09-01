@@ -4,9 +4,6 @@ import { getEmployeeProfileCompletionPercent } from "../utils/lmsAssignmentEligi
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
-// New — not present in the source app's controllers (it read badges/skills
-// off a combined userModel.enrolledCourses + profile fetch). Exposes
-// EmployeeProfile for the "My Badges"/"My Skills"/"My Profile" employee views.
 
 export const getMyLearningProfile = async (req, res) => {
   let profile = await EmployeeProfile.findOne({ employee: req.user._id })
@@ -33,9 +30,6 @@ export const getMyLearningProfile = async (req, res) => {
   });
 };
 
-// Self-service editing — an employee builds their own profile (skills,
-// resume, description, work experience) toward the 50%/100% completion
-// thresholds that gate course assignment (see utils/lmsAssignmentEligibility.js).
 
 export const updateMyProfile = async (req, res) => {
   const { description, experiences } = req.body;
@@ -115,8 +109,6 @@ export const removeMySkill = async (req, res) => {
   res.json({ skills: profile.skills, totalSkills: profile.totalSkills, profileCompletionPercent: getEmployeeProfileCompletionPercent(profile) });
 };
 
-// Manual skill editing — admin/manager can add or correct an employee's
-// skill set directly, independent of course/test completion.
 
 export const adminGetEmployeeProfile = async (req, res) => {
   if (!isManager(req.user)) return res.status(403).json({ message: "Manager/Admin access required" });

@@ -3,9 +3,6 @@ import Anthropic from "@anthropic-ai/sdk";
 const BATCH_SIZE = 10;
 const DEFAULT_MODEL = "claude-haiku-4-5";
 
-// A malformed item from the model shouldn't sink the whole batch — drop it
-// and keep whatever parsed cleanly. Mirrors the shape lmsSkillTestController's
-// validateQuestionPool expects for a "mcq" question.
 const normalizeQuestion = (raw) => {
   if (!raw || typeof raw.prompt !== "string" || !raw.prompt.trim()) return null;
   const options = Array.isArray(raw.options) ? raw.options.filter((o) => typeof o === "string" && o.trim()) : [];
@@ -20,8 +17,6 @@ const normalizeQuestion = (raw) => {
   };
 };
 
-// Claude is told to reply with bare JSON, but may still wrap it in ```json
-// fences or a stray sentence — pull out the outermost { … } span before parsing.
 const extractJsonObject = (text) => {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -44,7 +39,6 @@ const buildPrompt = ({ skillName, category, description, batchCount }) => {
 async function requestBatch(client, { skillName, category, description, batchCount }) {
   const message = await client.messages.create({
     model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
-    // Generous ceiling — 10 MCQs is ~1.5k tokens; the cap only guards runaways.
     max_tokens: 8192,
     system:
       "You are a technical assessment author. Reply with a single raw JSON object only — " +
@@ -61,17 +55,11 @@ async function requestBatch(client, { skillName, category, description, batchCou
   return list.map(normalizeQuestion).filter(Boolean);
 }
 
-// Generates up to `count` MCQ questions for a skill, in parallel batches of
-// BATCH_SIZE (smaller completions are far more reliable than one huge JSON
-// blob). Malformed items are dropped rather than failing their batch; only
-// throws if every batch request itself failed (network/auth/rate-limit).
 export async function generateMcqQuestions({ skillName, category, description, count }) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY is not configured on the server");
   }
 
-  // Instantiated per call so an unset key disables the feature instead of
-  // throwing at import time (the SDK constructor requires a key).
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const batchSizes = [];

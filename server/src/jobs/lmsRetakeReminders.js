@@ -1,9 +1,3 @@
-// Daily sweep for employees who failed an LMS assessment, still have
-// reattempts left this month, but let their 14-day retake deadline
-// (CourseProgress.quiz/finalAssignmentRetakeDueBy) pass without retaking —
-// see lmsProgressController.js for where that deadline gets set. Notifies
-// the employee's manager once per missed deadline via the same
-// manager-or-admin fallback used for exhausted attempts.
 import cron from "node-cron";
 import CourseProgress from "../models/CourseProgress.js";
 import Course from "../models/Course.js";

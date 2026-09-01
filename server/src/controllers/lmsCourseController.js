@@ -8,12 +8,6 @@ import CourseReview from "../models/CourseReview.js";
 import LmsLearningReport from "../models/LmsLearningReport.js";
 import { uploadAttachment, deleteAttachments, createReadUrl } from "../config/blobStorage.js";
 
-// Ported from the standalone LMS project's courseController.js + adminCourseController.js
-// (merged — the source duplicated course/lecture CRUD between a "creator" and an "admin"
-// variant with no actual ownership check differentiating them). File uploads go through
-// ItrOne's Azure Blob Storage (config/blobStorage.js) instead of the source's own
-// multer-disk-then-upload helper; thumbnails/material files store a blob name and are
-// resolved to a short-lived signed URL on the way out, same pattern as VMS visitor photos.
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
@@ -111,9 +105,6 @@ export const getCreatorCourses = async (req, res) => {
   res.json(courses.map(resolveCourse));
 };
 
-// Draft (unpublished) courses may contain half-finished material uploads and
-// aren't meant to be visible outside their creator/managers — an employee
-// who guesses or is handed a courseId shouldn't be able to read it early.
 export const getCourseById = async (req, res) => {
   const course = await Course.findById(req.params.courseId).populate("lectures reviews").lean();
   if (!course) return res.status(404).json({ message: "Course not found" });
@@ -213,9 +204,6 @@ export const removeCourse = async (req, res) => {
     ...(course.lectures || []).flatMap((lecture) => (lecture.materials || []).map((material) => material.fileUrl)),
   ].filter(Boolean);
 
-  // Nothing else cascades from a course delete — clean up every collection
-  // that references this course so it doesn't leave dangling progress,
-  // assignment, and review records behind.
   await Promise.all([
     Lecture.deleteMany({ _id: { $in: course.lectures } }),
     CourseAssessment.deleteMany({ course: course._id }),

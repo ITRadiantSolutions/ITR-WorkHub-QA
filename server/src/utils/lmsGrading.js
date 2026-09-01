@@ -1,6 +1,3 @@
-// Maps a score percentage to a SkillTest grade-band label. Bands are
-// {label, minPercent}; the highest band whose minPercent the score reaches
-// wins. Independent of passingPercentage, which still gates badge/skill awards.
 
 export const resolveGrade = (scorePercent, gradeBands) => {
   if (!Array.isArray(gradeBands) || !gradeBands.length) return "";

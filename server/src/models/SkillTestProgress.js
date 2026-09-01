@@ -5,41 +5,28 @@ const sectionBreakdownSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// Compact per-question outcome for an attempt — enough to rebuild the
-// answer-review screen (right/wrong + the learner's own answer) by joining
-// `question` back against SkillTest.questionPool. Deliberately does NOT copy
-// prompt/option/explanation text, which stays the single source of truth on
-// the test.
 const answerResultSchema = new mongoose.Schema(
   {
     question: { type: mongoose.Schema.Types.ObjectId },
-    given: { type: mongoose.Schema.Types.Mixed, default: null }, // mcq: option index · fill_blank: string
+    given: { type: mongoose.Schema.Types.Mixed, default: null },
     correct: { type: Boolean, default: false },
   },
   { _id: false },
 );
 
-// One doc per employee-per-test — same reasoning as CourseProgress being
-// per-employee-per-course rather than embedding attempts inside SkillTest:
-// avoids write contention across concurrent test-takers and unbounded
-// document growth on the shared test doc.
 const attemptHistorySchema = new mongoose.Schema(
   {
     attemptNo: { type: Number, required: true },
     startedAt: { type: Date, default: Date.now },
     submittedAt: { type: Date, default: null },
-    // The exact sampled subset actually served for this attempt.
     questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
     score: { type: Number, default: 0 },
     passed: { type: Boolean, default: false },
-    // Resolved from SkillTest.gradeBands at submit time (e.g. "Intermediate").
     grade: { type: String, default: "" },
     correctCount: { type: Number, default: 0 },
     wrongCount: { type: Number, default: 0 },
     totalQuestions: { type: Number, default: 0 },
-    // Per-section correct/total for sectioned tests; [] for flat tests.
     sectionBreakdown: { type: [sectionBreakdownSchema], default: [] },
-    // Per-question outcomes, in served order — powers the post-submit review.
     answers: { type: [answerResultSchema], default: [] },
     badgeAwarded: { type: Boolean, default: false },
     badgeId: { type: mongoose.Schema.Types.ObjectId, ref: "Badge", default: null },
@@ -57,17 +44,12 @@ const skillTestProgressSchema = new mongoose.Schema(
     status: { type: String, enum: ["not_started", "in_progress", "passed", "failed"], default: "not_started" },
     attemptCount: { type: Number, default: 0 },
 
-    // The subset in flight — stored so a page refresh mid-attempt returns
-    // the SAME questions instead of silently resampling.
     currentAttempt: {
       attemptNo: { type: Number, default: 0 },
       questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
       startedAt: { type: Date, default: null },
     },
 
-    // Idempotency marker so a duplicate submit (double-click, network retry)
-    // doesn't re-score or re-award for the same attempt — mirrors
-    // CourseProgress's quizLastSubmission.
     lastSubmission: {
       attemptNo: { type: Number, default: 0 },
       answersHash: { type: String, default: "" },

@@ -6,10 +6,6 @@ import User from "../models/User.js";
 import LmsLearningReport from "../models/LmsLearningReport.js";
 import { getManagedEmployeeFilter } from "../utils/lmsTeamScope.js";
 
-// Ported from the standalone LMS project's adminReportsController.js. This
-// rebuilds LmsLearningReport (renamed from EmpReports) — a denormalized
-// per-employee snapshot the frontend reads from directly rather than
-// recomputing progress live on every page load.
 
 const buildAttemptHistory = ({ storedHistory = [], liveHistory = [], attempts = 0, latest = {} }) => {
   const source = liveHistory.length ? liveHistory : storedHistory;

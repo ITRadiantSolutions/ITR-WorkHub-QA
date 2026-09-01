@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import Badge from "../models/Badge.js";
 import { uploadAttachment, deleteAttachments, createReadUrl } from "../config/blobStorage.js";
 
-// Ported from the standalone LMS project's badgeController.js.
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 

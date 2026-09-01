@@ -5,8 +5,6 @@ import { skillTestsApi } from "../lmsApi.js";
 import SkillTestReviewList from "../SkillTestReviewList.jsx";
 import Icons from "../../components/Icons.jsx";
 
-// Revisit the most recent completed attempt: right/wrong per question plus the
-// explanation for each. Reachable from the "Review answers" link on My Tests.
 export default function SkillTestReview() {
   const { testId } = useParams();
   const navigate = useNavigate();

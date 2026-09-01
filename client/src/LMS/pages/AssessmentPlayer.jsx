@@ -4,9 +4,6 @@ import { toast } from "sonner";
 import { assessmentsApi, progressApi } from "../lmsApi.js";
 import Icons from "../../components/Icons.jsx";
 
-// type is "quiz" | "assignment" — picks the latest published assessment of
-// that type for the course, same "prefer published, fall back to newest"
-// rule the backend progress summary uses.
 export default function AssessmentPlayer() {
   const { courseId, type } = useParams();
   const navigate = useNavigate();
@@ -28,9 +25,6 @@ export default function AssessmentPlayer() {
           navigate(`/lms/courses/${courseId}`);
           return;
         }
-        // Fetches the question set actually served for this attempt — the
-        // full set, or a random sample when the assessment has sampleSize
-        // set (so different employees can get different questions).
         const startFn = type === "quiz" ? progressApi.startQuiz : progressApi.startAssignment;
         const { data: started } = await startFn(courseId, chosen._id);
         setAssessment({ ...chosen, ...started });

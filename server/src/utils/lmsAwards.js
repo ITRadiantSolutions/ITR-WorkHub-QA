@@ -2,11 +2,6 @@ import EmployeeProfile from "../models/EmployeeProfile.js";
 import Badge from "../models/Badge.js";
 import Skill from "../models/Skill.js";
 
-// Shared badge/skill-award logic — originally lived only in
-// lmsProgressController.js (course quiz/assignment path), extracted so the
-// new skill-test path (lmsSkillTestController.js) writes to the exact same
-// EmployeeProfile.skills[]/badges[]/badgeAwards[] instead of forking it, so a
-// skill/badge shows up the same way regardless of how it was earned.
 
 export const awardBadgeToEmployee = async ({ employeeId, badgeId, courseId, testId, assessmentType }) => {
   if (!badgeId || (!courseId && !testId) || !assessmentType) return false;

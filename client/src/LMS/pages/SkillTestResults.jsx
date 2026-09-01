@@ -93,6 +93,7 @@ export default function SkillTestResults() {
           <h1 className="text-xl font-semibold text-slate-900">{data.test.title} — Results</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {data.test.groups.length ? `Groups: ${data.test.groups.join(", ")}` : "No groups assigned"} · pass {data.test.passingPercentage}%
+            {data.test.locked ? ` · 🔒 opens ${new Date(data.test.availableAt).toLocaleString()}` : ""}
           </p>
         </div>
         <button

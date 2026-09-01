@@ -3,14 +3,10 @@ import CourseAssessment from "../models/CourseAssessment.js";
 import Badge from "../models/Badge.js";
 import Skill from "../models/Skill.js";
 
-// Ported from the standalone LMS project's courseAssessmentController.js.
-// Admin/manager-only quiz & final-assignment definitions attached to a course.
 
 const isManager = (user) => user.isSuperAdmin || ["manager", "admin"].includes(user.roles.lms);
 
 const resolveBadgeOrSkill = async ({ badge, skill }) => {
-  // In the source app, the badge <select> may actually submit a Skill id —
-  // resolve whichever collection the id belongs to.
   let badgeId = null;
   let skillId = null;
 
@@ -89,9 +85,6 @@ export const adminCreateAssessment = async (req, res) => {
   }
 };
 
-// Shared by two audiences: the admin CourseBuilder (needs the answer key to
-// edit questions) and the employee AssessmentPlayer (must never see it before
-// submitting). Only managers/admins get correctOptionIndex in the response.
 export const adminListAssessmentsByCourse = async (req, res) => {
   const query = CourseAssessment.find({ course: req.params.courseId })
     .populate("skill", "name")

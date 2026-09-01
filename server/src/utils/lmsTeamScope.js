@@ -1,10 +1,5 @@
 import User from "../models/User.js";
 
-// Adapted from the standalone LMS project's utils/teamScope.js. The source
-// scoped "my team" via Azure AD (reportingManager.azureObjectId/department);
-// ItrOne's User model has no such fields, so this uses the plain `managerId`
-// ref already shared by every module instead. `protect` already attaches the
-// full User doc to req.user, so callers pass that directly (no re-fetch).
 
 export const getManagedEmployeeFilter = (actor) => {
   if (actor.roles.lms === "admin") return { "roles.lms": "employee" };
@@ -38,9 +33,6 @@ export const assertCanManageUser = async (actor, targetUserOrId) => {
   }
 };
 
-// Who should be told about something an employee needs help with (exhausted
-// assessment attempts, a missed retake deadline): their manager, or — if they
-// have none — every LMS admin.
 export const getManagerOrAdminRecipientIds = async (employee) => {
   if (employee.managerId) return [employee.managerId];
   const admins = await User.find({ "roles.lms": "admin" }).select("_id").lean();

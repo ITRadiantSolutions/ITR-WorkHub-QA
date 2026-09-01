@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
 
-// Ported from the standalone LMS project's courseModel.js. `thumbnail` stores
-// a blob name (not a URL) — resolved to a signed read URL on the way out, via
-// config/blobStorage.js's createReadUrl, same pattern as VMS visitor photos.
 const courseSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
