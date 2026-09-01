@@ -28,6 +28,16 @@ jobs:
             client/package-lock.json
             server/package-lock.json
 
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            client/node_modules
+            server/node_modules
+          key: nm-${{ runner.os }}-node22-${{ hashFiles('client/package-lock.json', 'server/package-lock.json') }}
+          restore-keys: |
+            nm-${{ runner.os }}-node22-
+
       - name: Build frontend
         working-directory: client
         env:
