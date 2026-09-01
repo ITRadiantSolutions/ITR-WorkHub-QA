@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { skillTestsApi } from "../lmsApi.js";
+import SkillTestReviewList from "../SkillTestReviewList.jsx";
 import Icons from "../../components/Icons.jsx";
 
 export default function SkillTestPlayer() {
@@ -48,15 +49,23 @@ export default function SkillTestPlayer() {
 
   if (result) {
     return (
-      <div className="p-6 sm:p-8 max-w-2xl mx-auto">
+      <div className="p-6 sm:p-8 max-w-2xl mx-auto space-y-4">
         <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-8 text-center">
           <span className={`inline-flex mx-auto mb-3 ${result.passed ? "text-emerald-500" : "text-amber-500"}`}>
             {result.passed ? <Icons.CheckCircle /> : <Icons.Alert />}
           </span>
           <h2 className="text-lg font-bold text-slate-900">{result.passed ? "You passed!" : "Not quite there"}</h2>
-          <p className="text-sm text-slate-500 mt-1">
+          {result.grade && (
+            <p className="mt-2 inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white">Grade: {result.grade}</p>
+          )}
+          <p className="text-sm text-slate-500 mt-2">
             Score: {result.score}% ({result.correct}/{result.total} correct)
           </p>
+          {result.sectionBreakdown?.length > 0 && (
+            <p className="text-xs text-slate-400 mt-1">
+              {result.sectionBreakdown.map((s) => `${s.name} ${s.correct}/${s.total}`).join(" · ")}
+            </p>
+          )}
           {result.badgeAwarded && <p className="text-xs font-semibold text-amber-600 mt-2">🏅 Badge earned: {result.badge?.name}</p>}
           {result.skillAwarded && <p className="text-xs font-semibold text-amber-600 mt-1">✨ Skill verified: {result.skill?.name}</p>}
 
@@ -90,6 +99,13 @@ export default function SkillTestPlayer() {
             </button>
           </div>
         </div>
+
+        {result.review?.length > 0 && (
+          <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-5">
+            <p className="text-xs font-bold text-slate-700 mb-3">Your answers ({result.correct}/{result.total} correct)</p>
+            <SkillTestReviewList review={result.review} />
+          </div>
+        )}
       </div>
     );
   }

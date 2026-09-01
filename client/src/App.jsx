@@ -61,6 +61,8 @@ import SkillTests from "./LMS/pages/SkillTests";
 import SkillTestBuilder from "./LMS/pages/SkillTestBuilder";
 import MySkillTests from "./LMS/pages/MySkillTests";
 import SkillTestPlayer from "./LMS/pages/SkillTestPlayer";
+import SkillTestReview from "./LMS/pages/SkillTestReview";
+import SkillTestResults from "./LMS/pages/SkillTestResults";
 import HrmsLayout from "./HRMS/HrmsLayout";
 import HrmsDashboard from "./HRMS/pages/Dashboard";
 import HrmsJobs from "./HRMS/pages/Jobs";
@@ -430,6 +432,14 @@ function App() {
                 }
               />
               <Route
+                path="/lms/manage-skill-tests/:testId/results"
+                element={
+                  <ProtectedRoute moduleRoles={{ module: "lms", roles: ["manager", "admin"] }}>
+                    <SkillTestResults />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/lms/skill-tests"
                 element={
                   <ProtectedRoute>
@@ -442,6 +452,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SkillTestPlayer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lms/skill-tests/:testId/review"
+                element={
+                  <ProtectedRoute>
+                    <SkillTestReview />
                   </ProtectedRoute>
                 }
               />

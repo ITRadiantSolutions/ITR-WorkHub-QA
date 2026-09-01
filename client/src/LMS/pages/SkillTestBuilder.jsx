@@ -4,8 +4,17 @@ import { toast } from "sonner";
 import { skillTestsApi, skillsApi, badgesApi, skillGroupsApi } from "../lmsApi.js";
 import Icons from "../../components/Icons.jsx";
 
-const EMPTY_MCQ_QUESTION = () => ({ type: "mcq", prompt: "", options: [{ text: "" }, { text: "" }], correctOptionIndex: 0, acceptableAnswers: [] });
-const EMPTY_FILL_BLANK_QUESTION = () => ({ type: "fill_blank", prompt: "", options: [], acceptableAnswers: [""] });
+const EMPTY_MCQ_QUESTION = () => ({ type: "mcq", prompt: "", section: "", explanation: "", options: [{ text: "" }, { text: "" }], correctOptionIndex: 0, acceptableAnswers: [] });
+const EMPTY_FILL_BLANK_QUESTION = () => ({ type: "fill_blank", prompt: "", section: "", explanation: "", options: [], acceptableAnswers: [""] });
+
+// Mirrors DEFAULT_GRADE_BANDS in server/src/models/SkillTest.js.
+const DEFAULT_GRADE_BANDS = [
+  { label: "Expert", minPercent: 90 },
+  { label: "Proficient", minPercent: 75 },
+  { label: "Intermediate", minPercent: 50 },
+  { label: "Beginner", minPercent: 25 },
+  { label: "Needs Revision", minPercent: 0 },
+];
 
 const EMPTY_FORM = {
   title: "",
@@ -19,6 +28,8 @@ const EMPTY_FORM = {
   isPublished: false,
   questionPool: [],
   skillGroups: [],
+  sections: [],
+  gradeBands: DEFAULT_GRADE_BANDS,
 };
 
 export default function SkillTestBuilder() {
@@ -32,6 +43,11 @@ export default function SkillTestBuilder() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const useSections = form.sections.length > 0;
+  const poolInSection = (name) => form.questionPool.filter((q) => (q.section || "").trim() === name).length;
+  const derivedAttemptSize = form.sections.reduce((sum, s) => sum + (Number(s.count) || 0), 0);
 
   useEffect(() => {
     Promise.all([skillsApi.all(), badgesApi.allAdmin(), skillGroupsApi.all()])
@@ -51,12 +67,53 @@ export default function SkillTestBuilder() {
             skill: data.skill?._id || data.skill || "",
             badge: data.badge?._id || data.badge || "",
             skillGroups: (data.skillGroups || []).map((g) => (typeof g === "string" ? g : g._id)),
+            sections: (data.sections || []).map((s) => ({ name: s.name, count: s.count })),
+            gradeBands: data.gradeBands?.length ? data.gradeBands.map((b) => ({ label: b.label, minPercent: b.minPercent })) : DEFAULT_GRADE_BANDS,
           }),
         )
         .catch(() => toast.error("Failed to load test"))
         .finally(() => setLoading(false));
     }
   }, [testId, isNew]);
+
+  const importQuestions = async (file) => {
+    if (!file) return;
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const { data } = await skillTestsApi.parseQuestions(fd);
+      const incoming = data.questions || [];
+      if (!incoming.length) {
+        toast.error(
+          data.errors?.length
+            ? `Nothing imported — ${data.errors.length} row(s) unreadable. Check the file format.`
+            : "Nothing imported — no questions recognised in that file.",
+        );
+        return;
+      }
+      setForm((f) => {
+        const seen = new Set(f.questionPool.map((q) => q.prompt.trim().toLowerCase()));
+        const merged = [...f.questionPool];
+        let added = 0;
+        for (const q of incoming) {
+          const key = q.prompt.trim().toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          merged.push({ acceptableAnswers: [], explanation: "", section: "", ...q });
+          added++;
+        }
+        const dupes = incoming.length - added;
+        toast.success(`Imported ${added} question${added === 1 ? "" : "s"}${dupes ? ` · ${dupes} duplicate${dupes === 1 ? "" : "s"} skipped` : ""}`);
+        return { ...f, questionPool: merged };
+      });
+      if (data.errors?.length) toast.error(`${data.errors.length} row(s) skipped: ${data.errors[0].message}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not import that file");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const updateQuestion = (qIdx, patch) => {
     setForm((f) => ({ ...f, questionPool: f.questionPool.map((q, i) => (i === qIdx ? { ...q, ...patch } : q)) }));
@@ -75,9 +132,31 @@ export default function SkillTestBuilder() {
     e.preventDefault();
     if (!form.title.trim()) return toast.error("Title is required");
     if (!form.durationMinutes || form.durationMinutes < 1) return toast.error("Duration must be at least 1 minute");
-    const size = Number(form.attemptSize);
-    if (!size || size < 1) return toast.error("Questions per attempt must be at least 1");
-    if (size > form.questionPool.length) return toast.error("Questions per attempt cannot exceed the question pool size");
+
+    let size;
+    if (useSections) {
+      for (const s of form.sections) {
+        if (!s.name.trim()) return toast.error("Every section needs a name");
+        const count = Number(s.count);
+        if (!count || count < 1) return toast.error(`Section "${s.name}" needs a count of at least 1`);
+        if (count > poolInSection(s.name.trim())) return toast.error(`Section "${s.name}" wants ${count} but the pool only has ${poolInSection(s.name.trim())}`);
+      }
+      size = derivedAttemptSize;
+    } else {
+      size = Number(form.attemptSize);
+      if (!size || size < 1) return toast.error("Questions per attempt must be at least 1");
+      if (size > form.questionPool.length) return toast.error("Questions per attempt cannot exceed the question pool size");
+    }
+
+    if (!form.gradeBands.length || !form.gradeBands.some((b) => Number(b.minPercent) === 0)) {
+      return toast.error("Grade bands need one band starting at 0%");
+    }
+    for (const b of form.gradeBands) {
+      if (!b.label.trim()) return toast.error("Every grade band needs a label");
+      const min = Number(b.minPercent);
+      if (!Number.isFinite(min) || min < 0 || min > 100) return toast.error("Grade band % must be between 0 and 100");
+    }
+
     for (const q of form.questionPool) {
       if (!q.prompt.trim()) return toast.error("Every question needs a prompt");
       if (q.type === "mcq" && q.options.filter((o) => o.text.trim()).length < 2) return toast.error("Every MCQ question needs at least 2 options");
@@ -93,6 +172,8 @@ export default function SkillTestBuilder() {
         description: form.description,
         durationMinutes: Number(form.durationMinutes),
         attemptSize: size,
+        sections: useSections ? form.sections.map((s) => ({ name: s.name.trim(), count: Number(s.count) })) : [],
+        gradeBands: form.gradeBands.map((b) => ({ label: b.label.trim(), minPercent: Number(b.minPercent) })),
         maxAttempts: Number(form.maxAttempts),
         passingPercentage: Number(form.passingPercentage),
         skill: form.skill || null,
@@ -156,10 +237,18 @@ export default function SkillTestBuilder() {
           />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <LabeledNumber label="Duration (min)" value={form.durationMinutes} min={1} onChange={(v) => setForm((f) => ({ ...f, durationMinutes: v }))} />
-            <LabeledNumber label="Questions/attempt" value={form.attemptSize} min={1} onChange={(v) => setForm((f) => ({ ...f, attemptSize: v }))} />
+            {useSections ? (
+              <label className="text-[10px] font-semibold text-slate-500 space-y-1 block">
+                Questions/attempt
+                <div className="w-full text-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 mt-0.5 text-slate-500">{derivedAttemptSize} (from sections)</div>
+              </label>
+            ) : (
+              <LabeledNumber label="Questions/attempt" value={form.attemptSize} min={1} onChange={(v) => setForm((f) => ({ ...f, attemptSize: v }))} />
+            )}
             <LabeledNumber label="Max attempts" value={form.maxAttempts} min={1} onChange={(v) => setForm((f) => ({ ...f, maxAttempts: v }))} />
             <LabeledNumber label="Pass %" value={form.passingPercentage} min={0} max={100} onChange={(v) => setForm((f) => ({ ...f, passingPercentage: v }))} />
           </div>
+          <p className="text-[10px] text-slate-400">Pass % gates any badge/skill award. Grade bands below label the score independently.</p>
           <div className="grid grid-cols-2 gap-2">
             <select value={form.badge} onChange={(e) => setForm((f) => ({ ...f, badge: e.target.value }))} className="text-xs rounded-lg border border-slate-200 px-3 py-2">
               <option value="">No badge</option>
@@ -188,6 +277,18 @@ export default function SkillTestBuilder() {
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-slate-700">Question pool ({form.questionPool.length})</p>
             <div className="flex items-center gap-2">
+              <label className={`text-[11px] font-semibold text-amber-600 hover:underline cursor-pointer ${importing ? "opacity-50 pointer-events-none" : ""}`}>
+                {importing ? "Importing…" : "Import questions"}
+                <input
+                  type="file"
+                  accept=".json,.csv,.xlsx,.xls,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    importQuestions(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
               <button
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, questionPool: [...f.questionPool, EMPTY_MCQ_QUESTION()] }))}
@@ -204,6 +305,11 @@ export default function SkillTestBuilder() {
               </button>
             </div>
           </div>
+          <p className="text-[10px] text-slate-400">
+            Import a <code>.json</code> array, a <code>.csv</code>/<code>.xlsx</code> with columns{" "}
+            <span className="font-mono">section, type, prompt, optionA–optionD, correct (A–D), acceptableAnswers, explanation</span>, or a plain
+            numbered study-guide (<span className="font-mono">1. … / A. … / Answer: X / Explanation: …</span>). Duplicate prompts are skipped.
+          </p>
 
           {form.questionPool.map((question, qIdx) => (
             <div key={qIdx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-2.5 space-y-1.5">
@@ -214,6 +320,13 @@ export default function SkillTestBuilder() {
                   onChange={(e) => updateQuestion(qIdx, { prompt: e.target.value })}
                   placeholder={`Question ${qIdx + 1}`}
                   className="flex-1 text-[11px] rounded border border-slate-200 px-2 py-1"
+                />
+                <input
+                  value={question.section || ""}
+                  onChange={(e) => updateQuestion(qIdx, { section: e.target.value })}
+                  list={form.sections.length ? "section-names" : undefined}
+                  placeholder="Section"
+                  className="w-28 text-[11px] rounded border border-slate-200 px-2 py-1 shrink-0"
                 />
                 <button type="button" onClick={() => removeQuestion(qIdx)} className="text-red-500 shrink-0">
                   <Icons.Trash />
@@ -284,6 +397,104 @@ export default function SkillTestBuilder() {
             </div>
           ))}
           {form.questionPool.length === 0 && <p className="text-xs text-slate-400">No questions yet — add MCQ or fill-in-the-blank above.</p>}
+        </div>
+
+        <datalist id="section-names">
+          {form.sections.map((s, i) => (
+            <option key={i} value={s.name} />
+          ))}
+        </datalist>
+
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-700">Sections &amp; quotas</p>
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, sections: [...f.sections, { name: "", count: 1 }] }))}
+              className="text-[11px] font-semibold text-amber-600 hover:underline"
+            >
+              + Section
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-400">
+            Optional. Add sections (e.g. <span className="font-mono">Node.js</span>, <span className="font-mono">React.js</span>) to draw a fixed number from each per attempt.
+            Leave empty to sample {form.attemptSize || "N"} from the whole pool.
+          </p>
+          {form.sections.map((section, sIdx) => {
+            const available = poolInSection(section.name.trim());
+            return (
+              <div key={sIdx} className="flex items-center gap-2">
+                <input
+                  value={section.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sections: f.sections.map((s, i) => (i === sIdx ? { ...s, name: e.target.value } : s)) }))
+                  }
+                  placeholder="Section name"
+                  className="flex-1 text-[11px] rounded border border-slate-200 px-2 py-1"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  value={section.count}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sections: f.sections.map((s, i) => (i === sIdx ? { ...s, count: e.target.value } : s)) }))
+                  }
+                  className="w-20 text-[11px] rounded border border-slate-200 px-2 py-1"
+                />
+                <span className={`text-[10px] shrink-0 ${Number(section.count) > available ? "text-red-500" : "text-slate-400"}`}>/ {available} in pool</span>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, sections: f.sections.filter((_, i) => i !== sIdx) }))}
+                  className="text-slate-400 hover:text-red-500 shrink-0"
+                >
+                  <Icons.X />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-700">Grade bands</p>
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, gradeBands: [...f.gradeBands, { label: "", minPercent: 0 }] }))}
+              className="text-[11px] font-semibold text-amber-600 hover:underline"
+            >
+              + Band
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-400">The highest band whose % the score reaches becomes the employee's grade. Keep one band at 0%.</p>
+          {form.gradeBands.map((band, bIdx) => (
+            <div key={bIdx} className="flex items-center gap-2">
+              <input
+                value={band.label}
+                onChange={(e) => setForm((f) => ({ ...f, gradeBands: f.gradeBands.map((b, i) => (i === bIdx ? { ...b, label: e.target.value } : b)) }))}
+                placeholder="Label"
+                className="flex-1 text-[11px] rounded border border-slate-200 px-2 py-1"
+              />
+              <span className="text-[10px] text-slate-400 shrink-0">≥</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={band.minPercent}
+                onChange={(e) => setForm((f) => ({ ...f, gradeBands: f.gradeBands.map((b, i) => (i === bIdx ? { ...b, minPercent: e.target.value } : b)) }))}
+                className="w-20 text-[11px] rounded border border-slate-200 px-2 py-1"
+              />
+              <span className="text-[10px] text-slate-400 shrink-0">%</span>
+              {form.gradeBands.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, gradeBands: f.gradeBands.filter((_, i) => i !== bIdx) }))}
+                  className="text-slate-400 hover:text-red-500 shrink-0"
+                >
+                  <Icons.X />
+                </button>
+              )}
+            </div>
+          ))}
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-2">

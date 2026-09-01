@@ -60,7 +60,8 @@ export default function SkillTests() {
             </div>
             <h3 className="text-sm font-bold text-slate-900">{test.title}</h3>
             <p className="text-[11px] text-slate-400 mt-1">
-              {test.questionPool.length} questions in pool · {test.attemptSize} per attempt · pass {test.passingPercentage}%
+              {test.questionPool.length} questions in pool ·{" "}
+              {test.sections?.length ? test.sections.map((s) => `${s.count} ${s.name}`).join(" + ") : `${test.attemptSize}`} per attempt · pass {test.passingPercentage}%
             </p>
             <p className="text-[11px] text-slate-400">
               {test.skillGroups.length} group{test.skillGroups.length === 1 ? "" : "s"} assigned
@@ -73,6 +74,12 @@ export default function SkillTests() {
                 className="flex-1 text-xs font-semibold rounded-lg py-1.5 border border-amber-200 text-amber-700 hover:bg-amber-50"
               >
                 Edit
+              </button>
+              <button
+                onClick={() => navigate(`/lms/manage-skill-tests/${test._id}/results`)}
+                className="flex-1 text-xs font-semibold rounded-lg py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Results
               </button>
               <button onClick={() => removeTest(test._id)} className="text-xs font-semibold rounded-lg py-1.5 px-3 border border-red-200 text-red-600 hover:bg-red-50">
                 <Icons.Trash />

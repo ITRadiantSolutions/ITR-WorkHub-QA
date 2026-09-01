@@ -46,13 +46,19 @@ export default function MySkillTests() {
             <h3 className="text-sm font-bold text-slate-900">{test.title}</h3>
             {test.description && <p className="text-[11px] text-slate-400">{test.description}</p>}
             <p className="text-[11px] text-slate-400">
-              {test.durationMinutes} min · {test.attemptSize} questions · pass {test.passingPercentage}%
+              {test.durationMinutes} min ·{" "}
+              {test.sections?.length ? test.sections.map((s) => `${s.count} ${s.name}`).join(" + ") : `${test.attemptSize} questions`} · pass {test.passingPercentage}%
             </p>
             <p className="text-[11px] text-slate-400">
               Attempts used: {test.attemptCount}/{test.maxAttempts}
               {test.badge ? ` · badge: ${test.badge.name}` : ""}
               {test.skill ? ` · skill: ${test.skill.name}` : ""}
             </p>
+            {test.lastGrade && (
+              <p className="text-[11px] font-semibold text-slate-500">
+                Last: {test.lastScore}% · {test.lastGrade}
+              </p>
+            )}
             <button
               disabled={!test.canAttempt}
               onClick={() => navigate(`/lms/skill-tests/${test._id}/take`)}
@@ -60,6 +66,14 @@ export default function MySkillTests() {
             >
               {test.status === "passed" ? "Passed" : test.status === "in_progress" ? "Resume" : test.canAttempt ? "Start" : "No attempts left"}
             </button>
+            {(test.status === "passed" || test.status === "failed") && (
+              <button
+                onClick={() => navigate(`/lms/skill-tests/${test._id}/review`)}
+                className="w-full text-xs font-semibold rounded-lg py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Review answers
+              </button>
+            )}
           </div>
         ))}
         {tests.length === 0 && <p className="text-xs text-slate-400">No tests assigned to you yet.</p>}

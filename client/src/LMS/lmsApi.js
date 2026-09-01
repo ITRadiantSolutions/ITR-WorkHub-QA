@@ -106,12 +106,17 @@ export const skillTestsApi = {
   byIdAdmin: (testId) => API.get(`/lms/skill-tests/admin/${testId}`),
   create: (data) => API.post("/lms/skill-tests/admin", data),
   generate: (skillId, count) => API.post("/lms/skill-tests/admin/generate", { skillId, count }),
+  // Stateless — returns { questions, errors, counts }; the builder merges the
+  // parsed questions into its in-memory pool before saving.
+  parseQuestions: (formData) => API.post("/lms/skill-tests/admin/parse-questions", formData),
   update: (testId, data) => API.put(`/lms/skill-tests/admin/${testId}`, data),
   remove: (testId) => API.delete(`/lms/skill-tests/admin/${testId}`),
   assignGroups: (testId, skillGroupIds) => API.post(`/lms/skill-tests/admin/${testId}/assign`, { skillGroupIds }),
   unassignGroup: (testId, groupId) => API.delete(`/lms/skill-tests/admin/${testId}/assign/${groupId}`),
+  results: (testId) => API.get(`/lms/skill-tests/admin/${testId}/results`),
   available: () => API.get("/lms/skill-tests/available"),
   start: (testId) => API.post(`/lms/skill-tests/${testId}/start`),
   submit: (testId, answers) => API.post(`/lms/skill-tests/${testId}/submit`, { answers }),
   progress: (testId) => API.get(`/lms/skill-tests/${testId}/progress`),
+  review: (testId) => API.get(`/lms/skill-tests/${testId}/review`),
 };

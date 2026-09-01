@@ -25,3 +25,34 @@ export const sampleAttemptQuestions = (pool, sampleSize, previousQuestionIds) =>
   }
   return picked;
 };
+
+// Sectioned variant for SkillTest.sections: draw exactly `count` question ids
+// from each named section (section-major order), then re-roll the whole paper
+// (up to 20 tries) if it exactly matches the previous attempt. A section with
+// fewer questions than its quota simply contributes all it has — the
+// controller's validateSections keeps that from happening on well-formed
+// tests, but grading stays correct either way since it only ever scores the
+// ids actually served.
+export const sampleSectionedAttemptQuestions = (pool, sections, previousQuestionIds) => {
+  const idsBySection = new Map();
+  for (const q of pool) {
+    const key = q.section || "";
+    if (!idsBySection.has(key)) idsBySection.set(key, []);
+    idsBySection.get(key).push(String(q._id));
+  }
+
+  const prev = (previousQuestionIds || []).map(String);
+  const prevSet = new Set(prev);
+
+  let picked = [];
+  for (let i = 0; i < 20; i++) {
+    picked = [];
+    for (const { name, count } of sections) {
+      const available = idsBySection.get(name) || [];
+      picked.push(...shuffle(available).slice(0, count));
+    }
+    const sameAsPrev = prevSet.size === picked.length && picked.every((id) => prevSet.has(id));
+    if (!sameAsPrev) break;
+  }
+  return picked;
+};
