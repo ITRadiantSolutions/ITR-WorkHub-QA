@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-// A snapshot of the employee's SalaryStructure at generation time — later
-// edits to the structure must never retroactively change an issued payslip.
 const payslipSchema = new mongoose.Schema(
   {
     employee: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -18,11 +16,6 @@ const payslipSchema = new mongoose.Schema(
     totalContributions: { type: Number, default: 0 },
     totalDeductions: { type: Number, required: true },
     netPay: { type: Number, required: true },
-
-    // Everything below is a snapshot of the employee/salary-structure at
-    // generation time, for the same reason `components` is snapshotted —
-    // a later profile edit (e.g. a PAN correction) must never rewrite a
-    // payslip that's already been issued.
     employeeNumber: { type: String, default: "" },
     department: { type: String, default: "" },
     designation: { type: String, default: "" },
@@ -32,13 +25,10 @@ const payslipSchema = new mongoose.Schema(
     panNumber: { type: String, default: "" },
     dateOfBirth: { type: Date, default: null },
     monthlySalary: { type: Number, default: 0 },
-    // Total calendar days in the pay cycle (not working-days-excluding-
-    // weekends — matches how the days/LOP figures read on a standard payslip).
     totalWorkingDays: { type: Number, default: 0 },
     lossOfPayDays: { type: Number, default: 0 },
     actualPayableDays: { type: Number, default: 0 },
     daysPayable: { type: Number, default: 0 },
-
     status: { type: String, enum: ["generated", "paid"], default: "generated" },
     generatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     paidAt: { type: Date, default: null },

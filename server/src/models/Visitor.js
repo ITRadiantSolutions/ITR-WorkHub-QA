@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 
-// Ported from the standalone VMS project's Visitor model. Status values
-// lowercased to match this codebase's enum convention (see Submission.js,
-// KraAssignment.js) — the original used SCREAMING_CASE throughout.
+
 export const VISIT_STATUS = {
   DRAFT: "draft",
   OTP_PENDING: "otp_pending",

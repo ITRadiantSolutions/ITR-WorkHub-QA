@@ -8,7 +8,6 @@ const courseSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     level: { type: String, enum: ["Beginner", "Intermediate", "Advanced"], default: "Beginner" },
     thumbnail: { type: String, default: "" },
-
     enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     lectures: [{ type: mongoose.Schema.Types.ObjectId, ref: "Lecture" }],
     creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
 
-// HR-published, employee/manager-visible job listing. Deliberately a
-// separate entity from JobRequest (the manager's internal ask that HR
-// reviews) — a JobPost may or may not have originated from one.
 const jobPostSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -29,7 +26,6 @@ const jobPostSchema = new mongoose.Schema(
       default: "draft",
     },
 
-    // Nullable — HR can also create a post directly, with no source request.
     sourceJobRequest: { type: mongoose.Schema.Types.ObjectId, ref: "JobRequest", default: null },
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

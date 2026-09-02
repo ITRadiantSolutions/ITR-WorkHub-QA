@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
 
-// A manager's ask for a new opening, routed to HR for review. Kept separate
-// from JobPost (the HR-published, employee-visible listing) — approving a
-// request creates a JobPost, it doesn't become one in place.
 const clarificationSchema = new mongoose.Schema(
   {
     askedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

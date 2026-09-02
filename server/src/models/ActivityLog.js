@@ -1,9 +1,5 @@
 import mongoose from "mongoose";
 
-// Merges the old AuditLog + MicrosoftLoginLog collections — both were
-// diagnostic/log-shaped (strict:false) records that only ever got queried by
-// time range and status, so a `logType` discriminator plus one optional
-// `msLogin` subdocument covers both without a second collection.
 const activityLogSchema = new mongoose.Schema(
   {
     logType: { type: String, enum: ["audit", "ms_login"], required: true, index: true },

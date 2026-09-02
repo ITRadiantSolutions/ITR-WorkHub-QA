@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
 
-// The relationship between a Candidate and a specific JobPost — kept
-// separate from Candidate so the same person can be referred for multiple
-// jobs without duplicating their profile/resume.
 const statusHistoryEntrySchema = new mongoose.Schema(
   {
     status: { type: String, required: true },

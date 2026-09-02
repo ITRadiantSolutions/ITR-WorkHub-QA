@@ -33,7 +33,6 @@ const projectSchema = new mongoose.Schema(
     startDate: Date,
     endDate: Date,
 
-    // Point of contact — carried over from TimeFlow's project record.
     poc: {
       name: { type: String, trim: true, default: "" },
       email: { type: String, trim: true, lowercase: true, default: "" },
@@ -41,19 +40,10 @@ const projectSchema = new mongoose.Schema(
     },
 
     projectLead: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    // Replaces the old team_members collection's name-string project list.
     teamMembers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-
-    // Carried over from TimeFlow's project_holidays.py (was embedded on the
-    // project document there too). Extra holiday dates specific to this
-    // project, on top of the company-wide calendar.
     holidays: [{ type: String }],
-    // Company-wide holiday dates this project opts OUT of — e.g. a US
-    // client's project that stays open on an India-only public holiday.
     excludedHolidays: [{ type: String }],
-
     attachments: [attachmentSchema],
-
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true },

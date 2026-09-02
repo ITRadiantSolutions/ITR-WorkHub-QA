@@ -4,6 +4,7 @@ const assetAssignmentSchema = new mongoose.Schema(
   {
     asset: { type: mongoose.Schema.Types.ObjectId, ref: "Asset", required: true, index: true },
     employee: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    employeeId: { type: String, trim: true, required: true, index: true },
     assignedAt: { type: Date, default: Date.now },
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     status: { type: String, enum: ["active", "returned"], default: "active" },

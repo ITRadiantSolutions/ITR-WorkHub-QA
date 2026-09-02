@@ -212,7 +212,7 @@ export default function SkillTestBuilder() {
   if (loading) return <div className="p-8 text-sm text-slate-400">Loading…</div>;
 
   return (
-    <div className="p-6 sm:p-8 space-y-5 max-w-3xl">
+    <div className="p-6 sm:p-8 space-y-5 max-w-6xl mx-auto">
       <div className="flex items-center gap-2">
         <button onClick={() => navigate("/lms/manage-skill-tests")} className="text-slate-400 hover:text-slate-600">
           <Icons.Back />
@@ -315,14 +315,14 @@ export default function SkillTestBuilder() {
           </p>
 
           {form.questionPool.map((question, qIdx) => (
-            <div key={qIdx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-2.5 space-y-1.5">
+            <div key={qIdx} className="rounded-lg border border-slate-200 bg-slate-50/40 p-2.5 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase text-slate-400 shrink-0">{question.type === "mcq" ? "MCQ" : "Fill blank"}</span>
                 <input
                   value={question.prompt}
                   onChange={(e) => updateQuestion(qIdx, { prompt: e.target.value })}
                   placeholder={`Question ${qIdx + 1}`}
-                  className="flex-1 text-[11px] rounded border border-slate-200 px-2 py-1"
+                  className="flex-1 min-w-0 text-[11px] rounded border border-slate-200 px-2 py-1"
                 />
                 <input
                   value={question.section || ""}
@@ -337,65 +337,75 @@ export default function SkillTestBuilder() {
               </div>
 
               {question.type === "mcq" ? (
-                <>
-                  {question.options.map((option, oIdx) => (
-                    <div key={oIdx} className="flex items-center gap-2 pl-6">
-                      <input type="radio" checked={question.correctOptionIndex === oIdx} onChange={() => updateQuestion(qIdx, { correctOptionIndex: oIdx })} />
-                      <input
-                        value={option.text}
-                        onChange={(e) => updateQuestion(qIdx, { options: question.options.map((o, oi) => (oi === oIdx ? { text: e.target.value } : o)) })}
-                        placeholder={`Option ${oIdx + 1}`}
-                        className="flex-1 text-[11px] rounded border border-slate-200 px-2 py-1"
-                      />
-                      {question.options.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => updateQuestion(qIdx, { options: question.options.filter((_, oi) => oi !== oIdx) })}
-                          className="text-slate-400 hover:text-red-500"
-                        >
-                          <Icons.X />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                <div className="space-y-1.5 pl-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                    {question.options.map((option, oIdx) => (
+                      <div key={oIdx} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          className="shrink-0"
+                          title="Correct answer"
+                          checked={question.correctOptionIndex === oIdx}
+                          onChange={() => updateQuestion(qIdx, { correctOptionIndex: oIdx })}
+                        />
+                        <input
+                          value={option.text}
+                          onChange={(e) => updateQuestion(qIdx, { options: question.options.map((o, oi) => (oi === oIdx ? { text: e.target.value } : o)) })}
+                          placeholder={`Option ${oIdx + 1}`}
+                          className="flex-1 min-w-0 text-[11px] rounded border border-slate-200 px-2 py-1"
+                        />
+                        {question.options.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => updateQuestion(qIdx, { options: question.options.filter((_, oi) => oi !== oIdx) })}
+                            className="text-slate-400 hover:text-red-500 shrink-0"
+                          >
+                            <Icons.X />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     onClick={() => updateQuestion(qIdx, { options: [...question.options, { text: "" }] })}
-                    className="text-[10px] font-semibold text-amber-600 hover:underline pl-6"
+                    className="text-[10px] font-semibold text-amber-600 hover:underline"
                   >
                     + Add option
                   </button>
-                </>
+                </div>
               ) : (
-                <>
-                  {question.acceptableAnswers.map((answer, aIdx) => (
-                    <div key={aIdx} className="flex items-center gap-2 pl-6">
-                      <input
-                        value={answer}
-                        onChange={(e) => updateQuestion(qIdx, { acceptableAnswers: question.acceptableAnswers.map((a, ai) => (ai === aIdx ? e.target.value : a)) })}
-                        placeholder="Acceptable answer"
-                        className="flex-1 text-[11px] rounded border border-slate-200 px-2 py-1"
-                      />
-                      {question.acceptableAnswers.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => updateQuestion(qIdx, { acceptableAnswers: question.acceptableAnswers.filter((_, ai) => ai !== aIdx) })}
-                          className="text-slate-400 hover:text-red-500"
-                        >
-                          <Icons.X />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                <div className="space-y-1.5 pl-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                    {question.acceptableAnswers.map((answer, aIdx) => (
+                      <div key={aIdx} className="flex items-center gap-2">
+                        <input
+                          value={answer}
+                          onChange={(e) => updateQuestion(qIdx, { acceptableAnswers: question.acceptableAnswers.map((a, ai) => (ai === aIdx ? e.target.value : a)) })}
+                          placeholder="Acceptable answer"
+                          className="flex-1 min-w-0 text-[11px] rounded border border-slate-200 px-2 py-1"
+                        />
+                        {question.acceptableAnswers.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => updateQuestion(qIdx, { acceptableAnswers: question.acceptableAnswers.filter((_, ai) => ai !== aIdx) })}
+                            className="text-slate-400 hover:text-red-500 shrink-0"
+                          >
+                            <Icons.X />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     onClick={() => updateQuestion(qIdx, { acceptableAnswers: [...question.acceptableAnswers, ""] })}
-                    className="text-[10px] font-semibold text-amber-600 hover:underline pl-6"
+                    className="text-[10px] font-semibold text-amber-600 hover:underline"
                   >
                     + Add acceptable answer
                   </button>
-                  <p className="text-[10px] text-slate-400 pl-6">Matched case-insensitively, trimmed.</p>
-                </>
+                  <p className="text-[10px] text-slate-400">Matched case-insensitively, trimmed.</p>
+                </div>
               )}
             </div>
           ))}

@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
 
-// One record per approval decision in a visitor's chain (reception -> optional
-// security escalation -> host). Role/status values match User.roles.vms and
-// are lowercased from the original VMS project's SCREAMING_CASE convention.
 export const APPROVAL_STATUS = {
   PENDING: "pending",
   APPROVED: "approved",

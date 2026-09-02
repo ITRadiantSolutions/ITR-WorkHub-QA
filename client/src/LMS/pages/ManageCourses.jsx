@@ -116,7 +116,11 @@ export default function ManageCourses() {
             <input type="checkbox" checked={form.isPublished} onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))} />
             Publish immediately
           </label>
-          <button disabled={saving} type="submit" className="sm:col-span-2 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg py-2">
+          <button
+            disabled={saving}
+            type="submit"
+            className="sm:col-span-2 justify-self-end text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-5 py-2 disabled:opacity-60"
+          >
             {saving ? "Creating…" : "Create Course"}
           </button>
         </form>

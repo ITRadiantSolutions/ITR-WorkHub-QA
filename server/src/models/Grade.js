@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
 
-// Compensation band only — full salary structure (components, PF/ESI/tax
-// breakdown) is Payroll's job in a later phase. This just gives Employee
-// Management and future Payroll a shared reference point.
 const gradeSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true, unique: true },

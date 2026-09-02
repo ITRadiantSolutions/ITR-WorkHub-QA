@@ -7,8 +7,7 @@ const usersGroupSchema = new mongoose.Schema(
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },
-  // Explicit name: Mongoose's default pluralization ("usersgroups") doesn't
-  // match the "users_group" collection the data migration wrote to.
+
   { timestamps: true, collection: "users_group" },
 );
 

@@ -6,8 +6,6 @@ const offboardingSchema = new mongoose.Schema(
     resignationDate: { type: Date, required: true },
     lastWorkingDate: { type: Date, required: true },
     reason: { type: String, trim: true, default: "" },
-    // "cleared" only once the exit interview is recorded and final settlement
-    // is processed — see processFinalSettlement's guard in the controller.
     status: { type: String, enum: ["notice_period", "cleared"], default: "notice_period" },
 
     exitInterview: {

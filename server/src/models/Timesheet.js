@@ -12,8 +12,6 @@ const rowSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// One entry per submit/approve/reject/needs_edit transition, so re-submission
-// cycles keep their trail instead of just overwriting managerActionBy/At/Comment.
 const historyEntrySchema = new mongoose.Schema(
   {
     action: { type: String, required: true }, // "submitted" | "approved" | "rejected" | "needs_edit"

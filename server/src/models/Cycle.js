@@ -1,10 +1,5 @@
 import mongoose from "mongoose";
 
-// The old system's `templates` collection (per-cycle form config: weight
-// limit, quarter selection, auto-created flag) was a 1:1 companion to a
-// cycle, fanned out into a second collection with a `selected` flag to mark
-// the active one. Folding it in here as `formConfig` removes that collection
-// and the "which template is active" bookkeeping entirely.
 const cycleSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },

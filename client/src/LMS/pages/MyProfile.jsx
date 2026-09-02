@@ -117,7 +117,7 @@ export default function MyProfile() {
   }));
 
   return (
-    <div className="p-6 sm:p-8 space-y-5 max-w-3xl">
+    <div className="p-6 sm:p-8 space-y-5 max-w-5xl mx-auto">
       <div>
         <h1 className="text-xl font-semibold text-slate-900">My Profile</h1>
         <p className="text-xs text-slate-500 mt-0.5">Add your skills and resume — courses can only be assigned once your profile is at least 50% complete.</p>
@@ -134,22 +134,35 @@ export default function MyProfile() {
         <p className="text-[10px] text-slate-400 mt-2">Skills + resume gets you to 50%. Add a description and work experience to reach 100%.</p>
       </div>
 
-      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-3">
-        <p className="text-xs font-bold text-slate-700">Resume {!profile?.hasResume && <span className="text-red-500 font-normal">(required)</span>}</p>
-        {profile?.hasResume && (
-          <a href={profile.resume} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-amber-600 hover:underline flex items-center gap-1 w-fit">
-            <Icons.Download /> View current resume
-          </a>
-        )}
-        <div className="flex flex-wrap gap-2 items-center">
-          <label className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer border border-dashed border-slate-300 rounded-xl px-3 py-2">
-            <Icons.Plus />
-            {resumeFile ? resumeFile.name : "Choose file"}
-            <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setResumeFile(e.target.files?.[0] || null)} />
-          </label>
-          <button disabled={!resumeFile || uploadingResume} onClick={uploadResume} className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold disabled:opacity-60">
-            {uploadingResume ? "Uploading…" : "Upload"}
-          </button>
+      <div className="grid gap-5 md:grid-cols-2 items-start">
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-3">
+          <p className="text-xs font-bold text-slate-700">Resume {!profile?.hasResume && <span className="text-red-500 font-normal">(required)</span>}</p>
+          {profile?.hasResume && (
+            <a href={profile.resume} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-amber-600 hover:underline flex items-center gap-1 w-fit">
+              <Icons.Download /> View current resume
+            </a>
+          )}
+          <div className="flex flex-wrap gap-2 items-center">
+            <label className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer border border-dashed border-slate-300 rounded-xl px-3 py-2">
+              <Icons.Plus />
+              {resumeFile ? resumeFile.name : "Choose file"}
+              <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setResumeFile(e.target.files?.[0] || null)} />
+            </label>
+            <button disabled={!resumeFile || uploadingResume} onClick={uploadResume} className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold disabled:opacity-60">
+              {uploadingResume ? "Uploading…" : "Upload"}
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-3">
+          <p className="text-xs font-bold text-slate-700">Description</p>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            placeholder="A short summary about yourself"
+            className="w-full text-sm rounded-xl border border-slate-200 px-3 py-2"
+          />
         </div>
       </div>
 
@@ -197,17 +210,6 @@ export default function MyProfile() {
             + Add skill
           </button>
         </form>
-      </div>
-
-      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-3">
-        <p className="text-xs font-bold text-slate-700">Description</p>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          placeholder="A short summary about yourself"
-          className="w-full text-sm rounded-xl border border-slate-200 px-3 py-2"
-        />
       </div>
 
       <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-3">

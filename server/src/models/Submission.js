@@ -21,11 +21,6 @@ const kraResponseSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// Merges the old template_responses (per-KRA, fanned out) + template_submissions
-// (per-employee workflow gate) + report_summary (final HR rollup) collections
-// into one document per (cycle, employee). That fan-out across three
-// collections was the actual source of the sync-bug risk flagged during
-// migration planning — embedding responses removes it.
 const submissionSchema = new mongoose.Schema(
   {
     cycleId: { type: mongoose.Schema.Types.ObjectId, ref: "Cycle", required: true },
@@ -48,21 +43,11 @@ const submissionSchema = new mongoose.Schema(
     },
 
     kraResponses: { type: [kraResponseSchema], default: [] },
-
-    // When the employee last submitted this review (set on the
-    // pending_manager_approval / employee_submitted / final_employee_submitted
-    // transitions). Distinct from `updatedAt`, which also moves on unrelated
-    // edits like a manager's draft review notes.
     submittedAt: { type: Date, default: null },
 
     finalReport: {
       managerSubmitted: { type: Boolean, default: false },
       managerOverallResponse: { type: String, default: "" },
-      // employeeAvg/managerAvg are each a weight-adjusted average of the
-      // per-KRA ratings (kraResponses[].rating / .managerRating), computed
-      // in managerReview once every KRA has both sides filled in.
-      // overallRating defaults to their midpoint but can still be
-      // overridden by the manager via setFinalReport.
       employeeAvg: { type: Number, default: null },
       managerAvg: { type: Number, default: null },
       overallRating: { type: Number, default: null },
@@ -76,16 +61,8 @@ const submissionSchema = new mongoose.Schema(
 submissionSchema.index({ cycleId: 1, employeeId: 1 }, { unique: true });
 submissionSchema.index({ cycleId: 1, managerId: 1 });
 
-// Legacy/migrated submissions can carry data that predates this schema —
-// an out-of-enum kraResponses[].status string, or a null cycleId (the old
-// write paths used findOneAndUpdate, which skips validation). Those only
-// surface as a crash the first time the document goes through a full
-// Document#save() (e.g. a manager completing a review), so normalize them
-// here instead of failing on someone else's stale data.
 const KRA_RESPONSE_STATUSES = kraResponseSchema.path("status").enumValues;
-// Async pre-save hooks signal completion via their returned promise, not a
-// next() callback — declaring one here (and calling it) crashed every save
-// with "next is not a function" the moment this hook actually ran.
+
 submissionSchema.pre("save", async function () {
   for (const response of this.kraResponses) {
     if (!KRA_RESPONSE_STATUSES.includes(response.status)) {

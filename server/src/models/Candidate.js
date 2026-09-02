@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-// The person being referred, kept separate from Referral so the same
-// candidate can be referred for multiple jobs without duplicating their info.
 const candidateSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },

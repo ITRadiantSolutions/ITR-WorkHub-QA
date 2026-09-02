@@ -1,9 +1,5 @@
 import mongoose from "mongoose";
 
-// Additive, standalone join collection — deliberately NOT a change to
-// Project.teamMembers, which Tracker/Timesheet already read directly for
-// access control (see server/src/utils/projectAccess.js). This lets HRMS
-// grant a per-project role without touching that existing behavior at all.
 const projectRoleAssignmentSchema = new mongoose.Schema(
   {
     project: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },

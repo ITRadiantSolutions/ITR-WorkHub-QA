@@ -24,7 +24,7 @@ const attemptHistorySchema = new mongoose.Schema(
     correctAnswers: { type: Number, default: 0 },
     wrongAnswers: { type: Number, default: 0 },
     maxAttempts: { type: Number, default: 1 },
-    passingPercentage: { type: Number, default: 80 },
+    passingPercentage: { type: Number, default: 60 },
     totalQuestions: { type: Number, default: 0 },
     badgeAwarded: { type: Boolean, default: false },
     badgeId: { type: mongoose.Schema.Types.ObjectId, ref: "Badge", default: null },

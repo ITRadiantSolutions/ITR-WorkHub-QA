@@ -1,8 +1,5 @@
 import mongoose from "mongoose";
 
-// One rollup row per employee per calendar day — what HR actually monitors.
-// Recomputed from AttendancePunch (+ leave/holiday calendars) every time a
-// punch lands for that day; see recomputeDay in hrmsAttendanceController.js.
 const attendanceDaySchema = new mongoose.Schema(
   {
     employee: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },

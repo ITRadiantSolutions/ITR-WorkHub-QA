@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-// Merges the old Notification + NotificationHistory collections: `archivedAt`
-// replaces moving a doc into a second "history" collection after 5 days.
 const notificationSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },

@@ -15,9 +15,7 @@ const clientGroupSchema = new mongoose.Schema(
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
-  // Explicit name: Mongoose's default pluralization ("clientgroups") doesn't
-  // match the "client_groups" collection the data migration wrote to.
-  { timestamps: true, collection: "client_groups" },
+   { timestamps: true, collection: "client_groups" },
 );
 
 clientGroupSchema.index({ name: 1 }, { unique: true, collation: { locale: "en", strength: 2 } });
