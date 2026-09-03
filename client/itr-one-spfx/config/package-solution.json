@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "itr-one-client-side-solution",
+    "id": "5761b844-aef9-47bf-ad48-ab6f0f52c0a0",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.23.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "ITR One description"
+      },
+      "longDescription": {
+        "default": "ITR One description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "itr-one Feature",
+        "description": "The feature that activates elements of the itr-one solution.",
+        "id": "35a979d1-c8bb-4375-9f03-0fdddf25f165",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/itr-one.sppkg"
+  }
+}

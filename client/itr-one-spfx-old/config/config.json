@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "itr-one-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/itrOne/ItrOneWebPart.js",
+          "manifest": "./src/webparts/itrOne/ItrOneWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "ItrOneWebPartStrings": "lib/webparts/itrOne/loc/{locale}.js"
+  }
+}

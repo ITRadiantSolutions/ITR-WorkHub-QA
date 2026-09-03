@@ -1,0 +1,19 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "useGulp": false,
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "24.12.0",
+    "sdksVersions": {},
+    "version": "1.23.2",
+    "libraryName": "itr-one",
+    "libraryId": "5761b844-aef9-47bf-ad48-ab6f0f52c0a0",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "ITR One",
+    "solutionShortDescription": "ITR One description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}
